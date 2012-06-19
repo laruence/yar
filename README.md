@@ -11,7 +11,7 @@ This extension is under developing, please do not use this in a product
 
 ## Introduce
 
-Yar is a RPC framwork which aim to provide a simply and easy way to communication between PHP applications
+Yar is a RPC framwork which aim to provide a simply and easy way for communicating between PHP applications
 
 It also provide ability to call remote services concurrently.
 
