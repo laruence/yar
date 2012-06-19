@@ -51,36 +51,47 @@ ZEND_END_ARG_INFO()
 
 /* {{{ HTML Markups for service info */
 #define HTML_MARKUP_HEADER  \
-    "<!DOCTYPE HTML>\n" \
-    "<html>\n" \
-	  "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"/>\n" \
-      "<head><title>Yar RPC Framework</title>\n" \
-		"<style type=\"text/css\">\n" \
-		  "body {background-color: #ffffff; color: #000000;}\n" \
-		  "body, td, th, h1, h2 {font-family: sans-serif;}\n" \
-		  ".center {text-align: center;}\n" \
-		  ".center table { margin-left: auto; margin-right: auto; text-align: left;}\n" \
-		  ".center th { text-align: center !important; }\n" \
-		  "h1 {font-size: 150%;}\n" \
-		  "h2 {font-size: 125%;}\n" \
-		  ".p {text-align: left;}\n" \
-		  ".e {background-color: #ccccff; font-weight: bold; color: #000000;}\n" \
-		  ".h {background-color: #9999cc; font-weight: bold; color: #000000;}\n" \
-		  ".v {background-color: #cccccc; color: #000000;}\n" \
-		  ".vr {background-color: #cccccc; text-align: right; color: #000000;}\n" \
-		  "img {float: right; border: 0px;}\n" \
-		  "hr {width: 600px; background-color: #cccccc; border: 0px; height: 1px; color: #000000;}\n" \
-		"</style>\n" \
-      "</heade>\n" \
-      "<body>\n"
+	"<!DOCTYPE html>\n" \
+	"<html>\n" \
+	" <head>\n" \
+	"  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" \
+	"  <title>Yar RPC Server</title>\n" \
+	"  <style>\n" \
+	"   body { margin: 0; font:14px/20px Verdana, Arial, sans-serif; color: #333; background: #f8f8f8;}\n" \
+	"   h1, h2, pre { margin: 0; padding: 0;}\n" \
+	"   h1 { font:bold 28px Verdana,Arial; background:#99c; padding: 12px 5px; border-bottom: 4px solid #669; box-shadow: 0 1px 4px #bbb; color: #222;}\n" \
+	"   h2 { font:normal 20px/22px Georgia, Times, \"Times New Roman\", serif; padding: 5px 0 8px; margin: 20px 10px 0; border-bottom: 1px solid #ddd; cursor:pointer;}\n" \
+	"   p, dd { color: #555; }\n" \
+	"   .api-info { padding: 10px 0; margin-left: 20px; }\n" \
+	"   .api-block { margin-left: 40px;}\n" \
+	"   h2 u { font-size:20px;text-decoration:none;padding:10px; }\n" \
+	"  </style>\n" \
+	"  <script>\n" \
+	"   function _t(elem) {\n" \
+	"    var block = elem.nextSibling;\n" \
+	"    var info = elem.getElementsByTagName('u')[0];\n" \
+	"    while (block) {\n" \
+	"     if ( block.nodeType == 1 && block.className.indexOf('api-block') > -1 ) {\n" \
+	"      break;\n" \
+	"     }\n" \
+	"     block = block.nextSibling;\n" \
+	"    }\n" \
+	"    var isHidden = block.style.display == 'none';\n" \
+	"    block.style.display = isHidden ? '' : 'none';\n" \
+	"    info.innerHTML = isHidden ? '+'  : '-';\n" \
+	"   }\n" \
+	"  </script>\n" \
+	" </head>\n" \
+	" <body>\n"
 
 #define HTML_MARKUP_TITLE \
-        "<h2 class=h>Service Info of %s</h2>\n"
+	" <h1>%s</h1>"
 
 #define HTML_MARKUP_ENTRY \
-		"<div class=p>\n" \
-	      "<pre class=v>%s\n%s</pre>\n" \
-	    "</div>\n"
+	" <h2 onclick=\"_t(this)\"><u>-</u>%s</h2>\n" \
+	" <div class=\"api-block\" style=\"display:none\">\n" \
+    " <pre style=\"white-space:pre-line\">%s</pre>\n" \
+	" </div>\n" 
 
 #define HTML_MARKUP_FOOTER  \
       "</body>\n" \
@@ -295,7 +306,7 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
 			if (f->type == ZEND_USER_FUNCTION) {
 				doc_comment = f->op_array.doc_comment;
 			}
-			snprintf(buf, 1024, HTML_MARKUP_ENTRY, doc_comment? doc_comment : "", prototype);
+			snprintf(buf, 1024, HTML_MARKUP_ENTRY, prototype,  doc_comment? doc_comment : "");
 			efree(prototype);
 
 			php_write(buf, strlen(buf));
