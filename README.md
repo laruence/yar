@@ -6,6 +6,7 @@ Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 - PHP >= 5.2
 - Curl
 - Json
+- Msgpack (Optional)
 
 ## Introduce
 
