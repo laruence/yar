@@ -17,8 +17,8 @@ It also provide ability to call remote services concurrently.
 ## Features
 - Fast, Easy, Simply
 - Concurrent RPC calls
-- Multi packager protocols supported (php, json, msgpack built-in)
-- Multi transfer protocols supported (http implemented,  tcp/unix will be supported later)
+- Multi package protocols supported (php, json, msgpack built-in)
+- Multi transfe protocols supported (http implemented,  tcp/unix will be supported later)
 - Authentication
 - Rich debug infomations
 
