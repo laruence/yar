@@ -68,5 +68,39 @@ It's very easy for a PHP client to call remote RPC:
     Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
     Yar_Concurrent_Client::loop(); //send
     ?>
+    
+## Authentication
+
+If a server want his client to be authenticated,  yes,  it is also very easy, all it have to to is declaring a method named "_auth"
 
 
+    <?php
+        class API {
+        
+        /**
+         * if this method return false, then the rpc call will be denied
+         */
+        public function _auth($user, $password) {
+        }
+        
+        /**
+         * the doc info will be generated automaticly into service info page.
+         * @params 
+         * @return
+         */
+        public function api($parameter, $option = "foo") {
+        }
+    
+        protected function client_can_not_see() {
+        }
+    }
+
+    $service = new Yar_Server(new API());
+    $service->handle();
+    ?>
+
+the client should be change to :
+    <?php
+    $client = new Yar_Client("http://username:password@host/api/");
+    $result = $client->api("parameter);
+    ?>
