@@ -19,19 +19,19 @@ It also provide ability to call remote services concurrently.
 
 It's very easy to setup a Yar RPC Server
 
-<?php
-class API {
-    /**
-     * the doc info will be generated automaticly into service info page.
-     */
-    public function api($parameter, $option = "foo") {
-    }
+    <?php
+        class API {
+        /**
+         * the doc info will be generated automaticly into service info page.
+         */
+        public function api($parameter, $option = "foo") {
+        }
     
-    protected function client_can_not_see() {
+        protected function client_can_not_see() {
+        }
     }
-}
 
-$service = Yar_Server(new API());
-$service->handle();
-?>
+    $service = Yar_Server(new API());
+    $service->handle();
+    ?>
 
