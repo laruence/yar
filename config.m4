@@ -1,8 +1,8 @@
 dnl $Id$
-dnl config.m4 for extension hermes
+dnl config.m4 for extension yar
 
-PHP_ARG_ENABLE(hermes, whether to enable hermes support,
-[  --enable-hermes           Enable hermes support])
+PHP_ARG_ENABLE(yar, whether to enable yar support,
+[  --enable-yar           Enable yar support])
 
 PHP_ARG_WITH(curl, for curl protocol support,
 [  --with-curl[=DIR]       Include curl protocol support])
@@ -10,7 +10,7 @@ PHP_ARG_WITH(curl, for curl protocol support,
 PHP_ARG_ENABLE(msgpack, for msgpack packager support,
 [  --enable-msgpack Include msgpack packager support], no, no)
 
-if test "$PHP_HERMES" != "no"; then
+if test "$PHP_YAR" != "no"; then
   if test -r $PHP_CURL/include/curl/easy.h; then
     CURL_DIR=$PHP_CURL
   else
@@ -30,13 +30,13 @@ if test "$PHP_HERMES" != "no"; then
   fi
   
   PHP_ADD_INCLUDE($CURL_DIR/include)
-  PHP_EVAL_LIBLINE($CURL_LIBS, HERMES_SHARED_LIBADD)
-  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, HERMES_SHARED_LIBADD)
+  PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
+  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
 
   if test "$PHP_MSGPACK" != "no"; then
     AC_DEFINE(ENABLE_MSGPACK,1,[enable msgpack packager])
   fi
 
-  PHP_NEW_EXTENSION(hermes, hermes.c hermes_server.c hermes_client.c hermes_request.c hermes_response.c hermes_exception.c hermes_packager.c hermes_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c hermes_transport.c transports/curl.c, $ext_shared)
-  PHP_SUBST(HERMES_SHARED_LIBADD)
+  PHP_NEW_EXTENSION(yar, yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c yar_transport.c transports/curl.c, $ext_shared)
+  PHP_SUBST(YAR_SHARED_LIBADD)
 fi

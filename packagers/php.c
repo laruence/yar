@@ -1,6 +1,6 @@
 /*
   +----------------------------------------------------------------------+
-  | Hermes - Light, concurrent RPC framework                             |
+  | Yar - Light, concurrent RPC framework                             |
   +----------------------------------------------------------------------+
   | Copyright (c) 1997-2011 The PHP Group                                |
   +----------------------------------------------------------------------+
@@ -24,11 +24,11 @@
 #endif
 
 #include "php.h"
-#include "php_hermes.h"
-#include "hermes_packager.h"
+#include "php_yar.h"
+#include "yar_packager.h"
 #include "ext/standard/php_var.h" /* for serialize */
 
-int php_hermes_packager_php_pack(hermes_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
+int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
 	zval **struc;
 	php_serialize_data_t var_hash;
 
@@ -39,7 +39,7 @@ int php_hermes_packager_php_pack(hermes_packager_t *self, zval *pzval, smart_str
 	return 1;
 } /* }}} */
 
-zval * php_hermes_packager_php_unpack(hermes_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
+zval * php_yar_packager_php_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
 	zval *return_value;
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
@@ -58,10 +58,10 @@ zval * php_hermes_packager_php_unpack(hermes_packager_t *self, char *content, si
 	return return_value;
 } /* }}} */
 
-hermes_packager_t hermes_packager_php = {
+yar_packager_t yar_packager_php = {
 	"PHP",
-	php_hermes_packager_php_pack,
-    php_hermes_packager_php_unpack
+	php_yar_packager_php_pack,
+    php_yar_packager_php_unpack
 };
 
 /*

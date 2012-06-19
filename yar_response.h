@@ -19,38 +19,31 @@
 
 /* $Id$ */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#ifndef PHP_YAR_RESPONSE_H
+#define PHP_YAR_RESPONSE_H
 
-#ifdef ENABLE_MSGPACK
+#define YAR_RESPONSE_REPLACE 0
+#define YAR_RESPONSE_APPEND  1
+#define YAR_RESPONSE_PREPEND 2
 
-#include "php.h"
-#include "php_yar.h"
-#include "yar_packager.h"
+typedef struct _yar_response {
+	long id;
+	int  status;
+	char *out;
+	size_t out_len;
+	zval *err;
+	zval *retval;
+} yar_response_t;
 
-extern void php_msgpack_serialize(smart_str *buf, zval *val TSRMLS_DC);
-extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len TSRMLS_DC);
+yar_response_t * php_yar_response_instance(TSRMLS_D);
+int php_yar_response_bind_request(yar_response_t *response, struct _yar_request *request TSRMLS_DC);
+void php_yar_response_alter_body(yar_response_t *response, char *body, uint len, int method TSRMLS_DC); 
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len TSRMLS_DC); 
+void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC);
+void php_yar_response_set_retval(yar_response_t *response, zval *retval TSRMLS_DC);
+void php_yar_response_dtor(yar_response_t *response TSRMLS_DC);
 
-int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
-	php_msgpack_serialize(buf, pzval TSRMLS_CC);
-	return 1;
-} /* }}} */
-
-zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
-	zval *return_value;
-	MAKE_STD_ZVAL(return_value);
-	php_msgpack_unserialize(return_value, content, len TSRMLS_CC);
-	return return_value;
-} /* }}} */
-
-yar_packager_t yar_packager_msgpack = {
-	"MSGPACK",
-	php_yar_packager_msgpack_pack,
-    php_yar_packager_msgpack_unpack
-};
-
-#endif
+#endif	/* PHP_YAR_RESPONSE_H */
 
 /*
  * Local variables:

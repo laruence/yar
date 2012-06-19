@@ -23,34 +23,44 @@
 #include "config.h"
 #endif
 
-#ifdef ENABLE_MSGPACK
-
 #include "php.h"
 #include "php_yar.h"
-#include "yar_packager.h"
+#include "yar_protocol.h"
+#include <arpa/inet.h>
 
-extern void php_msgpack_serialize(smart_str *buf, zval *val TSRMLS_DC);
-extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len TSRMLS_DC);
-
-int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
-	php_msgpack_serialize(buf, pzval TSRMLS_CC);
-	return 1;
+void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved TSRMLS_DC) /* {{{ */ {
+	header->magic_num = htonl(YAR_PROTOCOL_MAGIC_NUM);
+	header->id = htonl(id);
+	header->body_len = htonl(body_len);
+	header->reserved = htonl(reserved);
+	if (provider) {
+		memcpy(header->provider, provider, 16);
+	}
+	if (token) {
+		memcpy(header->token, token, 16);
+	}
+	return;
 } /* }}} */
 
-zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
-	zval *return_value;
-	MAKE_STD_ZVAL(return_value);
-	php_msgpack_unserialize(return_value, content, len TSRMLS_CC);
-	return return_value;
+yar_header_t * php_yar_protocol_parse(char **payload, size_t *payload_len, char **err_msg TSRMLS_DC) /* {{{ */ {
+	yar_header_t *header = (yar_header_t *)*payload;
+
+	header->magic_num = ntohl(header->magic_num);
+
+	if (header->magic_num != YAR_PROTOCOL_MAGIC_NUM) {
+		spprintf(err_msg, 0, "malformed protocol header, maybe not responsed/sent by a yar rpc server/client?");
+		return NULL;
+	}
+
+	header->id = ntohl(header->id);
+	header->body_len = ntohl(header->body_len);
+	header->reserved = ntohl(header->reserved);
+  
+	*payload += sizeof(yar_header_t);
+	*payload_len -= sizeof(yar_header_t);
+
+	return header;
 } /* }}} */
-
-yar_packager_t yar_packager_msgpack = {
-	"MSGPACK",
-	php_yar_packager_msgpack_pack,
-    php_yar_packager_msgpack_unpack
-};
-
-#endif
 
 /*
  * Local variables:

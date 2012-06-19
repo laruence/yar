@@ -19,38 +19,36 @@
 
 /* $Id$ */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifndef PHP_YAR_PROTOCOL_H
+#define PHP_YAR_PROTOCOL_H
+
+#define YAR_PROTOCOL_MAGIC_NUM  0x80DFEC60
+
+#ifdef PHP_WIN32
+#pragma pack(push)
+#pragma pack(1)
+#endif
+typedef struct _yar_header {
+    unsigned int   id;
+    unsigned short version;
+    unsigned int   magic_num;
+    unsigned int   reserved;
+    unsigned char  provider[32];
+    unsigned char  token[32];
+    unsigned int   body_len; 
+}
+#ifndef PHP_WIN32
+__attribute__ ((packed))
+#endif
+yar_header_t;
+#ifdef PHP_WIN32
+#pragma pack(pop)
 #endif
 
-#ifdef ENABLE_MSGPACK
+yar_header_t * php_yar_protocol_parse(char **payload, size_t *payload_len, char **err_msg TSRMLS_DC);
+void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved TSRMLS_DC);
 
-#include "php.h"
-#include "php_yar.h"
-#include "yar_packager.h"
-
-extern void php_msgpack_serialize(smart_str *buf, zval *val TSRMLS_DC);
-extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len TSRMLS_DC);
-
-int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
-	php_msgpack_serialize(buf, pzval TSRMLS_CC);
-	return 1;
-} /* }}} */
-
-zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
-	zval *return_value;
-	MAKE_STD_ZVAL(return_value);
-	php_msgpack_unserialize(return_value, content, len TSRMLS_CC);
-	return return_value;
-} /* }}} */
-
-yar_packager_t yar_packager_msgpack = {
-	"MSGPACK",
-	php_yar_packager_msgpack_pack,
-    php_yar_packager_msgpack_unpack
-};
-
-#endif
+#endif	/* PHP_YAR_PROTOCOL_H */
 
 /*
  * Local variables:

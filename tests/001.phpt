@@ -1,10 +1,10 @@
 --TEST--
-Check for hermes presence
+Check for yar presence
 --SKIPIF--
-<?php if (!extension_loaded("hermes")) print "skip"; ?>
+<?php if (!extension_loaded("yar")) print "skip"; ?>
 --FILE--
 <?php 
-echo "hermes extension is available";
+echo "yar extension is available";
 /*
 	you can add regression tests for your extension here
 
@@ -18,4 +18,4 @@ echo "hermes extension is available";
 */
 ?>
 --EXPECT--
-hermes extension is available
+yar extension is available
