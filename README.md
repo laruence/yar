@@ -43,7 +43,8 @@ It's very easy to setup a Yar RPC Server
     $service = new Yar_Server(new API());
     $service->handle();
     ?>
-they if a GET request to this api uri,  a service info will be auto generated:
+    
+then if a GET request to this api uri comes,  a service info will be auto generated to client:
 
 [![](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)]
 
