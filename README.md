@@ -23,6 +23,8 @@ It's very easy to setup a Yar RPC Server
         class API {
         /**
          * the doc info will be generated automaticly into service info page.
+         * @params 
+         * @return
          */
         public function api($parameter, $option = "foo") {
         }
@@ -31,7 +33,11 @@ It's very easy to setup a Yar RPC Server
         }
     }
 
-    $service = Yar_Server(new API());
+    $service = new Yar_Server(new API());
     $service->handle();
     ?>
+they if a GET request to this api uri,  a service info will be auto generated:
+
+[![Service_Info](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)]
+
 
