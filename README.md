@@ -100,6 +100,7 @@ If a server want his client to be authenticated,  yes,  it is also very easy, al
     ?>
 
 the client should be change to :
+
     <?php
     $client = new Yar_Client("http://username:password@host/api/");
     $result = $client->api("parameter);
