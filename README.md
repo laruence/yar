@@ -12,7 +12,7 @@ Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 
 Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
 
-It is also able to call remote services concurrently.
+It has the ability to concurrently call multiple remote services.
 
 ## Features
 - Fast, Easy, Simple
