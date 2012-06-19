@@ -45,7 +45,7 @@ It's very easy to setup a Yar HTTP RPC Server
     ?>
 Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is issued to the uri, the service information (commented section above) will be printed on the page:
 
-[![](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)]
+![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
 
 
 ## Client
