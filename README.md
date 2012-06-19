@@ -49,15 +49,16 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 
 
 ## Client
+It's very easy for a PHP client to call remote RPC:
 
 ### Synchronous call
-It's very easy for a PHP client to call remote RPC:
 
     <?php
     $client = new Yar_Client("http://host/api/");
     $result = $client->api("parameter);
     ?>
 ### Concurrent call
+
     <?php
     function callback($retval, $sequence_id, $method_name, $uri) {
          var_dump($retval);
