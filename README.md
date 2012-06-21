@@ -111,3 +111,54 @@ $client = new Yar_Client("http://username:password@host/api/");
 $result = $client->api("parameter);
 ?>
 ````
+
+## Protocols
+### Yar Header
+   Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header
+```C
+#ifdef PHP_WIN32
+#pragma pack(push)
+#pragma pack(1)
+#endif
+typedef struct _yar_header {
+    unsigned int   id;            // transaction id
+    unsigned short version;       // protocl version
+    unsigned int   magic_num;     // default is: 0x80DFEC60
+    unsigned int   reserved;
+    unsigned char  provider[32];  // reqeust from who
+    unsigned char  token[32];     // request token, used for authentication
+    unsigned int   body_len;      // request body len
+}
+#ifndef PHP_WIN32
+__attribute__ ((packed))
+#endif
+yar_header_t;
+#ifdef PHP_WIN32
+#pragma pack(pop)
+#endif
+````
+### Packager Header
+   Since Yar also supports multi packager protocl, so there is a char[8] at the begining of body, to identicate which packager the body is packaged by.
+
+### Request 
+   When a Client request a remote server,  it will send a struct (in PHP):
+````php
+<?php
+array(
+   "i" => '', //transaction id
+   "m" => '', //the method which being called
+   "p" => array(), //parameters
+)
+````
+
+### Server
+    When a server response a result,  it will send a struct (in PHP):
+````php
+array(
+   "i" => '',
+   "s" => '', //status
+   "r" => '', //return value 
+   "o" => '', //output 
+   "e" => '', //error or exception
+)
+````
