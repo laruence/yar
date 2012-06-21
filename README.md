@@ -26,23 +26,23 @@ It has the ability to concurrently call multiple remote services.
 
 It's very easy to setup a Yar HTTP RPC Server
 ````php
-    <?php
-        class API {
-        /**
-         * the doc info will be generated automatically into service info page.
-         * @params 
-         * @return
-         */
-        public function api($parameter, $option = "foo") {
-        }
-    
-        protected function client_can_not_see() {
-        }
+<?php
+class API {
+    /**
+     * the doc info will be generated automatically into service info page.
+     * @params 
+     * @return
+     */
+    public function api($parameter, $option = "foo") {
     }
 
-    $service = new Yar_Server(new API());
-    $service->handle();
-    ?>
+    protected function client_can_not_see() {
+    }
+}
+
+$service = new Yar_Server(new API());
+$service->handle();
+?>
 ````
 Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is issued to the uri, the service information (commented section above) will be printed on the page:
 
@@ -53,58 +53,61 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 It's very easy for a PHP client to call remote RPC:
 
 ### Synchronous call
-
-    <?php
-    $client = new Yar_Client("http://host/api/");
-    $result = $client->api("parameter);
-    ?>
+````php
+<?php
+$client = new Yar_Client("http://host/api/");
+$result = $client->api("parameter);
+?>
+````
 ### Concurrent call
+````php
+<?php
+function callback($retval, $sequence_id, $method_name, $uri) {
+     var_dump($retval);
+}
 
-    <?php
-    function callback($retval, $sequence_id, $method_name, $uri) {
-         var_dump($retval);
-    }
-    
-    Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
-    Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
-    Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
-    Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
-    Yar_Concurrent_Client::loop(); //send
-    ?>
+Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
+Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
+Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
+Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
+Yar_Concurrent_Client::loop(); //send
+?>
+````
     
 ## Authentication
 
 Setting up a server that requires authentication is also rather easy. You just have to declare a method called "_auth" in the server class.
+````php
+<?php
+class API {
 
-
-    <?php
-        class API {
-        
-        /**
-         * if this method return false, then the rpc call will be denied
-         */
-        public function _auth($user, $password) {
-        }
-        
-        /**
-         * the doc info will be generated automatically into service info page.
-         * @params 
-         * @return
-         */
-        public function api($parameter, $option = "foo") {
-        }
-    
-        protected function client_can_not_see() {
-        }
+    /**
+     * if this method return false, then the rpc call will be denied
+     */
+    public function _auth($user, $password) {
     }
 
-    $service = new Yar_Server(new API());
-    $service->handle();
-    ?>
+    /**
+     * the doc info will be generated automatically into service info page.
+     * @params 
+     * @return
+     */
+    public function api($parameter, $option = "foo") {
+    }
+
+    protected function client_can_not_see() {
+    }
+}
+
+$service = new Yar_Server(new API());
+$service->handle();
+?>
+````
 
 Consequently, the client code should be change to :
-
-    <?php
-    $client = new Yar_Client("http://username:password@host/api/");
-    $result = $client->api("parameter);
-    ?>
+````php
+<?php
+$client = new Yar_Client("http://username:password@host/api/");
+$result = $client->api("parameter);
+?>
+````
