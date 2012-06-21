@@ -154,6 +154,7 @@ array(
 ### Server
     When a server response a result,  it will send a struct (in PHP):
 ````php
+<?php
 array(
    "i" => '',
    "s" => '', //status
