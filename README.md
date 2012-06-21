@@ -25,7 +25,7 @@ It has the ability to concurrently call multiple remote services.
 ## Server
 
 It's very easy to setup a Yar HTTP RPC Server
-
+````php
     <?php
         class API {
         /**
@@ -43,6 +43,7 @@ It's very easy to setup a Yar HTTP RPC Server
     $service = new Yar_Server(new API());
     $service->handle();
     ?>
+````
 Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is issued to the uri, the service information (commented section above) will be printed on the page:
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
