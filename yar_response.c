@@ -77,7 +77,7 @@ void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC
 	add_assoc_zval_ex(ret, ZEND_STRS("file"), file);
 	add_assoc_zval_ex(ret, ZEND_STRS("line"), line);
 
-	add_assoc_string_ex(ret, ZEND_STRS("_type"), ce->name, 1);
+	add_assoc_string_ex(ret, ZEND_STRS("_type"), (char *)ce->name, 1);
 
 	response->status = YAR_ERR_EXCEPTION;
     response->err = ret;

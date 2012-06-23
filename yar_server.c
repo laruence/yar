@@ -304,19 +304,19 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
 		if ((prototype = php_yar_get_function_declaration(f TSRMLS_CC))) {
 			char buf[1024], *doc_comment = NULL;
 			if (f->type == ZEND_USER_FUNCTION) {
-				doc_comment = f->op_array.doc_comment;
+				doc_comment = (char *)f->op_array.doc_comment;
 			}
 			snprintf(buf, 1024, HTML_MARKUP_ENTRY, prototype,  doc_comment? doc_comment : "");
 			efree(prototype);
 
-			php_write(buf, strlen(buf));
+			PHPWRITE(buf, strlen(buf));
 		}
     }
 
 	return ZEND_HASH_APPLY_KEEP;
 } /* }}} */
 
-static void php_yar_server_response_header(size_t content_lenth, void *packager_info TSRMLS_CC) /* {{{ */ {
+static void php_yar_server_response_header(size_t content_lenth, void *packager_info TSRMLS_DC) /* {{{ */ {
 	sapi_header_line ctr = {0};
 	char header_line[512];
 
@@ -366,15 +366,17 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
     if (!(payload_len = php_yar_packager_pack(&ret, &payload, &err_msg TSRMLS_CC))) {
 		zval_dtor(&ret);
-		php_yar_error(response, YAR_ERR_PACKAGER, "%s", err_msg);
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "%s", err_msg);
 		efree(err_msg);
 		return;
 	}
 	zval_dtor(&ret);
 
 	php_yar_protocol_render(&header, request->id, "PHP Yar Server", NULL, payload_len, 0 TSRMLS_CC);
-	php_yar_debug_server("%ld: server response: packager '%s', len '%ld', content '%s'" TSRMLS_CC,
-		   request->id, payload, payload_len - 8, payload + 8);
+	if (YAR_G(debug)) {
+		php_yar_debug_server("%ld: server response: packager '%s', len '%ld', content '%s'",
+				request->id, payload, payload_len - 8, payload + 8);
+	}
 
 	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, payload TSRMLS_CC);
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
@@ -404,18 +406,22 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 
 	payload = SG(request_info).raw_post_data;
 	payload_len = SG(request_info).raw_post_data_length;
-	if (!(header = php_yar_protocol_parse(&payload, &payload_len, &err_msg))) {
-        php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
-	    php_yar_debug_server("0: an malformed request '%s'" TSRMLS_CC, payload), 
+	if (!(header = php_yar_protocol_parse(&payload, &payload_len, &err_msg TSRMLS_CC))) {
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
+		if (YAR_G(debug)) {
+			php_yar_debug_server("0: an malformed request '%s'", payload);
+		}
 		efree(err_msg);
 		goto response_no_output;
 	}
 
-	php_yar_debug_server("%ld: accpect rpc request form '%s'" TSRMLS_CC,
-			header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
+	if (YAR_G(debug)) {
+		php_yar_debug_server("%ld: accpect rpc request form '%s'",
+				header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
+	}
 
-	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg))) {
-        php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
+	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg TSRMLS_CC))) {
+        php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
 		efree(err_msg);
 		goto response_no_output;
 	}
@@ -429,13 +435,13 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 	if (php_start_ob_buffer(NULL, 0, 0 TSRMLS_CC) != SUCCESS) {
-		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
+		php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "start output buffer failed");
 		goto response_no_output;
 	}
 
 	ce = Z_OBJCE_P(obj);
 	if (!zend_hash_exists(&ce->function_table, Z_STRVAL_P(request->method), Z_STRLEN_P(request->method) + 1)) {
-		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ce->name, Z_STRVAL_P(request->method));
+		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to undefined api %s::%s()", ce->name, Z_STRVAL_P(request->method));
 		goto response;
 	}
 
@@ -472,7 +478,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 				efree(func_params);
 				zval_ptr_dtor(&token);
 				zval_ptr_dtor(&provider);
-				php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, Z_STRVAL(func));
+				php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to api %s::%s() failed", ce->name, Z_STRVAL(func));
 				goto response;
 			}
 
@@ -484,7 +490,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			if (retval_ptr) {
                if (Z_TYPE_P(retval_ptr) == IS_BOOL && !Z_BVAL_P(retval_ptr)) {
 				   zval_ptr_dtor(&retval_ptr);
-				   php_yar_error(response, YAR_ERR_REQUEST, "%s::_auth() return false", ce->name);
+				   php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s::_auth() return false", ce->name);
 				   goto response;
 			   }
 			   zval_ptr_dtor(&retval_ptr);
@@ -511,7 +517,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			if (func_params) {
 				efree(func_params);
 			}
-		    php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, Z_STRVAL_P(request->method));
+		    php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to api %s::%s() failed", ce->name, Z_STRVAL_P(request->method));
 			goto response;
 		}
 
@@ -548,7 +554,7 @@ response_no_output:
 	return;
 } /* }}} */
 
-static void php_yar_server_info(zval *obj TSRMLS_CC) /* {{{ */ {
+static void php_yar_server_info(zval *obj TSRMLS_DC) /* {{{ */ {
 	char buf[1024];
 	zend_class_entry *ce = Z_OBJCE_P(obj);
 

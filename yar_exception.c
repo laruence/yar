@@ -93,7 +93,7 @@ void php_yar_error(yar_response_t *response, int type TSRMLS_DC, const char *for
 PHP_METHOD(yar_exception_server, getType)
 {
 	zval *type;
-	type = zend_read_property(yar_server_exception_ce, getThis(), ZEND_STRL("_type"), 0);
+	type = zend_read_property(yar_server_exception_ce, getThis(), ZEND_STRL("_type"), 0 TSRMLS_CC);
 
 	RETURN_ZVAL(type, 1, 0);
 }

@@ -69,17 +69,17 @@ yar_request_t * php_yar_request_instance(zval *body TSRMLS_DC) /* {{{ */ {
 
 int php_yar_request_valid(yar_request_t *req, yar_response_t *response TSRMLS_DC) /* {{{ */ {
 	if (!req->id) {
-       php_yar_error(response, YAR_ERR_REQUEST, "no specifical request id");
+       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request id");
 	   return 0;
 	}
 
 	if (!req->method) {
-       php_yar_error(response, YAR_ERR_REQUEST, "no specifical request method");
+       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request method");
 	   return 0;
 	}
 
 	if (!req->parameters) {
-       php_yar_error(response, YAR_ERR_REQUEST, "no specifical request parameters");
+       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request parameters");
 	   return 0;
 	}
 

@@ -161,7 +161,7 @@ int php_yar_curl_set_calldata(yar_transport_interface_t* self, zval *calldata TS
 	data->calldata = calldata;
 } /* }}} */
 
-int php_yar_curl_reset(yar_transport_interface_t* self) /* {{{ */ {
+int php_yar_curl_reset(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 	curl_easy_reset(data->cp);
 	return 1;
@@ -354,7 +354,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								return 0;
 							}
 						} else if (ef) {
-							if (!ef(data->calldata, opaque2, msg->data.result, curl_easy_strerror(msg->data.result) TSRMLS_CC)) {
+							if (!ef(data->calldata, opaque2, msg->data.result, (char *)curl_easy_strerror(msg->data.result) TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
 								zend_bailout();
 							}

@@ -47,36 +47,28 @@ void php_yar_error_ex(struct _yar_response *response, int type TSRMLS_DC, const 
 void php_yar_error(struct _yar_response *response, int type TSRMLS_DC, const char *format, ...);
 YAR_STARTUP_FUNCTION(exception);
 
-static inline void php_yar_debug_server(const char *format TSRMLS_CC, ...) {
-	if (!YAR_G(debug)) {
-		return ;
-	} else {
-		va_list args;
-		char buf[1024];
-		char *message;
+static inline void php_yar_debug_server(const char *format, ...) {
+	va_list args;
+	char buf[1024];
+	char *message;
 
-		va_start(args, format);
-		snprintf(buf, sizeof(buf), "[Debug Yar_Server]: %s", format);
-		vspprintf(&message, 0, buf, args);
-		php_error(E_NOTICE, "%s", message);
-		efree(message);
-	}
+	va_start(args, format);
+	snprintf(buf, sizeof(buf), "[Debug Yar_Server]: %s", format);
+	vspprintf(&message, 0, buf, args);
+	php_error(E_NOTICE, "%s", message);
+	efree(message);
 }
 
-static inline void php_yar_debug_client(const char *format TSRMLS_CC, ...) {
-	if (!YAR_G(debug)) {
-		return ;
-	} else {
-		va_list args;
-		char buf[1024];
-		char *message;
+static inline void php_yar_debug_client(const char *format, ...) {
+	va_list args;
+	char buf[1024];
+	char *message;
 
-		va_start(args, format);
-		snprintf(buf, sizeof(buf), "[Debug Yar_Client]: %s", format);
-		vspprintf(&message, 0, buf, args);
-		php_error(E_NOTICE, "%s", message);
-		efree(message);
-	}
+	va_start(args, format);
+	snprintf(buf, sizeof(buf), "[Debug Yar_Client]: %s", format);
+	vspprintf(&message, 0, buf, args);
+	php_error(E_NOTICE, "%s", message);
+	efree(message);
 }
 
 #endif	/* PHP_YAR_EXCEPTION_H */

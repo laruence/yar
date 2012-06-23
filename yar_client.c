@@ -103,7 +103,9 @@ static zval * php_yar_client_parse_response(char *ret, size_t len, int throw_exc
 
 	if (!(header = php_yar_protocol_parse(&ret, &len, &err_msg TSRMLS_CC))) {
 		php_yar_client_trigger_error(throw_exception TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", err_msg);
-	    php_yar_debug_client("0: malformed response '%s'" TSRMLS_CC, ret);
+		if (YAR_G(debug)) {
+			php_yar_debug_client("0: malformed response '%s'", ret);
+		}
 		efree(err_msg);
 		return retval;
 	}
@@ -113,7 +115,9 @@ static zval * php_yar_client_parse_response(char *ret, size_t len, int throw_exc
 		return retval;
 	}
 
-	php_yar_debug_client("%ld: server responsed: packager '%s', len '%ld', content '%s'" TSRMLS_CC, header->id, ret, len - 8, ret + 8);
+	if (YAR_G(debug)) {
+		php_yar_debug_client("%ld: server responsed: packager '%s', len '%ld', content '%s'", header->id, ret, len - 8, ret + 8);
+	}
 
 	if (!(response = php_yar_packager_unpack(ret, len, &err_msg TSRMLS_CC))) {
 		php_yar_client_trigger_error(throw_exception TSRMLS_CC, YAR_ERR_PACKAGER, "%s", err_msg);
@@ -198,8 +202,11 @@ static int php_yar_client_http_prepare(yar_transport_interface_t *transport, cha
 	add_assoc_stringl_ex(&request, ZEND_STRS("m"), method, mlen, 1);
     add_assoc_zval_ex(&request, ZEND_STRS("p"), params);
 
-	php_yar_debug_client("%ld: call api '%s' at '%s' with '%d parameters'" TSRMLS_CC,
-			request_id, method, uri, zend_hash_num_elements(Z_ARRVAL_P(params)));
+
+	if (YAR_G(debug)) {
+		php_yar_debug_client("%ld: call api '%s' at '%s' with '%d parameters'",
+				request_id, method, uri, zend_hash_num_elements(Z_ARRVAL_P(params)));
+	}
 
 	if (!(payload_len = php_yar_packager_pack(&request, &payload, &err_msg TSRMLS_CC))) {
 		zval_dtor(&request);
@@ -210,8 +217,10 @@ static int php_yar_client_http_prepare(yar_transport_interface_t *transport, cha
 
 	zval_dtor(&request);
 
-	php_yar_debug_client("%ld: package result: packager '%s', len: '%ld', content '%s'" TSRMLS_CC,
-			request_id, payload, payload_len - 8, payload + 8);
+	if (YAR_G(debug)) {
+		php_yar_debug_client("%ld: package result: packager '%s', len: '%ld', content '%s'",
+				request_id, payload, payload_len - 8, payload + 8);
+	}
 
 	if (!(url = php_url_parse(uri))) {
 		efree(payload);
@@ -308,7 +317,7 @@ int php_yar_concurrent_client_callback(zval *calldata, void *gcallback, char *re
 		if (call_user_function_ex(EG(function_table), NULL, *callback, &retval_ptr, 4, func_params, 0, NULL TSRMLS_CC) != SUCCESS) {
 			zval_ptr_dtor(&response);
 			efree(func_params);
-			php_error_docref(NULL TSRMLS_DC, E_WARNING, "call to callback failed for request: %s", Z_STRVAL_PP(method));
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to callback failed for request: %s", Z_STRVAL_PP(method));
 			return;
 		}
 	} zend_catch {
@@ -356,7 +365,7 @@ int php_yar_concurrent_client_error_callback(zval *calldata, void *error_callbac
 			zval_ptr_dtor(&err);
 			zval_ptr_dtor(&code);
 			efree(func_params);
-			php_error_docref(NULL TSRMLS_DC, E_WARNING, "call to error callback failed for request: %s", Z_STRVAL_PP(method));
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to error callback failed for request: %s", Z_STRVAL_PP(method));
 			return;
 		}
 	} zend_catch {
@@ -393,7 +402,7 @@ int php_yar_concurrent_client_handle(zval *client, zval *callstack, zval *callba
 			continue;
 		}
 		if (Z_TYPE_PP(entry) != IS_ARRAY) {
-			php_yar_client_trigger_error(1 TSRMLS_C, 0, "unexpect non-array call entry, internal error");
+			php_yar_client_trigger_error(1 TSRMLS_CC, 0, "unexpect non-array call entry, internal error");
 			multi->close(multi TSRMLS_CC);
 			return 0;
 		}
@@ -493,7 +502,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name)) {
+    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name TSRMLS_CC)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "third parameter is expected to be a valid callback");
         efree(name);
         RETURN_FALSE;
@@ -534,7 +543,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		return;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name)) {
+    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name TSRMLS_CC)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "the first argument is expected to be a valid callback");
         efree(name);
         RETURN_FALSE;
@@ -545,7 +554,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		name = NULL;
 	}
 
-    if (error_callback && !ZVAL_IS_NULL(error_callback) && !zend_is_callable(error_callback, 0, &name)) {
+    if (error_callback && !ZVAL_IS_NULL(error_callback) && !zend_is_callable(error_callback, 0, &name TSRMLS_CC)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "the second argument is expected to be a valid callback");
         efree(name);
         RETURN_FALSE;
