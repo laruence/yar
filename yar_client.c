@@ -65,7 +65,7 @@ static void php_yar_client_trigger_error(int throw_exception TSRMLS_DC, int code
 	zend_class_entry *ce;
 
 	va_start(arg, format);
-	zend_vspprintf(&message, 0, format, arg);
+	vspprintf(&message, 0, format, arg);
 	va_end(arg);
 
 	if (throw_exception) {
