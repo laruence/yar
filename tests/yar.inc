@@ -2,6 +2,7 @@
 define ("YAR_SERVER_HOSTNAME", "localhost");
 define ("YAR_SERVER_PORT", 8964);
 define ("YAR_SERVER_ADDRESS", YAR_SERVER_HOSTNAME.":".YAR_SERVER_PORT);
+define ("YAR_SERVER_HTTP_ADDRESS", "http://" . YAR_SERVER_HOSTNAME.":".YAR_SERVER_PORT . "/");
 
 function yar_server_start($code = '"Hello world";', $no_router = FALSE) {
 	$php_executable = getenv('TEST_PHP_EXECUTABLE');

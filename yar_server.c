@@ -434,7 +434,11 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 		goto response_no_output;
 	}
 
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 4))
 	if (php_start_ob_buffer(NULL, 0, 0 TSRMLS_CC) != SUCCESS) {
+#else
+	if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC) == FAILURE) {
+#endif
 		php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "start output buffer failed");
 		goto response_no_output;
 	}
@@ -538,8 +542,18 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 response:
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 4))
 	php_ob_get_buffer(&output TSRMLS_CC);
 	php_end_ob_buffer(0, 0 TSRMLS_CC);
+#else
+	if (php_output_get_contents(&output TSRMLS_CC) == FAILURE) {
+		php_output_end(TSRMLS_C);
+		php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "unable to get ob content");
+		goto response_no_output;
+	}
+
+	php_output_discard(TSRMLS_C);
+#endif
 	php_yar_response_alter_body(response, Z_STRVAL(output), Z_STRLEN(output), YAR_RESPONSE_REPLACE TSRMLS_CC);
 
 response_no_output:
