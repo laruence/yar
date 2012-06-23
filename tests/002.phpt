@@ -7,13 +7,32 @@ Check for yar server info
 include "yar.inc";
 yar_server_start(<<<'DOC'
 class Server {
-    /*
+
+    /**
      * hello world
      * @param string $name
      * @return boolean
      */
     public function helloworld($name) {
        echo "Hello World, " .  $name;
+       return TRUE;
+    }
+
+    /**
+     * default value
+     * @param string $provider, default 'yar'
+     * @return boolean
+     */
+    public function foo($provider = "yar") {
+       return TRUE;
+    }
+
+    /**
+     * default value
+     * @param string $name
+     * @return boolean
+     */
+    protected function bar($name) {
        return TRUE;
     }
 }
@@ -30,6 +49,9 @@ if (!$fp) {
   die("connect failed");
 }
 
+
+$match = 0;
+
 if(fwrite($fp, <<<HEADER
 GET / HTTP/1.1
 Host: {$host}
@@ -38,9 +60,27 @@ Host: {$host}
 HEADER
 )) {
     while (!feof($fp)) {
-     echo fgets($fp);
+       $line = trim(fgets($fp));
+       if (strpos($line, 'helloworld($name)') != FALSE) {
+          $match++;
+          continue;
+       }
+       if (strpos($line, 'foo($provider = \'yar\')') != FALSE) {
+          $match++;
+          continue;
+       }
+       if (strpos($line, '@param string $name') != FALSE) {
+          $match++;
+          continue;
+       }
+       if (strpos($line, 'bar($name)') != FALSE) {
+          $match--;
+          continue;
+       }
     }
 }
+
+var_dump($match);
 ?>
 --EXPECT--
-xxx
+int(3)

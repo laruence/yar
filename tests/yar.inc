@@ -24,12 +24,13 @@ function yar_server_start($code = '"Hello world";', $no_router = FALSE) {
 			$cmd .= " {$router}";
 		}
 
-		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true));
+		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
 		$cmd = "exec {$php_executable} -t {$doc_root} -S " . YAR_SERVER_ADDRESS;
 		if (!$no_router) {
 			$cmd .= " {$router}";
         }
+        $cmd .= " 2>/dev/null";
 
 		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
 	}

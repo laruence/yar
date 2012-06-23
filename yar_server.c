@@ -306,7 +306,7 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
 			if (f->type == ZEND_USER_FUNCTION) {
 				doc_comment = (char *)f->op_array.doc_comment;
 			}
-			snprintf(buf, 1024, HTML_MARKUP_ENTRY, prototype,  doc_comment? doc_comment : "");
+			snprintf(buf, 1024, HTML_MARKUP_ENTRY, prototype, doc_comment? doc_comment : "");
 			efree(prototype);
 
 			PHPWRITE(buf, strlen(buf));
@@ -558,14 +558,14 @@ static void php_yar_server_info(zval *obj TSRMLS_DC) /* {{{ */ {
 	char buf[1024];
 	zend_class_entry *ce = Z_OBJCE_P(obj);
 
-    php_body_write(ZEND_STRS(HTML_MARKUP_HEADER) - 1 TSRMLS_CC);
+    PHPWRITE(HTML_MARKUP_HEADER, sizeof(HTML_MARKUP_HEADER) - 1);
 
 	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ce->name);
-	php_body_write(buf, strlen(buf) TSRMLS_CC);
+	PHPWRITE(buf, strlen(buf));
 
     zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(ce) TSRMLS_CC);
 
-    php_body_write(ZEND_STRS(HTML_MARKUP_FOOTER) - 1 TSRMLS_CC);
+    PHPWRITE(HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
 }
 /* }}} */
 

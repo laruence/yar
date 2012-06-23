@@ -43,46 +43,6 @@ zend_function_entry yar_functions[] = {
 };
 /* }}} */
 
-/** {{{ module depends
- */
-#if ZEND_MODULE_API_NO >= 20050922
-zend_module_dep yar_deps[] = {
-	ZEND_MOD_REQUIRED("json")
-#ifdef ENABLE_MSGPACK
-	ZEND_MOD_REQUIRED("msgpack")
-#endif
-	{NULL, NULL, NULL}
-};
-#endif
-/* }}} */
-
-/* {{{ yar_module_entry
- */
-zend_module_entry yar_module_entry = {
-#if ZEND_MODULE_API_NO >= 20050922
-	STANDARD_MODULE_HEADER_EX, NULL,
-	yar_deps,
-#else
-	STANDARD_MODULE_HEADER,
-#endif
-	"yar",
-	yar_functions,
-	PHP_MINIT(yar),
-	PHP_MSHUTDOWN(yar),
-	PHP_RINIT(yar),
-	PHP_RSHUTDOWN(yar),
-	PHP_MINFO(yar),
-#if ZEND_MODULE_API_NO >= 20010901
-	YAR_VERSION,
-#endif
-	STANDARD_MODULE_PROPERTIES
-};
-/* }}} */
-
-#ifdef COMPILE_DL_YAR
-ZEND_GET_MODULE(yar)
-#endif
-
 /* {{{ PHP_INI
  */
 PHP_INI_BEGIN()
@@ -111,9 +71,10 @@ void php_yar_debug(int server_side TSRMLS_DC, const char *format, ...) {
 }
 /* }}} */
 
-/* {{{ php_yar_init_globals
- */
-static void php_yar_init_globals(zend_yar_globals *yar_globals) {
+/* {{{ PHP_GINIT_FUNCTION
+*/
+PHP_GINIT_FUNCTION(yar)
+{
 }
 /* }}} */
 
@@ -170,6 +131,50 @@ PHP_MINFO_FUNCTION(yar)
 {
 	DISPLAY_INI_ENTRIES();
 }
+/* }}} */
+
+/** {{{ module depends
+ */
+#if ZEND_MODULE_API_NO >= 20050922
+zend_module_dep yar_deps[] = {
+	ZEND_MOD_REQUIRED("json")
+#ifdef ENABLE_MSGPACK
+	ZEND_MOD_REQUIRED("msgpack")
+#endif
+	{NULL, NULL, NULL}
+};
+#endif
+/* }}} */
+
+#ifdef COMPILE_DL_YAR
+ZEND_GET_MODULE(yar)
+#endif
+
+/* {{{ yar_module_entry
+ */
+zend_module_entry yar_module_entry = {
+#if ZEND_MODULE_API_NO >= 20050922
+	STANDARD_MODULE_HEADER_EX, NULL,
+	yar_deps,
+#else
+	STANDARD_MODULE_HEADER,
+#endif
+	"yar",
+	yar_functions,
+	PHP_MINIT(yar),
+	PHP_MSHUTDOWN(yar),
+	PHP_RINIT(yar),
+	PHP_RSHUTDOWN(yar),
+	PHP_MINFO(yar),
+#if ZEND_MODULE_API_NO >= 20010901
+	YAR_VERSION,
+#endif
+	PHP_MODULE_GLOBALS(yar),
+	PHP_GINIT(yar),
+	NULL,
+	NULL,
+	STANDARD_MODULE_PROPERTIES_EX
+};
 /* }}} */
 
 /*
