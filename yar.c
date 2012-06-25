@@ -46,7 +46,11 @@ zend_function_entry yar_functions[] = {
 /* {{{ PHP_INI
  */
 PHP_INI_BEGIN()
+#ifdef ENABLE_MSGPACK
+    STD_PHP_INI_ENTRY("yar.packager", "msgpack",  PHP_INI_PERDIR, OnUpdateString, default_packager, zend_yar_globals, yar_globals)
+#else
     STD_PHP_INI_ENTRY("yar.packager", "php",  PHP_INI_PERDIR, OnUpdateString, default_packager, zend_yar_globals, yar_globals)
+#endif
     STD_PHP_INI_ENTRY("yar.transport", "curl", PHP_INI_PERDIR, OnUpdateString, default_transport, zend_yar_globals, yar_globals)
     STD_PHP_INI_ENTRY("yar.debug",  "Off", PHP_INI_ALL, OnUpdateBool, debug, zend_yar_globals, yar_globals)
     STD_PHP_INI_ENTRY("yar.connect_timeout",  "1", PHP_INI_ALL, OnUpdateLong, timeout, zend_yar_globals, yar_globals)
