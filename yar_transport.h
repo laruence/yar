@@ -21,16 +21,16 @@
 
 #ifndef PHP_YAR_TRANSPORT_H
 #define PHP_YAR_TRANSPORT_H
+#include "yar_client.h"
 
-typedef int yar_concurrent_client_callback(zval *calldata, void *gcallback, char *ret, size_t len TSRMLS_DC);
-typedef int yar_concurrent_client_error_callback(zval *calldata, void *callback, int code, char *msg TSRMLS_DC);
+typedef int yar_concurrent_client_callback(zval *calldata, int status, char *ret, size_t len TSRMLS_DC);
 
 typedef struct _yar_transport_interface {
 	void *data;
 	int  (*open)(struct _yar_transport_interface *self, char *address, uint len, char *hostname, long options TSRMLS_DC);
 	int  (*send)(struct _yar_transport_interface *self, char *payload, size_t len TSRMLS_DC);
 	int  (*exec)(struct _yar_transport_interface *self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC);
-	int  (*reset)(struct _yar_transport_interface *self TSRMLS_DC);
+	int  (*setopt)(struct _yar_transport_interface *self, long type, void *value, void *addition TSRMLS_DC);
 	int  (*calldata)(struct _yar_transport_interface *self, zval *calldata TSRMLS_DC);
 	void (*close)(struct _yar_transport_interface *self TSRMLS_DC);
 } yar_transport_interface_t;
@@ -38,8 +38,7 @@ typedef struct _yar_transport_interface {
 typedef struct _yar_transport_multi_interface {
     void *data;
 	int (*add)(struct _yar_transport_multi_interface *self, yar_transport_interface_t *cp TSRMLS_DC);
-    int (*exec)(struct _yar_transport_multi_interface *self, yar_concurrent_client_callback *callback,
-			yar_concurrent_client_error_callback *error_callback, void *opaque1, void *opaque2 TSRMLS_DC);
+    int (*exec)(struct _yar_transport_multi_interface *self, yar_concurrent_client_callback *callback TSRMLS_DC);
 	void (*close)(struct _yar_transport_multi_interface *self TSRMLS_DC);
 } yar_transport_multi_interface_t;
 

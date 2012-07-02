@@ -58,11 +58,16 @@ PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager TSRMLS_DC) /*
 	return yar_packagers_list.num++;
 } /* }}} */
 
-size_t php_yar_packager_pack(zval *pzval, char **payload, char **msg TSRMLS_DC) /* {{{ */ {
+size_t php_yar_packager_pack(char *packager_name, zval *pzval, char **payload, char **msg TSRMLS_DC) /* {{{ */ {
 	smart_str buf = {0};
 	char header[8];
 	size_t newlen;
-	yar_packager_t *packager = YAR_G(packager);
+	yar_packager_t *packager = packager_name? php_yar_packager_get(packager_name, strlen(packager_name) TSRMLS_CC) : YAR_G(packager);
+
+	if (!packager) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "unsupported packager %s", packager_name);
+		return 0;
+	}
 	memcpy(header, packager->name, 8);
 	smart_str_alloc(&buf, YAR_PACKAGER_BUFFER_SIZE /* 1M */, 0);
 	smart_str_appendl(&buf, header, 8);
@@ -101,6 +106,12 @@ YAR_STARTUP_FUNCTION(packager) /* {{{ */ {
 #endif
   php_yar_packager_register(&yar_packager_php TSRMLS_CC);
   php_yar_packager_register(&yar_packager_json TSRMLS_CC);
+
+  REGISTER_STRINGL_CONSTANT("YAR_PACKAGER_PHP", YAR_PACKAGER_PHP, sizeof(YAR_PACKAGER_PHP)-1, CONST_CS|CONST_PERSISTENT);
+  REGISTER_STRINGL_CONSTANT("YAR_PACKAGER_JSON", YAR_PACKAGER_JSON, sizeof(YAR_PACKAGER_JSON)-1, CONST_CS|CONST_PERSISTENT);
+#ifdef ENABLE_MSGPACK
+  REGISTER_STRINGL_CONSTANT("YAR_PACKAGER_MSGPACK", YAR_PACKAGER_MSGPACK, sizeof(YAR_PACKAGER_MSGPACK)-1, CONST_CS|CONST_PERSISTENT);
+#endif
 
   return SUCCESS;
 } /* }}} */

@@ -364,7 +364,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 		add_assoc_zval_ex(&ret, ZEND_STRS("e"), response->err);
 	}
 
-    if (!(payload_len = php_yar_packager_pack(&ret, &payload, &err_msg TSRMLS_CC))) {
+    if (!(payload_len = php_yar_packager_pack(NULL, &ret, &payload, &err_msg TSRMLS_CC))) {
 		zval_dtor(&ret);
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "%s", err_msg);
 		efree(err_msg);

@@ -24,9 +24,9 @@
 
 #include "ext/standard/php_smart_str.h"
 
-#define	YAR_PACKAGER_PHP      1
-#define	YAR_PACKAGER_JSON     2
-#define	YAR_PACKAGER_MESGPACK 3
+#define	YAR_PACKAGER_PHP      "PHP"
+#define	YAR_PACKAGER_JSON     "JSON"
+#define	YAR_PACKAGER_MSGPACK "MSGPACK"
 
 #define YAR_PACKAGER_BUFFER_SIZE  5120
 
@@ -48,7 +48,7 @@ extern yar_packager_t yar_packager_json;
 extern yar_packager_t yar_packager_msgpack;
 #endif
 
-size_t php_yar_packager_pack(zval *pzval, char **payload, char **msg TSRMLS_DC);
+size_t php_yar_packager_pack(char *packager_name, zval *pzval, char **payload, char **msg TSRMLS_DC);
 zval * php_yar_packager_unpack(char *content, size_t len, char **msg TSRMLS_DC);
 
 #endif	/* PHP_YAR_PACKAGER_H */

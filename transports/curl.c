@@ -161,9 +161,17 @@ int php_yar_curl_set_calldata(yar_transport_interface_t* self, zval *calldata TS
 	data->calldata = calldata;
 } /* }}} */
 
-int php_yar_curl_reset(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
+int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value, void *addtional TSRMLS_DC) /* {{{ */ {
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
-	curl_easy_reset(data->cp);
+	CURL *cp = data->cp;
+	
+    switch (type) {
+		case YAR_CLIENT_OPT_TIMEOUT: 
+			curl_easy_setopt(cp, CURLOPT_TIMEOUT, *(long *)value);
+		break;
+		default:
+		    return 0;
+	}
 	return 1;
 } /* }}} */
 
@@ -183,7 +191,7 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 	self->open   	= php_yar_curl_open;
 	self->send   	= php_yar_curl_send;
 	self->exec   	= php_yar_curl_exec;
-	self->reset		= php_yar_curl_reset;
+	self->setopt	= php_yar_curl_setopt;
 	self->calldata 	= php_yar_curl_set_calldata;
 	self->close  	= php_yar_curl_close;
 
@@ -256,7 +264,7 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 	return 1;
 } /* }}} */
 
-int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f, yar_concurrent_client_error_callback *ef, void *opaque1, void *opaque2 TSRMLS_DC) /* {{{ */ {
+int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f TSRMLS_DC) /* {{{ */ {
 	int running_count, rest_count;
     yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
 
@@ -295,7 +303,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 					uint found = 0;
 					yar_transport_interface_t *handle = multi->chs, *q = NULL;
 
-					for (; handle;) {
+					while (handle) {
 						if (msg->easy_handle == ((yar_curl_data_t*)handle->data)->cp) {
 							if (q) {
 						        ((yar_curl_data_t *)q->data)->next = ((yar_curl_data_t*)handle->data)->next;
@@ -316,19 +324,14 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 						long http_code = 200;
 						yar_curl_data_t *data = (yar_curl_data_t *)handle->data;
 						if (msg->data.result == CURLE_OK) {
-							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK 
-									&& http_code != 200) {
-								if (ef) {
-									if (!ef(data->calldata, opaque2, http_code, (char *)"server response non-200 code" TSRMLS_CC)) {
-										handle->close(handle TSRMLS_CC);
-										zend_bailout();
-									}
-									if (EG(exception)) {
-										handle->close(handle TSRMLS_CC);
-										return 0;
-									}
-								} else {
-									php_error_docref(NULL TSRMLS_CC, E_WARNING, "server responsed non-200 code '%ld'", http_code);
+							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+								if (!f(data->calldata, http_code, ZEND_STRS("server response non-200 code") - 1 TSRMLS_CC)) {
+									handle->close(handle TSRMLS_CC);
+									zend_bailout();
+								}
+								if (EG(exception)) {
+									handle->close(handle TSRMLS_CC);
+									return 0;
 								}
 								handle->close(handle TSRMLS_CC);
 								continue;
@@ -345,16 +348,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								response = NULL;
 								len = 0;
 							}
-							if (!f(data->calldata, opaque1, response, len TSRMLS_CC)) {
-								handle->close(handle TSRMLS_CC);
-								zend_bailout();
-							}
-							if (EG(exception)) {
-								handle->close(handle TSRMLS_CC);
-								return 0;
-							}
-						} else if (ef) {
-							if (!ef(data->calldata, opaque2, msg->data.result, (char *)curl_easy_strerror(msg->data.result) TSRMLS_CC)) {
+							if (!f(data->calldata, 0, response, len TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
 								zend_bailout();
 							}
@@ -363,13 +357,21 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								return 0;
 							}
 						} else {
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, "unexpect error '%s'", curl_easy_strerror(msg->data.result));
+							char *err = (char *)curl_easy_strerror(msg->data.result);
+							if (!f(data->calldata, msg->data.result, err, strlen(err) TSRMLS_CC)) {
+								handle->close(handle TSRMLS_CC);
+								zend_bailout();
+							}
+							if (EG(exception)) {
+								handle->close(handle TSRMLS_CC);
+								return 0;
+							}
 						}
 						handle->close(handle TSRMLS_CC);
 					} else {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "unexpected trnasport info missed");
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "unexpected transport info missed");
 					}
-				} 
+				}
 			} while (msg_in_sequence);
 			rest_count = running_count;
 		}
