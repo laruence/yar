@@ -299,7 +299,7 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 	return response;
 } /* }}} */
 
-static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_CC) /* {{{ */ {
+static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_DC) /* {{{ */ {
 	zend_bool verified = 0;
 	switch (type) {
 		case YAR_CLIENT_OPT_PACKAGER:

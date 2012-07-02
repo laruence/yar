@@ -40,6 +40,9 @@ typedef struct _yar_curl_data_t {
 	struct curl_slist *headers;
 	zval        *calldata;
 	yar_transport_interface_t *next;
+#if LIBCURL_VERSION_NUM < 0x071100
+	char *address;
+#endif
 } yar_curl_data_t;
 
 typedef struct _yar_curl_multi_data_t {
@@ -68,7 +71,8 @@ int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, 
 #if LIBCURL_VERSION_NUM >= 0x071100
 	error = curl_easy_setopt(data->cp, CURLOPT_URL, address);
 #else
-	error = curl_easy_setopt(data->cp, CURLOPT_URL, estrndup(address, len));
+	data->address = estrndup(address, len);
+	error = curl_easy_setopt(data->cp, CURLOPT_URL, data->address);
 #endif
 
 	return (error == CURLE_OK ? 1 : 0);
@@ -85,7 +89,11 @@ void php_yar_curl_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 		curl_easy_cleanup(data->cp);
 		data->cp = NULL;
 	}
-
+#if LIBCURL_VERSION_NUM < 0x071100
+	if (data->address) {
+		efree(data->address);
+	}
+#endif
 	if (data->calldata) {
 		zval_ptr_dtor(&data->calldata);
 	}
