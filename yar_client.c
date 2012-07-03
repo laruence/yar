@@ -391,7 +391,6 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			zend_print_zval(response, 1);
 			zval_ptr_dtor(&response);
 		}
-		zval_ptr_dtor(&callinfo);
 		return 1;
 	}
 
