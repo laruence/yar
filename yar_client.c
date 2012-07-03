@@ -144,33 +144,42 @@ static zval * php_yar_client_parse_response(char *ret, size_t len, int throw_exc
 			if (zend_hash_find(ht, ZEND_STRS("o"), (void **)&ppzval) == SUCCESS) {
 				PHPWRITE(Z_STRVAL_PP(ppzval), Z_STRLEN_PP(ppzval));
 			}
-		} else if (throw_exception && status == YAR_ERR_EXCEPTION) {
+		} else if (status == YAR_ERR_EXCEPTION) {
 			if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS) {
-				zval *ex, **property;
-				MAKE_STD_ZVAL(ex);
-				object_init_ex(ex, yar_server_exception_ce);
+				if (throw_exception) {
+					zval *ex, **property;
+					MAKE_STD_ZVAL(ex);
+					object_init_ex(ex, yar_server_exception_ce);
 
-				if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("message"), (void **)&property) == SUCCESS) {
-					zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("message"), *property TSRMLS_CC);
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("message"), (void **)&property) == SUCCESS) {
+						zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("message"), *property TSRMLS_CC);
+					}
+
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("code"), (void **)&property) == SUCCESS) {
+						zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("code"), *property TSRMLS_CC);
+					}
+
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("file"), (void **)&property) == SUCCESS) {
+						zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("file"), *property TSRMLS_CC);
+					}
+
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("line"), (void **)&property) == SUCCESS) {
+						zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("line"), *property TSRMLS_CC);
+					}
+
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("_type"), (void **)&property) == SUCCESS) {
+						zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("_type"), *property TSRMLS_CC);
+					}
+					zend_throw_exception_object(ex TSRMLS_CC);
+				} else {
+					zval **msg, **code;
+					if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("message"), (void **)&msg) == SUCCESS
+							&& zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("code"), (void **)&code) == SUCCESS) {
+						convert_to_string_ex(msg);
+						convert_to_long_ex(code);
+						php_yar_client_trigger_error(0 TSRMLS_CC, Z_LVAL_PP(code), "server threw an exception with message `%s`", Z_STRVAL_PP(msg));
+					}
 				}
-
-				if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("code"), (void **)&property) == SUCCESS) {
-					zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("code"), *property TSRMLS_CC);
-				}
-
-				if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("file"), (void **)&property) == SUCCESS) {
-					zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("file"), *property TSRMLS_CC);
-				}
-
-				if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("line"), (void **)&property) == SUCCESS) {
-					zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("line"), *property TSRMLS_CC);
-				}
-
-				if (zend_hash_find(Z_ARRVAL_PP(ppzval), ZEND_STRS("_type"), (void **)&property) == SUCCESS) {
-					zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("_type"), *property TSRMLS_CC);
-				}
-
-				zend_throw_exception_internal(ex TSRMLS_CC);
 			}
 		} else if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS
 				&& IS_STRING == Z_TYPE_PP(ppzval)) {
@@ -380,7 +389,9 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
 			efree(ret);
 			zend_print_zval(response, 1);
+			zval_ptr_dtor(&response);
 		}
+		zval_ptr_dtor(&callinfo);
 		return 1;
 	}
 
@@ -390,6 +401,7 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			efree(ret);
 		} else {
 			php_yar_client_trigger_error(0 TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", "server responsed empty response");
+	        zval_ptr_dtor(&callinfo);
 			return 1;
 		}
 	} else {
