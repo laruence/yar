@@ -299,7 +299,8 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
     zend_function *f = ptr;
     zend_class_entry *ce = argument;
 
-    if (f->common.fn_flags & ZEND_ACC_PUBLIC) {
+    if (f->common.fn_flags & ZEND_ACC_PUBLIC 
+			&& f->common.function_name && *(f->common.function_name) != '_') {
         char *prototype = NULL;
 		if ((prototype = php_yar_get_function_declaration(f TSRMLS_CC))) {
 			char buf[1024], *doc_comment = NULL;
@@ -457,7 +458,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 
 		INIT_ZVAL(output);
 
-		if (zend_hash_exists(&ce->function_table, ZEND_STRS("_auth"))) {
+		if (zend_hash_exists(&ce->function_table, ZEND_STRS("__auth"))) {
 			zval *provider, *token, func;
 			MAKE_STD_ZVAL(provider);
 			MAKE_STD_ZVAL(token);
@@ -477,7 +478,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			func_params[0] = &provider;
 			func_params[1] = &token;
 
-			ZVAL_STRINGL(&func, "_auth", sizeof("_auth") - 1, 0);
+			ZVAL_STRINGL(&func, "__auth", sizeof("__auth") - 1, 0);
 			if (call_user_function_ex(NULL, &obj, &func, &retval_ptr, 2, func_params, 0, NULL TSRMLS_CC) != SUCCESS) {
 				efree(func_params);
 				zval_ptr_dtor(&token);
@@ -494,7 +495,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			if (retval_ptr) {
                if (Z_TYPE_P(retval_ptr) == IS_BOOL && !Z_BVAL_P(retval_ptr)) {
 				   zval_ptr_dtor(&retval_ptr);
-				   php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s::_auth() return false", ce->name);
+				   php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s::__auth() return false", ce->name);
 				   goto response;
 			   }
 			   zval_ptr_dtor(&retval_ptr);

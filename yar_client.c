@@ -187,10 +187,11 @@ static zval * php_yar_client_parse_response(char *ret, size_t len, int throw_exc
 	return retval;
 } /* }}} */
 
-static int php_yar_client_http_prepare(yar_transport_interface_t *transport, char *packager_name, char *uri, long ulen, char *method, long mlen, zval *params TSRMLS_DC) /* {{{ */ {
-	char *payload, *err_msg;
-	size_t payload_len;
+static int php_yar_client_http_prepare(yar_transport_interface_t *transport, char *uri, long ulen, char *method, long mlen, zval *params, zval *options TSRMLS_DC) /* {{{ */ {
 	zval request;
+	char *payload, *err_msg;
+	char *packager_name = NULL;
+	size_t payload_len;
 	yar_header_t header = {0};
 	long request_id;
 	php_url *url;
@@ -199,6 +200,24 @@ static int php_yar_client_http_prepare(yar_transport_interface_t *transport, cha
 		php_mt_srand(GENERATE_SEED() TSRMLS_CC);
 	}
     request_id = (long)php_mt_rand(TSRMLS_C);
+
+	if (options && IS_ARRAY == Z_TYPE_P(options)) {
+		zval **ppzval;
+		if (zend_hash_index_find(Z_ARRVAL_P(options), YAR_CLIENT_OPT_PACKAGER, (void **)&ppzval) == SUCCESS
+				&& IS_STRING == Z_TYPE_PP(ppzval)) {
+			packager_name = Z_STRVAL_PP(ppzval);
+			if (YAR_G(debug)) {
+				php_yar_debug_client("%ld: set packager to %s", request_id, packager_name);
+			}
+		}
+		if (zend_hash_index_find(Z_ARRVAL_P(options), YAR_CLIENT_OPT_TIMEOUT, (void **)&ppzval) == SUCCESS) {
+			convert_to_long_ex(ppzval);
+			transport->setopt(transport, YAR_CLIENT_OPT_TIMEOUT, (long *)&Z_LVAL_PP(ppzval), NULL TSRMLS_CC);
+			if (YAR_G(debug)) {
+				php_yar_debug_client("%ld: set transport timeout to %ls", request_id, Z_LVAL_PP(ppzval));
+			}
+		}
+	}
 
 	INIT_ZVAL(request);
 	array_init(&request);
@@ -252,8 +271,7 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 	uint err_code;
 	yar_transport_t *factory;
 	yar_transport_interface_t *transport;
-	zval *uri, *response = NULL;
-	zval *options, *packager_name = NULL;
+	zval *uri, *response = NULL, *options;
 
 	uri = zend_read_property(yar_client_ce, client, ZEND_STRL("_uri"), 0 TSRMLS_CC);
 
@@ -262,21 +280,11 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 
 	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0 TSRMLS_CC);
 
-	if (IS_ARRAY == Z_TYPE_P(options)) {
-		zval **ppzval;
-		if (zend_hash_index_find(Z_ARRVAL_P(options), YAR_CLIENT_OPT_PACKAGER, (void **)&ppzval) == SUCCESS
-				&& IS_STRING == Z_TYPE_PP(ppzval)) {
-			packager_name = *ppzval;
-		}
-
-		if (zend_hash_index_find(Z_ARRVAL_P(options), YAR_CLIENT_OPT_TIMEOUT, (void **)&ppzval == SUCCESS)) {
-			convert_to_long_ex(ppzval);
-			transport->setopt(transport, YAR_CLIENT_OPT_TIMEOUT, (long *)&Z_LVAL_PP(ppzval), NULL TSRMLS_CC);
-		}
+	if (IS_ARRAY != Z_TYPE_P(options)) {
+		options = NULL;
 	}
 
- 	if (!php_yar_client_http_prepare(transport, packager_name? Z_STRVAL_P(packager_name) : NULL,
-				Z_STRVAL_P(uri), Z_STRLEN_P(uri), method, mlen, params TSRMLS_CC)) {
+ 	if (!php_yar_client_http_prepare(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), method, mlen, params, options TSRMLS_CC)) {
 		transport->close(transport TSRMLS_CC);
 		factory->destroy(transport TSRMLS_CC);
         return NULL;
@@ -369,7 +377,9 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 		if (status) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:%s", status, ret);
 		} else if (len) {
+			response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
 			efree(ret);
+			zend_print_zval(response, 1);
 		}
 		return 1;
 	}
@@ -447,8 +457,7 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 	zval **entry;
 	char *dummy;
 	long sequence;
-	zval **uri, **method, **parameters;
-	zval *options, *packager_name = NULL;
+	zval **uri, **method, **parameters, **options;
 	yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_transport_multi_interface_t *multi;
@@ -479,8 +488,14 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 			parameters = &tmp;
 		}
 		transport = factory->init(TSRMLS_C);
-		if (!php_yar_client_http_prepare(transport, NULL,
-					Z_STRVAL_PP(uri), Z_STRLEN_PP(uri), Z_STRVAL_PP(method), Z_STRLEN_PP(method), *parameters TSRMLS_CC)) {
+
+		if (zend_hash_find(Z_ARRVAL_PP(entry), ZEND_STRS("o"), (void **)&options) == FAILURE
+				|| IS_ARRAY !=  Z_TYPE_PP(options)) {
+			options = NULL;
+		}
+
+		if (!php_yar_client_http_prepare(transport, Z_STRVAL_PP(uri), Z_STRLEN_PP(uri),
+					Z_STRVAL_PP(method), Z_STRLEN_PP(method), *parameters, options? *options : NULL TSRMLS_CC)) {
 			transport->close(transport TSRMLS_CC);
 			multi->close(multi TSRMLS_CC);
 			return 0;
@@ -627,7 +642,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 	}
 	if (options && IS_ARRAY == Z_TYPE_P(options)) {
 		Z_ADDREF_P(options);
-		add_assoc_zval_ex(item, ZEND_STRS("o"), parameters);
+		add_assoc_zval_ex(item, ZEND_STRS("o"), options);
 	}
 
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0 TSRMLS_CC);
