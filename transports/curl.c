@@ -33,7 +33,7 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-#if HAVE_EPOLL
+#if ENABLE_EPOLL
 #include <sys/epoll.h>
 #define YAR_EPOLL_MAX_SIZE 128
 #endif
@@ -55,7 +55,7 @@ typedef struct _yar_curl_multi_data_t {
 	yar_transport_interface_t *chs;
 } yar_curl_multi_data_t;
 
-#if HAVE_EPOLL
+#if ENABLE_EPOLL
 typedef struct _yar_curl_multi_gdata {
 	int epfd;
 	CURLM *multi;
@@ -324,7 +324,7 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f TSRMLS_DC) /* {{{ */ {
 	int running_count, rest_count;
 	yar_curl_multi_data_t *multi;
-#if HAVE_EPOLL
+#if ENABLE_EPOLL
 	int epfd, nfds;
 	struct epoll_event events[16];
 	yar_curl_multi_gdata g;
@@ -335,7 +335,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 #endif
 
     multi = (yar_curl_multi_data_t *)self->data;
-#if HAVE_EPOLL
+#if ENABLE_EPOLL
 	g.multi = multi->cm;
 	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
 	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETDATA, &g);
@@ -350,7 +350,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
     rest_count = running_count;
 	while (running_count) {
-#if HAVE_EPOLL
+#if ENABLE_EPOLL
 		int i;
 		nfds = epoll_wait(epfd, events, 16, 500);
 		/* fprintf(stderr, "ready %ld sockets\n", nfds); */
@@ -381,7 +381,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 		}
 #endif
-		fprintf(stderr, "left %ld runing\n", running_count);
 
         if (rest_count > running_count) {
 			int msg_in_sequence;

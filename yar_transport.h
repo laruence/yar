@@ -23,6 +23,10 @@
 #define PHP_YAR_TRANSPORT_H
 #include "yar_client.h"
 
+#if HAVE_EPOLL && 0
+#define ENABLE_EPOLL
+#endif
+
 typedef int yar_concurrent_client_callback(zval *calldata, int status, char *ret, size_t len TSRMLS_DC);
 
 typedef struct _yar_transport_interface {
