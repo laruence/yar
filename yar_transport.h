@@ -23,7 +23,7 @@
 #define PHP_YAR_TRANSPORT_H
 #include "yar_client.h"
 
-#if HAVE_EPOLL && 0
+#if 0 && HAVE_EPOLL
 #define ENABLE_EPOLL
 #endif
 
