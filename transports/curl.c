@@ -33,6 +33,11 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
+#if HAVE_EPOLL
+#include <sys/epoll.h>
+#define YAR_EPOLL_MAX_SIZE 128
+#endif
+
 typedef struct _yar_curl_data_t {
 	CURL		*cp;
 	smart_str	buf;
@@ -49,6 +54,50 @@ typedef struct _yar_curl_multi_data_t {
 	CURLM *cm;
 	yar_transport_interface_t *chs;
 } yar_curl_multi_data_t;
+
+#if HAVE_EPOLL
+typedef struct _yar_curl_multi_gdata {
+	int epfd;
+	CURLM *multi;
+	int still_running;
+} yar_curl_multi_gdata;
+
+typedef struct _yar_curl_multi_sockinfo {
+	curl_socket_t fd;
+	CURL *cp;
+} yar_curl_multi_sockinfo;
+
+static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
+	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
+	yar_curl_multi_sockinfo *fdp = (yar_curl_multi_sockinfo *) sockp;
+	const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
+
+	/* fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
+	if (what == CURL_POLL_REMOVE) {
+        struct epoll_event ev;
+		if (fdp) {
+			efree(fdp);
+		}
+		--g->still_running;
+		ev.data.fd = s;
+		ev.events  = EPOLLIN;
+		epoll_ctl(g->epfd, EPOLL_CTL_DEL, s, &ev);
+	} else {
+		if (!fdp) {
+            struct epoll_event ev;
+            fdp = ecalloc(1, sizeof(yar_curl_multi_sockinfo));
+            fdp->fd = s;
+            fdp->cp = e;
+
+			ev.data.fd = s;
+			ev.events  = EPOLLIN;
+			epoll_ctl(g->epfd, EPOLL_CTL_ADD, s, &ev);	
+			curl_multi_assign(g->multi, s, fdp);
+		} 
+	}
+	return 0;
+} /* }}} */
+#endif
 
 size_t php_yar_curl_buf_writer(char *ptr, size_t size, size_t nmemb, void *ctx) /* {{{ */ {
 	yar_curl_data_t *data = (yar_curl_data_t *) ctx;
@@ -274,12 +323,43 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 
 int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f TSRMLS_DC) /* {{{ */ {
 	int running_count, rest_count;
-    yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
+	yar_curl_multi_data_t *multi;
+#if HAVE_EPOLL
+	int epfd, nfds;
+	struct epoll_event events[16];
+	yar_curl_multi_gdata g;
 
+	epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
+	g.epfd = epfd;
+	g.still_running = 0;
+#endif
+
+    multi = (yar_curl_multi_data_t *)self->data;
+#if HAVE_EPOLL
+	g.multi = multi->cm;
+	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
+	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETDATA, &g);
+# if LIBCURL_VERSION_NUM >= 0x071000
+	while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_action(multi->cm, CURL_SOCKET_TIMEOUT, 0, &running_count));
+# else
+	while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
+# endif
+#else
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+#endif
 
     rest_count = running_count;
 	while (running_count) {
+#if HAVE_EPOLL
+		int i;
+		nfds = epoll_wait(epfd, events, 16, 500);
+		/* fprintf(stderr, "ready %ld sockets\n", nfds); */
+		for (i=0; i<nfds; i++) {
+			if(events[i].events & EPOLLIN) {
+				while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
+			}
+		}
+#else
 		int max_fd, return_code;
 		struct timeval tv;
 		fd_set readfds;
@@ -300,6 +380,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 		} else {
 			while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 		}
+#endif
+		fprintf(stderr, "left %ld runing\n", running_count);
 
         if (rest_count > running_count) {
 			int msg_in_sequence;
