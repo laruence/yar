@@ -391,7 +391,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 } /* }}} */
 
 static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
-	char *payload, *err_msg;
+	char *payload, *err_msg, method[256];
 	size_t payload_len;
 	zend_bool bailout = 0;
 	zval *post_data = NULL, output;
@@ -445,7 +445,8 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 	ce = Z_OBJCE_P(obj);
-	if (!zend_hash_exists(&ce->function_table, Z_STRVAL_P(request->method), Z_STRLEN_P(request->method) + 1)) {
+	zend_str_tolower_copy(method, Z_STRVAL_P(request->method), sizeof(method) - 1);
+	if (!zend_hash_exists(&ce->function_table, method, strlen(method) + 1)) {
 		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to undefined api %s::%s()", ce->name, Z_STRVAL_P(request->method));
 		goto response;
 	}
