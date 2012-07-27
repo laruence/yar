@@ -303,14 +303,15 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
 			&& f->common.function_name && *(f->common.function_name) != '_') {
         char *prototype = NULL;
 		if ((prototype = php_yar_get_function_declaration(f TSRMLS_CC))) {
-			char buf[1024], *doc_comment = NULL;
+			char *buf, *doc_comment = NULL;
+			uint buf_len;
 			if (f->type == ZEND_USER_FUNCTION) {
 				doc_comment = (char *)f->op_array.doc_comment;
 			}
-			snprintf(buf, 1024, HTML_MARKUP_ENTRY, prototype, doc_comment? doc_comment : "");
+			buf_len = spprintf(&buf, 0, HTML_MARKUP_ENTRY, prototype, doc_comment? doc_comment : "");
 			efree(prototype);
-
 			PHPWRITE(buf, strlen(buf));
+            efree(buf);
 		}
     }
 
