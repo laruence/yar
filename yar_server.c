@@ -55,7 +55,9 @@ ZEND_END_ARG_INFO()
 	"<html>\n" \
 	" <head>\n" \
 	"  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" \
-	"  <title>Yar RPC Server</title>\n" \
+	"  <title>%s - Yar Server</title>\n"
+
+#define HTML_MARKUP_CSS \
 	"  <style>\n" \
 	"   body { margin: 0; font:14px/20px Verdana, Arial, sans-serif; color: #333; background: #f8f8f8;}\n" \
 	"   h1, h2, pre { margin: 0; padding: 0;}\n" \
@@ -65,7 +67,9 @@ ZEND_END_ARG_INFO()
 	"   .api-info { padding: 10px 0; margin-left: 20px; }\n" \
 	"   .api-block { margin-left: 40px;}\n" \
 	"   h2 u { font-size:20px;text-decoration:none;padding:10px; }\n" \
-	"  </style>\n" \
+	"  </style>\n"
+
+#define HTML_MARKUP_SCRIPT  \
 	"  <script>\n" \
 	"   function _t(elem) {\n" \
 	"    var block = elem.nextSibling;\n" \
@@ -82,10 +86,11 @@ ZEND_END_ARG_INFO()
 	"   }\n" \
 	"  </script>\n" \
 	" </head>\n" \
-	" <body>\n"
+	" <body>\n" \
+	" <!-- powered by yar-" YAR_VERSION " -->\n"
 
 #define HTML_MARKUP_TITLE \
-	" <h1>%s</h1>"
+	" <h1>Yar Server: %s</h1>"
 
 #define HTML_MARKUP_ENTRY \
 	" <h2 onclick=\"_t(this)\"><u>-</u>%s</h2>\n" \
@@ -575,7 +580,11 @@ static void php_yar_server_info(zval *obj TSRMLS_DC) /* {{{ */ {
 	char buf[1024];
 	zend_class_entry *ce = Z_OBJCE_P(obj);
 
-    PHPWRITE(HTML_MARKUP_HEADER, sizeof(HTML_MARKUP_HEADER) - 1);
+	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ce->name);
+	PHPWRITE(buf, strlen(buf));
+
+	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
+	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
 
 	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ce->name);
 	PHPWRITE(buf, strlen(buf));
