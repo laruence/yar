@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<package xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" packagerversion="1.4.7" version="2.0" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd"> 
+ <name>yar</name>
+ <channel>pecl.php.net</channel>
+ <summary>Light, concurrent RPC framework</summary>
+ <description>Yar(Yet another RPC framework) is a light, concurrent RPC framework, supports multi package protocols (json, msgpack)</description>
+ <lead>
+  <name>Xinchen Hui</name>
+  <user>laruence</user>
+  <email>laruence@php.net</email>
+  <active>yes</active>
+ </lead>
+ <developer>
+  <name>Zhenyu Zhang</name>
+  <user>zhangzhenyu</user>
+  <email>zhangzhenyu@php.net</email>
+  <active>yes</active>
+ </developer>
+ <date>2012-08-01</date>
+ <time>12:33:08</time>
+ <version>
+  <release>1.0.0</release>
+  <api>1.0.0</api>
+ </version>
+ <stability>
+  <release>beta</release>
+  <api>beta</api>
+ </stability>
+ <license uri="http://www.php.net/license">PHP</license>
+ <notes>
+  - First release
+ </notes>
+ <contents> 
+  <dir name="/"> 
+   <file name="config.m4"  role="src" />
+   <file name="config.w32" role="src" />
+   <file name="CREDITS" role="src" />
+   <file name="EXPERIMENTAL" role="src" />
+   <file name="php_yar.h" role="src" />
+   <file name="yar.c" role="src" />
+   <file name="yar_server.h" role="src" />
+   <file name="yar_server.c" role="src" />
+   <file name="yar_client.h" role="src" />
+   <file name="yar_client.c" role="src" />
+   <file name="yar_request.h" role="src" />
+   <file name="yar_request.c" role="src" />
+   <file name="yar_response.h" role="src" />
+   <file name="yar_response.c" role="src" />
+   <file name="yar_exception.h" role="src" />
+   <file name="yar_exception.c" role="src" />
+   <file name="yar_transport.h" role="src" />
+   <file name="yar_transport.c" role="src" />
+   <file name="yar_protocol.h" role="src" />
+   <file name="yar_protocol.c" role="src" />
+   <file name="yar_packager.h" role="src" />
+   <file name="yar_packager.c" role="src" />
+   <dir name="transports">
+    <file name="curl.c" role="src" />
+   </dir>
+   <dir name="packagers">
+    <file name="php.c" role="src" />
+    <file name="json.c" role="src" />
+    <file name="msgpack.c" role="src" />
+   </dir>
+   <dir name="tests">
+    <file name="001.phpt" role="test" />
+    <file name="002.phpt" role="test" />
+    <file name="003.phpt" role="test" />
+    <file name="004.phpt" role="test" />
+    <file name="005.phpt" role="test" />
+    <file name="006.phpt" role="test" />
+    <file name="yar.inc" role="test" />
+   </dir>
+  </dir> 
+ </contents> 
+ <dependencies> 
+  <required> 
+   <php> 
+    <min>5.2.0</min> 
+    <max>5.4.5</max>
+   </php> 
+   <pearinstaller> 
+    <min>1.4.0</min> 
+   </pearinstaller> 
+  </required> 
+ </dependencies> 
+ <providesextension>yar</providesextension>
+ <extsrcrelease />
+ <changelog> 
+  <release> 
+   <date>2012-08-01</date> 
+   <version> 
+    <release>1.0.0</release> 
+    <api>1.0.0</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - First release
+   </notes> 
+  </release> 
+ </changelog> 
+</package> 
+<!--
+vim:et:ts=1:sw=1
+--> 
