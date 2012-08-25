@@ -40,6 +40,7 @@ int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *
 zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
 	zval *return_value;
 	MAKE_STD_ZVAL(return_value);
+	ZVAL_NULL(return_value);
 	php_msgpack_unserialize(return_value, content, len TSRMLS_CC);
 	return return_value;
 } /* }}} */
