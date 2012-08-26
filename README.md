@@ -4,11 +4,24 @@
 Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 
 ## Requirement
-- PHP >= 5.2
+- PHP 5.2+
 - Curl
 - Json
 - Msgpack (Optional)
 
+## Install
+
+### Install Yar 
+Yar is an PECL extension, thus you can simply install it by:
+````
+pecl install yar
+````
+### Compile Yar in Linux
+````
+$/path/to/phpize
+$./configure --with-php-config=/path/to/php-config/
+$make && make install
+````
 ## Introduction
 
 Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
