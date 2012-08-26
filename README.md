@@ -1,6 +1,7 @@
 # Yar - Yet Another RPC framework for PHP
-
 Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
+
+[![Build Status](https://secure.travis-ci.org/laruence/php-yar.png)](http://travis-ci.org/laruence/php-yar)
 
 ## Requirement
 - PHP >= 5.2
