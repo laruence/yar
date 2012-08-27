@@ -233,6 +233,7 @@ static int php_yar_client_http_prepare(yar_transport_interface_t *transport, cha
 
 	add_assoc_long_ex(&request, ZEND_STRS("i"), request_id);
 	add_assoc_stringl_ex(&request, ZEND_STRS("m"), method, mlen, 1);
+	Z_ADDREF_P(params);
     add_assoc_zval_ex(&request, ZEND_STRS("p"), params);
 
 
@@ -364,72 +365,88 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 	zend_bool bailout = 0;
 	uint params_count;
 
-    if (!status) {
-		zval **ppzval;
-		if (zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("c"), (void **)&ppzval) == SUCCESS) {
-			callback = *ppzval;
+	if (calldata) {
+		/* data callback */
+		if (!status) {
+			zval **ppzval;
+			if (zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("c"), (void **)&ppzval) == SUCCESS) {
+				callback = *ppzval;
+			} else {
+				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0 TSRMLS_CC);
+			}
+			params_count = 2;
 		} else {
-			callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0 TSRMLS_CC);
+			zval **ppzval;
+			if (zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("e"), (void **)&ppzval) == SUCCESS) {
+				callback = *ppzval;
+			} else {
+				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), 0 TSRMLS_CC);
+			}
+			params_count = 3;
 		}
-		params_count = 2;
-	} else {
-		zval **ppzval;
-		if (zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("e"), (void **)&ppzval) == SUCCESS) {
-			callback = *ppzval;
-		} else {
-			callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), 0 TSRMLS_CC);
-		}
-		params_count = 3;
-	}
 
-	if (ZVAL_IS_NULL(callback)) {
-		if (status) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:%s", status, ret);
-		} else if (len) {
-			response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
-			efree(ret);
-			zend_print_zval(response, 1);
-			zval_ptr_dtor(&response);
-		}
-		return 1;
-	}
-
-	if (!status) {
-		if (len) {
-			response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
-			efree(ret);
-		} else {
-			php_yar_client_trigger_error(0 TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", "server responsed empty response");
-	        zval_ptr_dtor(&callinfo);
+		if (ZVAL_IS_NULL(callback) && calldata) {
+			if (status) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:%s", status, ret);
+			} else if (len) {
+				response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
+				efree(ret);
+				zend_print_zval(response, 1);
+				zval_ptr_dtor(&response);
+			}
 			return 1;
 		}
+
+		if (!status) {
+			if (len) {
+				response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
+				efree(ret);
+			} else {
+				php_yar_client_trigger_error(0 TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", "server responsed empty response");
+				zval_ptr_dtor(&callinfo);
+				return 1;
+			}
+		} else {
+			MAKE_STD_ZVAL(code);
+			ZVAL_LONG(code, status);
+			MAKE_STD_ZVAL(response);
+			ZVAL_STRINGL(response, ret, len, 1);
+		}
+
+		zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("u"), (void **)&uri);
+		zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("m"), (void **)&method);
+		zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("i"), (void **)&sequence);
+
+		MAKE_STD_ZVAL(callinfo);
+		array_init(callinfo);
+		Z_ADDREF_P(*uri);
+		Z_ADDREF_P(*method);
+		Z_ADDREF_P(*sequence);
+
+		zend_hash_update(Z_ARRVAL_P(callinfo), "uri", sizeof("uri"), (void **)uri, sizeof(zval *), NULL);
+		zend_hash_update(Z_ARRVAL_P(callinfo), "method", sizeof("method"), (void **)method, sizeof(zval *), NULL);
+		zend_hash_update(Z_ARRVAL_P(callinfo), "sequence", sizeof("sequence"), (void **)sequence, sizeof(zval *), NULL);
 	} else {
-		MAKE_STD_ZVAL(code);
-		ZVAL_LONG(code, status);
-		MAKE_STD_ZVAL(response);
-		ZVAL_STRINGL(response, ret, len, 1);
+		callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0 TSRMLS_CC);
+		if (ZVAL_IS_NULL(callback)) {
+			return 1;
+		}
+		params_count = 2;
 	}
 
-	zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("u"), (void **)&uri);
-	zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("m"), (void **)&method);
-	zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("i"), (void **)&sequence);
-
-	MAKE_STD_ZVAL(callinfo);
-	array_init(callinfo);
-	Z_ADDREF_P(*uri);
-	Z_ADDREF_P(*method);
-	Z_ADDREF_P(*sequence);
-
-	zend_hash_update(Z_ARRVAL_P(callinfo), "uri", sizeof("uri"), (void **)uri, sizeof(zval *), NULL);
-	zend_hash_update(Z_ARRVAL_P(callinfo), "method", sizeof("method"), (void **)method, sizeof(zval *), NULL);
-	zend_hash_update(Z_ARRVAL_P(callinfo), "sequence", sizeof("sequence"), (void **)sequence, sizeof(zval *), NULL);
-
 	func_params = emalloc(sizeof(zval **) * params_count);
-	if (status) {
+	if (calldata && status) {
 		func_params[0] = &code;
 		func_params[1] = &response;
 		func_params[2] = &callinfo;
+	} else if (calldata) {
+		func_params[0] = &response;
+		func_params[1] = &callinfo;
 	} else {
+		MAKE_STD_ZVAL(response);
+		MAKE_STD_ZVAL(callinfo);
+		ZVAL_NULL(response);
+		ZVAL_NULL(callinfo);
 		func_params[0] = &response;
 		func_params[1] = &callinfo;
 	}
@@ -443,7 +460,11 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			zval_ptr_dtor(&response);
 			zval_ptr_dtor(&callinfo);
 			efree(func_params);
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to callback failed for request: %s", Z_STRVAL_PP(method));
+			if (calldata) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to callback failed for request: %s", Z_STRVAL_PP(method));
+			} else {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to initial callback failed");
+			}
 			return;
 		}
 	} zend_catch {
@@ -596,7 +617,7 @@ PHP_METHOD(yar_client, setOpt) {
 /* {{{ proto Yar_Concurrent_Client::call($uri, $method, $parameters = NULL, $callback = NULL, $error_callback = NULL, $options = array()) */
 PHP_METHOD(yar_concurrent_client, call) {
 	char *uri, *method, *name = NULL;
-	long ulen, mlen, sequence;
+	long sequence, ulen = 0, mlen = 0;
 	zval *callstack, *item;
 	zval *error_callback = NULL, *callback = NULL, *parameters = NULL, *options = NULL;
 

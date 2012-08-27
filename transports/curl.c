@@ -348,6 +348,10 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 #endif
 
+	if (!f(NULL, 0, NULL, 0 TSRMLS_CC) || EG(exception)) {
+		return 0;
+	}
+
     rest_count = running_count;
 	while (running_count) {
 #ifdef ENABLE_EPOLL
@@ -399,7 +403,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 							} else {
 								multi->chs = ((yar_curl_data_t*)handle->data)->next;
 							}
-							curl_multi_remove_handle(multi->cm, ((yar_curl_data_t*)handle->data)->cp);
 							found = 1;
 							break;
 						}
@@ -413,12 +416,10 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 						long http_code = 200;
 						yar_curl_data_t *data = (yar_curl_data_t *)handle->data;
 						if (msg->data.result == CURLE_OK) {
+							curl_multi_remove_handle(multi->cm, data->cp);
 							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
-								if (!f(data->calldata, http_code, ZEND_STRS("server response non-200 code") - 1 TSRMLS_CC)) {
-									handle->close(handle TSRMLS_CC);
-									zend_bailout();
-								}
-								if (EG(exception)) {
+								if (!f(data->calldata, http_code, ZEND_STRS("server response non-200 code") - 1 TSRMLS_CC)
+										|| EG(exception)) {
 									handle->close(handle TSRMLS_CC);
 									return 0;
 								}
@@ -437,21 +438,13 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								response = NULL;
 								len = 0;
 							}
-							if (!f(data->calldata, 0, response, len TSRMLS_CC)) {
-								handle->close(handle TSRMLS_CC);
-								zend_bailout();
-							}
-							if (EG(exception)) {
+							if (!f(data->calldata, 0, response, len TSRMLS_CC) || EG(exception)) {
 								handle->close(handle TSRMLS_CC);
 								return 0;
 							}
 						} else {
 							char *err = (char *)curl_easy_strerror(msg->data.result);
-							if (!f(data->calldata, msg->data.result, err, strlen(err) TSRMLS_CC)) {
-								handle->close(handle TSRMLS_CC);
-								zend_bailout();
-							}
-							if (EG(exception)) {
+							if (!f(data->calldata, msg->data.result, err, strlen(err) TSRMLS_CC) || EG(exception)) {
 								handle->close(handle TSRMLS_CC);
 								return 0;
 							}
