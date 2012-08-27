@@ -9,19 +9,6 @@ Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 - Json
 - Msgpack (Optional)
 
-## Install
-
-### Install Yar 
-Yar is an PECL extension, thus you can simply install it by:
-````
-pecl install yar
-````
-### Compile Yar in Linux
-````
-$/path/to/phpize
-$./configure --with-php-config=/path/to/php-config/
-$make && make install
-````
 ## Introduction
 
 Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
@@ -36,10 +23,38 @@ It has the ability to concurrently call multiple remote services.
 - Authentication
 - Detailed debug informations
 
+## Install
+
+### Install Yar 
+Yar is an PECL extension, thus you can simply install it by:
+```
+pecl install yar
+```
+### Compile Yar in Linux
+```
+$/path/to/phpize
+$./configure --with-php-config=/path/to/php-config/
+$make && make install
+```
+
+### Install Yar with msgpack 
+first you should install msgpack-ext: https://github.com/msgpack/msgpack-php
+then:
+```
+$phpize
+$configure --with-php-config=/path/to/php-config/ --enable-msgpack
+$make && make install
+```
+## Runtime Configure
+- yar.timeout  //default 5
+- yar.connect_timeout  //default 1
+- yar.packger  //default "php", it should be one of "php", "json", "msgpack"
+- yar.debug    //default Off
+
 ## Server
 
 It's very easy to setup a Yar HTTP RPC Server
-````php
+```php
 <?php
 class API {
     /**
@@ -57,7 +72,7 @@ class API {
 $service = new Yar_Server(new API());
 $service->handle();
 ?>
-````
+```
 Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is issued to the uri, the service information (commented section above) will be printed on the page:
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
@@ -67,14 +82,14 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 It's very easy for a PHP client to call remote RPC:
 
 ### Synchronous call
-````php
+```php
 <?php
 $client = new Yar_Client("http://host/api/");
 $result = $client->api("parameter);
 ?>
-````
+```
 ### Concurrent call
-````php
+```php
 <?php
 function callback($retval, $sequence_id, $method_name, $uri) {
      var_dump($retval);
@@ -86,12 +101,12 @@ Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "cal
 Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
 Yar_Concurrent_Client::loop(); //send
 ?>
-````
+```
     
 ## Authentication
 
 Setting up a server that requires authentication is also rather easy. You just have to declare a method called "_auth" in the server class.
-````php
+```php
 <?php
 class API {
 
@@ -116,15 +131,15 @@ class API {
 $service = new Yar_Server(new API());
 $service->handle();
 ?>
-````
+```
 
 Consequently, the client code should be change to :
-````php
+```php
 <?php
 $client = new Yar_Client("http://username:password@host/api/");
 $result = $client->api("parameter);
 ?>
-````
+```
 
 ## Protocols
 ### Yar Header
@@ -156,18 +171,18 @@ yar_header_t;
 
 ### Request 
    When a Client request a remote server,  it will send a struct (in PHP):
-````php
+```php
 <?php
 array(
    "i" => '', //transaction id
    "m" => '', //the method which being called
    "p" => array(), //parameters
 )
-````
+```
 
 ### Server
 When a server response a result,  it will send a struct (in PHP):
-````php
+```php
 <?php
 array(
    "i" => '',
@@ -176,4 +191,4 @@ array(
    "o" => '', //output 
    "e" => '', //error or exception
 )
-````
+```
