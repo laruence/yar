@@ -9,6 +9,12 @@ Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 - Json
 - Msgpack (Optional)
 
+## Introduction
+
+Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
+
+It has the ability to concurrently call multiple remote services.
+
 ## Install
 
 ### Install Yar 
@@ -31,12 +37,11 @@ $phpize
 $configure --with-php-config=/path/to/php-config/ --enable-msgpack
 $make && make install
 ```
-
-## Introduction
-
-Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
-
-It has the ability to concurrently call multiple remote services.
+## Runtime Configure
+- yar.timeout  //default 5
+- yar.connect_timeout  //default 1
+- yar.packger  //default "php", it should be one of "php", "json", "msgpack"
+- yar.debug    //default Off
 
 ## Features
 - Fast, Easy, Simple
