@@ -15,6 +15,14 @@ Yar is a RPC framework which aims to provide a simple and easy way to do communi
 
 It has the ability to concurrently call multiple remote services.
 
+## Features
+- Fast, Easy, Simple
+- Concurrent RPC calls
+- Multiple data packager supported (php, json, msgpack built-in)
+- Multiple transfer protocols supported (http implemented,  tcp/unix will be supported later)
+- Authentication
+- Detailed debug informations
+
 ## Install
 
 ### Install Yar 
@@ -42,14 +50,6 @@ $make && make install
 - yar.connect_timeout  //default 1
 - yar.packger  //default "php", it should be one of "php", "json", "msgpack"
 - yar.debug    //default Off
-
-## Features
-- Fast, Easy, Simple
-- Concurrent RPC calls
-- Multiple data packager supported (php, json, msgpack built-in)
-- Multiple transfer protocols supported (http implemented,  tcp/unix will be supported later)
-- Authentication
-- Detailed debug informations
 
 ## Server
 
