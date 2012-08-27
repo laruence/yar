@@ -23,7 +23,7 @@ $./configure --with-php-config=/path/to/php-config/
 $make && make install
 ```
 
-### Install Yaf with msgpack 
+### Install Yar with msgpack 
 first you should install msgpack-ext: https://github.com/msgpack/msgpack-php
 then:
 ```
@@ -31,6 +31,7 @@ $phpize
 $configure --with-php-config=/path/to/php-config/ --enable-msgpack
 $make && make install
 ```
+
 ## Introduction
 
 Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
