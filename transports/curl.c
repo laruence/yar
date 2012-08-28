@@ -349,11 +349,11 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 #endif
 
 	if (!f(NULL, 0, NULL, 0 TSRMLS_CC)) {
-		goto onerror;
+		goto bailout;
 	}
 		
 	if (EG(exception)) {
-		goto bailout;
+		goto onerror;
 	}
 
     rest_count = running_count;
@@ -424,11 +424,11 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
 								if (!f(data->calldata, http_code, ZEND_STRS("server response non-200 code") - 1 TSRMLS_CC)) {
 									handle->close(handle TSRMLS_CC);
-									goto onerror;
+									goto bailout;
 								}
 								if (EG(exception)) {
 									handle->close(handle TSRMLS_CC);
-									goto bailout;
+									goto onerror;
 								}
 								handle->close(handle TSRMLS_CC);
 								continue;
@@ -447,21 +447,21 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 							}
 							if (!f(data->calldata, 0, response, len TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
-								goto onerror;
+								goto bailout;
 							}
 							if (EG(exception)) {
 								handle->close(handle TSRMLS_CC);
-								goto bailout;
+								goto onerror;
 							}
 						} else {
 							char *err = (char *)curl_easy_strerror(msg->data.result);
 							if (!f(data->calldata, msg->data.result, err, strlen(err) TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
-								return 0;
+								goto bailout;
 							}
 							if (EG(exception)) {
 								handle->close(handle TSRMLS_CC);
-								goto bailout;
+								return 0;
 							}
 						}
 						handle->close(handle TSRMLS_CC);
