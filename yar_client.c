@@ -696,9 +696,17 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	char *name = NULL;
 	zval *callstack, *item, *sequence;
 	zval *callback = NULL, *error_callback = NULL;
+	zval *status;
+	uint ret = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|zz", &callback, &error_callback) == FAILURE) {
 		return;
+	}
+
+	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0 TSRMLS_CC);
+	if (Z_BVAL_P(status)) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Concurrent client has already be started");
+		RETURN_FALSE;
 	}
 
     if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name TSRMLS_CC)) {
@@ -706,6 +714,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
         efree(name);
         RETURN_FALSE;
     }
+
 	if (name) {
 		efree(name);
 		name = NULL;
@@ -733,7 +742,10 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), error_callback TSRMLS_CC);
 	}
 
-    RETURN_BOOL(php_yar_concurrent_client_handle(callstack TSRMLS_CC));
+	ZVAL_BOOL(status, 1);
+	ret = php_yar_concurrent_client_handle(callstack TSRMLS_CC);
+	ZVAL_BOOL(status, 0);
+	RETURN_BOOL(ret);
 }
 /* }}} */
 
@@ -771,6 +783,7 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_callstack"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC TSRMLS_CC);
 	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_callback"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC TSRMLS_CC);
 	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC TSRMLS_CC);
+	zend_declare_property_bool(yar_concurrent_client_ce, ZEND_STRL("_start"), 0, ZEND_ACC_PROTECTED|ZEND_ACC_STATIC TSRMLS_CC);
 
 	REGISTER_LONG_CONSTANT("YAR_CLIENT_PROTOCOL_HTTP", YAR_CLIENT_PROTOCOL_HTTP, CONST_PERSISTENT | CONST_CS);
 
