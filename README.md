@@ -91,7 +91,7 @@ $result = $client->api("parameter);
 ### Concurrent call
 ```php
 <?php
-function callback($retval, $sequence_id, $method_name, $uri) {
+function callback($retval, $callinfo) {
      var_dump($retval);
 }
 
