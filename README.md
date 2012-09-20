@@ -38,7 +38,12 @@ $make && make install
 ```
 
 ### Install Yar with msgpack 
-first you should install msgpack-ext: https://github.com/msgpack/msgpack-php
+first you should install msgpack-ext
+```
+pecl install msgpack
+```
+or , you can get the github source here: https://github.com/msgpack/msgpack-php
+
 then:
 ```
 $phpize
@@ -91,7 +96,7 @@ $result = $client->api("parameter);
 ### Concurrent call
 ```php
 <?php
-function callback($retval, $sequence_id, $method_name, $uri) {
+function callback($retval, $callinfo) {
      var_dump($retval);
 }
 
