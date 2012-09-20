@@ -27,7 +27,7 @@
 #define ENABLE_EPOLL
 #endif
 
-typedef int yar_concurrent_client_callback(zval *calldata, int status, char *ret, size_t len TSRMLS_DC);
+typedef int yar_concurrent_client_callback(zval *calldata, int status, int code, char *ret, size_t len TSRMLS_DC);
 
 typedef struct _yar_transport_interface {
 	void *data;

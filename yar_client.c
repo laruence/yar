@@ -304,8 +304,11 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 		if (ret_len) {
 			response = php_yar_client_parse_response(ret, ret_len, 1 TSRMLS_CC);
 			efree(ret);
-		} else{
+		} else {
 			php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", "server responsed empty response");
+			if (ret) {
+				efree(ret);
+			}
 		}
 	} else {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, err_msg);
@@ -358,7 +361,7 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_DC
 	return 1;
 } /* }}} */
 
-int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, size_t len TSRMLS_DC) /* {{{ */ {
+int php_yar_concurrent_client_callback(zval *calldata, int status, int err, char *ret, size_t len TSRMLS_DC) /* {{{ */ {
 	zval **method, **uri, **sequence;
 	zval *response, *code, *retval_ptr = NULL;
 	zval *callinfo, *callback, ***func_params;
@@ -367,7 +370,7 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 
 	if (calldata) {
 		/* data callback */
-		if (!status) {
+		if (status == YAR_ERR_OKEY) {
 			zval **ppzval;
 			if (zend_hash_find(Z_ARRVAL_P(calldata), ZEND_STRS("c"), (void **)&ppzval) == SUCCESS) {
 				callback = *ppzval;
@@ -385,8 +388,8 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			params_count = 3;
 		}
 
-		if (ZVAL_IS_NULL(callback) && calldata) {
-			if (status) {
+		if (ZVAL_IS_NULL(callback)) {
+			if (status != YAR_ERR_OKEY) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:%s", status, ret);
 			} else if (len) {
 				response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
@@ -397,18 +400,20 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 			return 1;
 		}
 
-		if (!status) {
+		if (status == YAR_ERR_OKEY) {
 			if (len) {
 				response = php_yar_client_parse_response(ret, len, 0 TSRMLS_CC);
 				efree(ret);
 			} else {
-				php_yar_client_trigger_error(0 TSRMLS_CC, YAR_ERR_PROTOCOL, "%s", "server responsed empty response");
-				zval_ptr_dtor(&callinfo);
+				php_yar_client_trigger_error(0 TSRMLS_CC, YAR_ERR_REQUEST, "%s", "server responsed empty response");
+				if (ret) {
+					efree(ret);
+				}
 				return 1;
 			}
 		} else {
 			MAKE_STD_ZVAL(code);
-			ZVAL_LONG(code, status);
+			ZVAL_LONG(code, err);
 			MAKE_STD_ZVAL(response);
 			ZVAL_STRINGL(response, ret, len, 1);
 		}
@@ -435,7 +440,7 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, char *ret, si
 	}
 
 	func_params = emalloc(sizeof(zval **) * params_count);
-	if (calldata && status) {
+	if (calldata && (status != YAR_ERR_OKEY)) {
 		func_params[0] = &code;
 		func_params[1] = &response;
 		func_params[2] = &callinfo;

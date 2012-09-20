@@ -27,6 +27,7 @@
 #include "php_yar.h"
 #include "yar_transport.h"
 #include "yar_packager.h"
+#include "yar_exception.h"
 #include "ext/standard/php_var.h" /* for serialize */
 #include "ext/standard/php_smart_str.h" /* for smart string */
 
@@ -282,10 +283,12 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 		curl_easy_setopt(cp, CURLOPT_NOSIGNAL, 1);
 #endif
 		curl_easy_setopt(cp, CURLOPT_DNS_USE_GLOBAL_CACHE, 1);
-		curl_easy_setopt(cp, CURLOPT_DNS_CACHE_TIMEOUT, 180);
+		/* let's cache the DNS result 5 mins */
+		curl_easy_setopt(cp, CURLOPT_DNS_CACHE_TIMEOUT, 300);
 		curl_easy_setopt(cp, CURLOPT_TCP_NODELAY, 0);
 		curl_easy_setopt(cp, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
-#if LIBCURL_VERSION_NUM > 0x071002
+#if LIBCURL_VERSION_NUM > 0x071002 && 0
+		/* we don't really need MS time out */
 		curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout) * 1000);
 #else
 		curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, YAR_G(connect_timeout));
@@ -348,7 +351,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 #endif
 
-	if (!f(NULL, 0, NULL, 0 TSRMLS_CC)) {
+	if (!f(NULL, YAR_ERR_OKEY, 0, NULL, 0 TSRMLS_CC)) {
 		goto bailout;
 	}
 		
@@ -421,18 +424,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 						yar_curl_data_t *data = (yar_curl_data_t *)handle->data;
 						if (msg->data.result == CURLE_OK) {
 							curl_multi_remove_handle(multi->cm, data->cp);
-							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
-								if (!f(data->calldata, http_code, ZEND_STRS("server response non-200 code") - 1 TSRMLS_CC)) {
-									handle->close(handle TSRMLS_CC);
-									goto bailout;
-								}
-								if (EG(exception)) {
-									handle->close(handle TSRMLS_CC);
-									goto onerror;
-								}
-								handle->close(handle TSRMLS_CC);
-								continue;
-							}
 							if (data->buf.a) {
 								smart_str_0(&data->buf);
 								response = data->buf.c;
@@ -445,7 +436,21 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								response = NULL;
 								len = 0;
 							}
-							if (!f(data->calldata, 0, response, len TSRMLS_CC)) {
+							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+								if (!f(data->calldata, YAR_ERR_TRANSPORT, http_code, response, len TSRMLS_CC)) {
+									/* if f return zero, means user call exit/die explicitly */
+									handle->close(handle TSRMLS_CC);
+									goto bailout;
+								}
+								if (EG(exception)) {
+									/* uncaught exception */
+									handle->close(handle TSRMLS_CC);
+									goto onerror;
+								}
+								handle->close(handle TSRMLS_CC);
+								continue;
+							}
+							if (!f(data->calldata, YAR_ERR_OKEY, 200, response, len TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
 								goto bailout;
 							}
@@ -455,7 +460,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 							}
 						} else {
 							char *err = (char *)curl_easy_strerror(msg->data.result);
-							if (!f(data->calldata, msg->data.result, err, strlen(err) TSRMLS_CC)) {
+							if (!f(data->calldata, msg->data.result, YAR_ERR_TRANSPORT, err, strlen(err) TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
 								goto bailout;
 							}
