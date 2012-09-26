@@ -470,7 +470,7 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, int err, char
 			} else {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "call to initial callback failed");
 			}
-			return;
+			return 1;
 		}
 	} zend_catch {
 		bailout = 1;
