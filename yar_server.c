@@ -630,8 +630,13 @@ PHP_METHOD(yar_server, handle)
 
 		method = SG(request_info).request_method;
 		if (!method || strncasecmp(method, "POST", 4)) {
-			php_yar_server_info(executor TSRMLS_CC);
-            RETURN_TRUE;
+			if (YAR_G(expose_info)) {
+				php_yar_server_info(executor TSRMLS_CC);
+                RETURN_TRUE;
+			} else {
+				zend_throw_exception(yar_server_exception_ce, "server info is not allowed to access", YAR_ERR_REQUEST);
+				return;
+			}
 		}
 
 		php_yar_server_handle(executor TSRMLS_CC);

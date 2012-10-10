@@ -53,6 +53,7 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
     struct _yar_request *request;
     struct _yar_response *response;
 	zend_bool debug;
+	zend_bool expose_info;
 	long timeout;
 	long connect_timeout;
 ZEND_END_MODULE_GLOBALS(yar)
