@@ -28,6 +28,7 @@
 #define YAR_ERR_REQUEST   0x4
 #define YAR_ERR_OUTPUT    0x8
 #define YAR_ERR_TRANSPORT 0x10
+#define YAR_ERR_FORBIDDEN 0x20
 #define YAR_ERR_EXCEPTION 0x80
 
 extern zend_class_entry *yar_server_exception_ce;

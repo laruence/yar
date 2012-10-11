@@ -634,7 +634,7 @@ PHP_METHOD(yar_server, handle)
 				php_yar_server_info(executor TSRMLS_CC);
                 RETURN_TRUE;
 			} else {
-				zend_throw_exception(yar_server_exception_ce, "server info is not allowed to access", YAR_ERR_REQUEST);
+				zend_throw_exception(yar_server_exception_ce, "server info is not allowed to access", YAR_ERR_FORBIDDEN);
 				return;
 			}
 		}
