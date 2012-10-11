@@ -4,7 +4,7 @@ define ("YAR_SERVER_PORT", 8964);
 define ("YAR_SERVER_ADDRESS", YAR_SERVER_HOSTNAME.":".YAR_SERVER_PORT);
 define ("YAR_SERVER_HTTP_ADDRESS", "http://" . YAR_SERVER_HOSTNAME.":".YAR_SERVER_PORT . "/");
 
-function yar_server_start($code = '"Hello world";', $no_router = FALSE) {
+function yar_server_start($code = '"Hello world";', $no_router = FALSE, $expose = TRUE) {
 	$php_executable = getenv('TEST_PHP_EXECUTABLE');
 	$doc_root = __DIR__;
 	$router = "index.php";
@@ -20,14 +20,14 @@ function yar_server_start($code = '"Hello world";', $no_router = FALSE) {
 	);
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
-		$cmd = "{$php_executable} -t {$doc_root} -S " . YAR_SERVER_ADDRESS;
+        $cmd = "{$php_executable} -d yar.expose_info=" . ($expose? 1 : 0) . " -t {$doc_root} -S " . YAR_SERVER_ADDRESS;
 		if (!$no_router) {
 			$cmd .= " {$router}";
 		}
 
 		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
-		$cmd = "exec {$php_executable} -t {$doc_root} -S " . YAR_SERVER_ADDRESS;
+        $cmd = "exec {$php_executable} -d yar.expose_info=" . ($expose? 1 : 0) . " -t {$doc_root} -S " . YAR_SERVER_ADDRESS;
 		if (!$no_router) {
 			$cmd .= " {$router}";
         }
