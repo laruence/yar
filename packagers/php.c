@@ -29,7 +29,6 @@
 #include "ext/standard/php_var.h" /* for serialize */
 
 int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
-	zval **struc;
 	php_serialize_data_t var_hash;
 
 	PHP_VAR_SERIALIZE_INIT(var_hash);

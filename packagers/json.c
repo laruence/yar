@@ -25,6 +25,7 @@
 
 #include "php.h"
 #include "php_yar.h"
+#include "ext/json/php_json.h"
 #include "yar_packager.h"
 
 int php_yar_packager_json_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {

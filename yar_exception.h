@@ -72,6 +72,8 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	efree(message);
 }
 
+YAR_STARTUP_FUNCTION(exception);
+
 #endif	/* PHP_YAR_EXCEPTION_H */
 
 /*

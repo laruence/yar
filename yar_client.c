@@ -25,6 +25,11 @@
 
 #include "php.h"
 #include "SAPI.h"
+#include "Zend/zend_exceptions.h"
+#include "ext/standard/php_lcg.h" /* for php_combined_lcg’ */
+#include "ext/standard/php_rand.h" /* for php_mt_rand */
+#include "ext/standard/url.h" /* for php_url */
+
 #include "php_yar.h"
 #include "yar_exception.h"
 #include "yar_packager.h"
@@ -33,8 +38,6 @@
 #include "yar_request.h"
 #include "yar_response.h"
 #include "yar_protocol.h"
-#include "ext/standard/php_rand.h" /* for php_mt_rand */
-#include "ext/standard/url.h" /* for php_url */
 
 zend_class_entry *yar_client_ce;
 zend_class_entry *yar_concurrent_client_ce;
@@ -196,7 +199,7 @@ static zval * php_yar_client_parse_response(char *ret, size_t len, int throw_exc
 	return retval;
 } /* }}} */
 
-static int php_yar_client_http_prepare(yar_transport_interface_t *transport, char *uri, long ulen, char *method, long mlen, zval *params, zval *options TSRMLS_DC) /* {{{ */ {
+static int php_yar_client_prepare(yar_transport_interface_t *transport, char *uri, long ulen, char *method, long mlen, zval *params, zval *options TSRMLS_DC) /* {{{ */ {
 	zval request;
 	char *payload, *err_msg;
 	char *packager_name = NULL;
@@ -275,7 +278,7 @@ static int php_yar_client_http_prepare(yar_transport_interface_t *transport, cha
 	return 1;
 } /* }}} */
 
-static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, zval *params TSRMLS_DC) /* {{{ */ {
+static zval * php_yar_client_handle(int protocol, zval *client, char *method, long mlen, zval *params TSRMLS_DC) /* {{{ */ {
 	size_t ret_len;
 	char *ret, *err_msg;
 	uint err_code;
@@ -285,7 +288,12 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 
 	uri = zend_read_property(yar_client_ce, client, ZEND_STRL("_uri"), 0 TSRMLS_CC);
 
-	factory = php_yar_transport_get(ZEND_STRL("curl") TSRMLS_CC);
+	if (protocol == YAR_CLIENT_PROTOCOL_HTTP) {
+		factory = php_yar_transport_get(ZEND_STRL("curl") TSRMLS_CC);
+	} else if (protocol == YAR_CLIENT_PROTOCOL_TCP || protocol == YAR_CLIENT_PROTOCOL_UNIX) {
+		factory = php_yar_transport_get(ZEND_STRL("sock") TSRMLS_CC);
+	}
+
 	transport = factory->init(TSRMLS_C);
 
 	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0 TSRMLS_CC);
@@ -294,7 +302,7 @@ static zval * php_yar_client_http_handle(zval *client, char *method, long mlen, 
 		options = NULL;
 	}
 
- 	if (!php_yar_client_http_prepare(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), method, mlen, params, options TSRMLS_CC)) {
+ 	if (!php_yar_client_prepare(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), method, mlen, params, options TSRMLS_CC)) {
 		transport->close(transport TSRMLS_CC);
 		factory->destroy(transport TSRMLS_CC);
         return NULL;
@@ -493,7 +501,7 @@ int php_yar_concurrent_client_callback(zval *calldata, int status, int err, char
 int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 	zval **entry;
 	char *dummy;
-	long sequence;
+	ulong sequence;
 	zval **uri, **method, **parameters, **options;
 	yar_transport_t *factory;
 	yar_transport_interface_t *transport;
@@ -531,7 +539,7 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 			options = NULL;
 		}
 
-		if (!php_yar_client_http_prepare(transport, Z_STRVAL_PP(uri), Z_STRLEN_PP(uri),
+		if (!php_yar_client_prepare(transport, Z_STRVAL_PP(uri), Z_STRLEN_PP(uri),
 					Z_STRVAL_PP(method), Z_STRLEN_PP(method), *parameters, options? *options : NULL TSRMLS_CC)) {
 			transport->close(transport TSRMLS_CC);
 			multi->close(multi TSRMLS_CC);
@@ -563,6 +571,16 @@ PHP_METHOD(yar_client, __construct) {
 
     zend_update_property_stringl(yar_client_ce, getThis(), ZEND_STRL("_uri"), url, len TSRMLS_CC);
 
+	if (strncasecmp(url, ZEND_STRL("http://")) == 0 || strncasecmp(url, ZEND_STRL("https://")) == 0) {
+	} else if (strncasecmp(url, ZEND_STRL("tcp://")) == 0) {
+		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP);
+	} else if (strncasecmp(url, ZEND_STRL("unix://")) == 0) {
+		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX);
+	} else {
+		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "Unsupported protocol address %s", url);
+		return;
+	}
+
 	if (options) {
     	zend_update_property(yar_client_ce, getThis(), ZEND_STRL("_options"), options TSRMLS_CC);
 	}
@@ -583,12 +601,17 @@ PHP_METHOD(yar_client, __call) {
 
 	/* we only support HTTP now */
 	switch (Z_LVAL_P(protocol)) {
-		default:
-			if ((ret = php_yar_client_http_handle(getThis(), method, mlen, params TSRMLS_CC))) {
+		case YAR_CLIENT_PROTOCOL_TCP:
+		case YAR_CLIENT_PROTOCOL_UNIX:
+		case YAR_CLIENT_PROTOCOL_HTTP:
+			if ((ret = php_yar_client_handle(Z_LVAL_P(protocol), getThis(), method, mlen, params TSRMLS_CC))) {
 				RETVAL_ZVAL(ret, 0, 0);
 				efree(ret);
 				return;
 			}
+			break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unsupported protocol %ld", Z_LVAL_P(protocol));
 			break;
 	}
 
@@ -633,6 +656,11 @@ PHP_METHOD(yar_concurrent_client, call) {
 
 	if (!ulen) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "first parameter is expected to be a valid rpc server uri");
+		return;
+	}
+
+	if (strncasecmp(uri, ZEND_STRL("http://")) && strncasecmp(uri, ZEND_STRL("https://"))) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "only http protocol is supported in concurrent client");
 		return;
 	}
 
@@ -699,7 +727,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 /* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback) */
 PHP_METHOD(yar_concurrent_client, loop) {
 	char *name = NULL;
-	zval *callstack, *item, *sequence;
+	zval *callstack;
 	zval *callback = NULL, *error_callback = NULL;
 	zval *status;
 	uint ret = 0;

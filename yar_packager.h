@@ -51,6 +51,10 @@ extern yar_packager_t yar_packager_msgpack;
 size_t php_yar_packager_pack(char *packager_name, zval *pzval, char **payload, char **msg TSRMLS_DC);
 zval * php_yar_packager_unpack(char *content, size_t len, char **msg TSRMLS_DC);
 
+YAR_STARTUP_FUNCTION(packager);
+YAR_ACTIVATE_FUNCTION(packager);
+YAR_SHUTDOWN_FUNCTION(packager);
+
 #endif	/* PHP_YAR_PACKAGER_H */
 
 /*

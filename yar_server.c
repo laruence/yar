@@ -25,7 +25,9 @@
 
 #include "php.h"
 #include "SAPI.h"
+#include "ext/standard/head.h" /* for php_header */
 #include "php_yar.h"
+#include "Zend/zend_exceptions.h"
 #include "yar_exception.h"
 #include "yar_packager.h"
 #include "yar_server.h"
@@ -302,7 +304,6 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 
 static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
     zend_function *f = ptr;
-    zend_class_entry *ce = argument;
 
     if (f->common.fn_flags & ZEND_ACC_PUBLIC 
 			&& f->common.function_name && *(f->common.function_name) != '_') {
@@ -349,7 +350,7 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 } /* }}} */
 
 static void php_yar_server_response(yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
-	zval ret, *tmp;
+	zval ret;
 	char *payload, *err_msg;
 	size_t payload_len;
 	yar_header_t header = {0};
@@ -470,13 +471,13 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			MAKE_STD_ZVAL(provider);
 			MAKE_STD_ZVAL(token);
 			if (header->provider) {
-				ZVAL_STRING(provider, header->provider, 1);
+				ZVAL_STRING(provider, (char *)header->provider, 1);
 			} else {
 				ZVAL_NULL(provider);
 			}
 
 			if (header->token) {
-				ZVAL_STRING(token, header->token, 1);
+				ZVAL_STRING(token, (char *)header->token, 1);
 			} else {
 				ZVAL_NULL(token);
 			}
@@ -612,9 +613,6 @@ PHP_METHOD(yar_server, __construct) {
    start service */
 PHP_METHOD(yar_server, handle)
 {
-	char *buf;
-	int buf_len;
-
     if (SG(headers_sent)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "headers already has been sent");
         RETURN_FALSE;

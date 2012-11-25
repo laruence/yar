@@ -166,8 +166,6 @@ static void php_yar_curl_prepare(yar_transport_interface_t* self TSRMLS_DC) /* {
 } /* }}} */
 
 int php_yar_curl_exec(yar_transport_interface_t* self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC) /* {{{ */ {
-	CURL *cp;
-	char *buf;
 	CURLcode ret;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 
@@ -213,10 +211,10 @@ int php_yar_curl_send(yar_transport_interface_t* self, char *payload, size_t len
 } /* }}} */
 
 int php_yar_curl_set_calldata(yar_transport_interface_t* self, zval *calldata TSRMLS_DC) /* {{{ */ {
-	int r;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 	Z_ADDREF_P(calldata);
 	data->calldata = calldata;
+	return 1;
 } /* }}} */
 
 int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value, void *addtional TSRMLS_DC) /* {{{ */ {
@@ -259,7 +257,6 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 
 	{
 		CURL *cp;
-		char ua[128];
 
 		cp = curl_easy_init();
 		if (!cp) {
@@ -485,6 +482,7 @@ onerror:
 bailout:
 	self->close(self TSRMLS_CC);
 	zend_bailout();
+	return 0;
 } /* }}} */
 
 void php_yar_curl_multi_close(yar_transport_multi_interface_t *self TSRMLS_DC) /* {{{ */ {

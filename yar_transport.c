@@ -34,6 +34,7 @@ struct _yar_transports_list {
 } yar_transports_list;
 
 extern yar_transport_t yar_transport_curl;
+extern yar_transport_t yar_transport_socket;
 
 PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen TSRMLS_DC) /* {{{ */ {
     int i = 0;
@@ -62,6 +63,7 @@ PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport TSRMLS_DC)
 
 YAR_STARTUP_FUNCTION(transport) /* {{{ */ {
   php_yar_transport_register(&yar_transport_curl TSRMLS_CC);
+  php_yar_transport_register(&yar_transport_socket TSRMLS_CC);
 
   return SUCCESS;
 } /* }}} */

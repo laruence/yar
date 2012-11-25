@@ -60,6 +60,9 @@ typedef struct _yar_transport {
 PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen TSRMLS_DC);
 PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport TSRMLS_DC);
 
+YAR_STARTUP_FUNCTION(transport);
+YAR_SHUTDOWN_FUNCTION(transport);
+
 #endif	/* PHP_YAR_TRANSPORT_H */
 
 /*

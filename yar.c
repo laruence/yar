@@ -30,11 +30,10 @@
 #include "yar_server.h"
 #include "yar_client.h"
 #include "yar_packager.h"
+#include "yar_exception.h"
 #include "yar_transport.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(yar)
-
-static int le_yar;
 
 /* {{{ yar_functions[]
  */

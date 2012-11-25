@@ -71,7 +71,7 @@ if test "$PHP_YAR" != "no"; then
 
 dnl AC_YAR_EPOLL()
 
-  PHP_NEW_EXTENSION(yar, yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c yar_transport.c transports/curl.c, $ext_shared)
+  PHP_NEW_EXTENSION(yar, yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c yar_transport.c transports/curl.c transports/socket.c, $ext_shared)
   if test "$PHP_MSGPACK" != "no"; then
     AC_DEFINE(ENABLE_MSGPACK,1,[enable msgpack packager])
     ifdef([PHP_ADD_EXTENSION_DEP],
