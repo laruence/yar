@@ -206,7 +206,7 @@ static int php_yar_client_prepare(yar_transport_interface_t *transport, char *ur
 	size_t payload_len;
 	yar_header_t header = {0};
 	long request_id;
-	php_url *url;
+	php_url *url = NULL;
    
 	if (!BG(mt_rand_is_seeded)) {
 		php_mt_srand(GENERATE_SEED() TSRMLS_CC);
@@ -259,19 +259,21 @@ static int php_yar_client_prepare(yar_transport_interface_t *transport, char *ur
 				request_id, payload, payload_len - 8, payload + 8);
 	}
 
-	if (!(url = php_url_parse(uri))) {
+	if (!strncasecmp(uri, ZEND_STRL("http")) && !(url = php_url_parse(uri))) {
 		efree(payload);
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "malformed uri: '%s'", uri);
 		return 0;
 	}
 
-	if (!transport->open(transport, uri, ulen, url->host, 0 TSRMLS_CC)) {
+	if (!transport->open(transport, uri, ulen, url? url->host : NULL, 0 TSRMLS_CC)) {
 		return 0;
 	}
 
-	php_yar_protocol_render(&header, request_id, url->user, url->pass, payload_len, 0 TSRMLS_CC);
+	php_yar_protocol_render(&header, request_id, url? url->user : NULL, url? url->pass : NULL, payload_len, 0 TSRMLS_CC);
 
-	php_url_free(url);
+	if (url) {
+		php_url_free(url);
+	}
 
     transport->send(transport, (char *)&header, sizeof(yar_header_t) TSRMLS_CC);
     transport->send(transport, payload, payload_len TSRMLS_CC);
