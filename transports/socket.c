@@ -69,7 +69,7 @@ void php_yar_socket_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 	}
 
 	if (data->stream) {
-		php_stream_xport_shutdown(data->stream, (stream_shutdown_t)STREAM_SHUT_RDWR TSRMLS_CC);
+		php_stream_close(data->stream);
 	}
 
 	efree(data);
@@ -84,6 +84,7 @@ int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t
 	size_t recvd;
 	char buf[1024];
 	*response = NULL;
+	*len = 0;
 
 	while ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC))) {
 		if (*response) {
@@ -99,10 +100,11 @@ int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t
 	}
 
 	if (!(*response)) {
+		spprintf(msg, 0, "server responsed emptry response");
 		return 0;
 	}
 
-	*response[*len] = '\0';
+	(*response)[*len] = '\0';
 	return 1;
 } /* }}} */
 

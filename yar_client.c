@@ -265,7 +265,9 @@ static int php_yar_client_prepare(yar_transport_interface_t *transport, char *ur
 		return 0;
 	}
 
-	transport->open(transport, uri, ulen, url->host, 0 TSRMLS_CC);
+	if (!transport->open(transport, uri, ulen, url->host, 0 TSRMLS_CC)) {
+		return 0;
+	}
 
 	php_yar_protocol_render(&header, request_id, url->user, url->pass, payload_len, 0 TSRMLS_CC);
 
