@@ -88,9 +88,8 @@ void php_yar_socket_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 /* }}} */
 
 int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC) /* {{{ */ {
-	int fd, retval;
+	int fd, retval, recvd;
 	fd_set rfds;
-	size_t recvd;
 	char buf[1024];
 	struct timeval tv;
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
