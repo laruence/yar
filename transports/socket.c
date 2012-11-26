@@ -23,6 +23,14 @@
 #endif
 
 #include "php.h"
+#include "php_network.h"
+
+#ifndef PHP_WIN32
+#define php_select(m, r, w, e, t)   select(m, r, w, e, t)
+#else
+#include "win32/select.h"
+#endif
+
 #include "php_yar.h"
 #include "yar_transport.h"
 #include "yar_packager.h"
@@ -80,23 +88,48 @@ void php_yar_socket_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 /* }}} */
 
 int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC) /* {{{ */ {
-	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
+	int fd, retval;
+	fd_set rfds;
 	size_t recvd;
 	char buf[1024];
+	struct timeval tv;
+	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	*response = NULL;
 	*len = 0;
 
-	while ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC))) {
-		if (*response) {
-			*len += recvd;
-			*response = erealloc(*response, *len + recvd + 1);
-			memcpy(*response + *len - 1, buf, recvd);
-			*len += recvd;
-		} else {
-			*response = emalloc(recvd + 1);
-			memcpy(*response, buf, recvd);
-			*len = recvd;
+	FD_ZERO(&rfds);
+	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
+		PHP_SAFE_FD_SET(fd, &rfds);
+	} else {
+		spprintf(msg, 0, "Unable cast socket fd form stream");
+		return 0;
+	}
+
+	tv.tv_sec = YAR_G(timeout);
+	tv.tv_usec = 0;
+
+wait_io:
+	while ((retval = php_select(fd+1, &rfds, NULL, NULL, &tv)) == 0);
+	if (retval == -1) {
+		spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
+		return 0;
+	}
+
+	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
+		while ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
+			if (*response) {
+				*len += recvd;
+				*response = erealloc(*response, *len + recvd + 1);
+				memcpy(*response + *len - 1, buf, recvd);
+				*len += recvd;
+			} else {
+				*response = emalloc(recvd + 1);
+				memcpy(*response, buf, recvd);
+				*len = recvd;
+			}
 		}
+	} else {
+		goto wait_io;
 	}
 
 	if (!(*response)) {
