@@ -31,7 +31,7 @@ typedef int yar_concurrent_client_callback(zval *calldata, int status, int code,
 
 typedef struct _yar_transport_interface {
 	void *data;
-	int  (*open)(struct _yar_transport_interface *self, char *address, uint len, char *hostname, long options TSRMLS_DC);
+	int  (*open)(struct _yar_transport_interface *self, char *address, uint len, char *hostname, long options, char **msg TSRMLS_DC);
 	int  (*send)(struct _yar_transport_interface *self, char *payload, size_t len TSRMLS_DC);
 	int  (*exec)(struct _yar_transport_interface *self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC);
 	int  (*setopt)(struct _yar_transport_interface *self, long type, void *value, void *addition TSRMLS_DC);

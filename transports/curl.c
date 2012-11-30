@@ -108,7 +108,7 @@ size_t php_yar_curl_buf_writer(char *ptr, size_t size, size_t nmemb, void *ctx) 
 	return len;
 } /* }}} */
 
-int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, char *hostname, long options TSRMLS_DC) /* {{{ */ {
+int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, char *hostname, long options, char **err_msg TSRMLS_DC) /* {{{ */ {
 	CURLcode error = CURLE_OK;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 	char buf[1024];
@@ -125,7 +125,12 @@ int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, 
 	error = curl_easy_setopt(data->cp, CURLOPT_URL, data->address);
 #endif
 
-	return (error == CURLE_OK ? 1 : 0);
+	if (error != CURLE_OK) {
+		spprintf(err_msg, 0, "curl init failed '%s')", curl_easy_strerror(error));
+		return 0;
+	}
+
+	return 1;
 } /* }}} */
 
 void php_yar_curl_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {

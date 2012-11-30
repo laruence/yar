@@ -265,7 +265,9 @@ static int php_yar_client_prepare(yar_transport_interface_t *transport, char *ur
 		return 0;
 	}
 
-	if (!transport->open(transport, uri, ulen, url? url->host : NULL, 0 TSRMLS_CC)) {
+	if (!transport->open(transport, uri, ulen, url? url->host : NULL, 0, &err_msg TSRMLS_CC)) {
+		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, "%s", err_msg);
+		efree(err_msg);
 		return 0;
 	}
 

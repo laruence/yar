@@ -47,7 +47,7 @@ typedef struct _yar_socket_data_t {
 	php_stream *stream;
 } yar_socket_data_t;
 
-int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len, char *hostname, long options TSRMLS_DC) /* {{{ */ {
+int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len, char *hostname, long options, char **err_msg TSRMLS_DC) /* {{{ */ {
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	struct timeval tv;
 	php_stream *stream = NULL;
@@ -59,7 +59,7 @@ int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len
 
 	stream = php_stream_xport_create(address, len, REPORT_ERRORS, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, NULL, &tv, NULL, &errstr, &err);
 	if (stream == NULL) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to connect to %s (%s)", address, errstr);
+		spprintf(err_msg, 0, "Unable to connect to %s (%s)", address, strerror(errno));
 		efree(errstr);
 		return 0;
 	}
@@ -100,7 +100,7 @@ int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t
 	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
 		PHP_SAFE_FD_SET(fd, &rfds);
 	} else {
-		spprintf(msg, 0, "Unable cast socket fd form stream");
+		spprintf(msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
 		return 0;
 	}
 
