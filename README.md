@@ -110,7 +110,7 @@ Yar_Concurrent_Client::loop(); //send
     
 ## Authentication
 
-Setting up a server that requires authentication is also rather easy. You just have to declare a method called "_auth" in the server class.
+Setting up a server that requires authentication is also rather easy. You just have to declare a method called "__auth" in the server class.
 ```php
 <?php
 class API {
@@ -118,7 +118,7 @@ class API {
     /**
      * if this method return false, then the rpc call will be denied
      */
-    public function _auth($user, $password) {
+    public function __auth($user, $password) {
     }
 
     /**
