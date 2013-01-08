@@ -95,13 +95,13 @@ void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC) 
 		zval **ppzval;                       
 		HashTable *ht = Z_ARRVAL_P(ret);     
 
-		if (zend_hash_find(ht, ZEND_STRS("s"), (void **)&ppzval) == FAILURE) {
+		if (zend_hash_find(ht, ZEND_STRS("i"), (void **)&ppzval) == FAILURE) {
 			return;
 		}                                    
 		convert_to_long(*ppzval);            
 		response->id = Z_LVAL_PP(ppzval);    
 
-		if (zend_hash_find(ht, ZEND_STRS("i"), (void **)&ppzval) == FAILURE) {
+		if (zend_hash_find(ht, ZEND_STRS("s"), (void **)&ppzval) == FAILURE) {
 			return;
 		}                                    
 		convert_to_long(*ppzval);            
