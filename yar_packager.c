@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -75,6 +75,7 @@ size_t php_yar_packager_pack(char *packager_name, zval *pzval, char **payload, c
 
 	if (buf.c) {
 		*payload = buf.c;
+		smart_str_0(&buf);
 		return buf.len;
 	}
 

@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -33,7 +33,7 @@
 #include "yar_exception.h"
 #include "yar_transport.h"
 
-ZEND_DECLARE_MODULE_GLOBALS(yar)
+ZEND_DECLARE_MODULE_GLOBALS(yar);
 
 /* {{{ yar_functions[]
  */
@@ -88,6 +88,10 @@ PHP_MINIT_FUNCTION(yar)
 {
 	REGISTER_INI_ENTRIES();
 	REGISTER_STRINGL_CONSTANT("YAR_VERSION", YAR_VERSION, sizeof(YAR_VERSION)-1, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("YAR_OPT_PACKAGER", YAR_OPT_PACKAGER, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("YAR_OPT_TIMEOUT", YAR_OPT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("YAR_OPT_CONNECT_TIMEOUT", YAR_OPT_CONNECT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
+
 	
 	YAR_STARTUP(service);
 	YAR_STARTUP(client);

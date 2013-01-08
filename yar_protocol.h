@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -21,6 +21,10 @@
 
 #ifndef PHP_YAR_PROTOCOL_H
 #define PHP_YAR_PROTOCOL_H
+
+#define YAR_PROTOCOL_PERSISTENT	0x1
+#define YAR_PROTOCOL_PING		0x2
+#define YAR_PROTOCOL_LIST		0x4
 
 #define YAR_PROTOCOL_MAGIC_NUM  0x80DFEC60
 
@@ -45,7 +49,7 @@ yar_header_t;
 #pragma pack(pop)
 #endif
 
-yar_header_t * php_yar_protocol_parse(char **payload, size_t *payload_len, char **err_msg TSRMLS_DC);
+yar_header_t * php_yar_protocol_parse(char *payload, char **err_msg TSRMLS_DC);
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved TSRMLS_DC);
 
 #endif	/* PHP_YAR_PROTOCOL_H */

@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -84,6 +84,10 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define Z_REFCOUNT_P ZVAL_REFCOUNT
 #define Z_DELREF_P 	 ZVAL_DELREF
 #endif
+
+#define YAR_OPT_PACKAGER 		0x833701
+#define YAR_OPT_TIMEOUT  		0x833702
+#define YAR_OPT_CONNECT_TIMEOUT 	0x833703
 
 #define YAR_STASH_VARIABLES()  \
 		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \

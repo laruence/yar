@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -42,7 +42,7 @@ int php_yar_response_bind_request(yar_response_t *response, yar_request_t *reque
 
 void php_yar_response_alter_body(yar_response_t *response, char *body, uint len, int method TSRMLS_DC) /* {{{ */ {
 	response->out = body;
-	response->out_len = len;
+	response->olen = len;
 } /* }}} */
 
 void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len TSRMLS_DC) /* {{{ */ {
@@ -88,7 +88,43 @@ void php_yar_response_set_retval(yar_response_t *response, zval *retval TSRMLS_D
 	response->retval = retval;
 } /* }}} */
 
-void php_yar_response_dtor(yar_response_t *response TSRMLS_DC) /* {{{ */ {
+void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC) /* {{{ */ {
+	if (IS_ARRAY != Z_TYPE_P(ret)) {         
+		return;
+	} else { 
+		zval **ppzval;                       
+		HashTable *ht = Z_ARRVAL_P(ret);     
+
+		if (zend_hash_find(ht, ZEND_STRS("s"), (void **)&ppzval) == FAILURE) {
+			return;
+		}                                    
+		convert_to_long(*ppzval);            
+		response->id = Z_LVAL_PP(ppzval);    
+
+		if (zend_hash_find(ht, ZEND_STRS("i"), (void **)&ppzval) == FAILURE) {
+			return;
+		}                                    
+		convert_to_long(*ppzval);            
+		if ((response->status = Z_LVAL_PP(ppzval)) == YAR_ERR_OKEY) {
+			if (zend_hash_find(ht, ZEND_STRS("o"), (void **)&ppzval) == SUCCESS) {
+				response->out = Z_STRVAL_PP(ppzval);
+				response->olen = Z_STRLEN_PP(ppzval);
+				ZVAL_NULL(*ppzval);          
+			}                                
+			if (zend_hash_find(ht, ZEND_STRS("r"), (void **)&ppzval) == SUCCESS) {
+				Z_ADDREF_P(*ppzval);         
+				response->retval = *ppzval;  
+			}                                
+		} else if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS
+				&& IS_STRING == Z_TYPE_PP(ppzval)) {
+			Z_ADDREF_P(*ppzval);
+			response->err = *ppzval;
+		}                      
+	}
+}
+/* }}} */
+
+void php_yar_response_destroy(yar_response_t *response TSRMLS_DC) /* {{{ */ {
 	if (response->out) {
 		efree(response->out);
 	}

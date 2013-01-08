@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -22,14 +22,15 @@
 #ifndef PHP_YAR_EXCEPTION_H
 #define PHP_YAR_EXCEPTION_H
 
-#define YAR_ERR_OKEY      0x0
-#define YAR_ERR_PACKAGER  0x1
-#define YAR_ERR_PROTOCOL  0x2
-#define YAR_ERR_REQUEST   0x4
-#define YAR_ERR_OUTPUT    0x8
-#define YAR_ERR_TRANSPORT 0x10
-#define YAR_ERR_FORBIDDEN 0x20
-#define YAR_ERR_EXCEPTION 0x80
+#define YAR_ERR_OKEY      		0x0
+#define YAR_ERR_PACKAGER  		0x1
+#define YAR_ERR_PROTOCOL  		0x2
+#define YAR_ERR_REQUEST   		0x4
+#define YAR_ERR_OUTPUT    		0x8
+#define YAR_ERR_TRANSPORT 		0x10
+#define YAR_ERR_FORBIDDEN 		0x20
+#define YAR_ERR_EXCEPTION 		0x40
+#define YAR_ERR_EMPTY_RESPONSE 	0x80
 
 extern zend_class_entry *yar_server_exception_ce;
 extern zend_class_entry *yar_server_request_exception_ce;

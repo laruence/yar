@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -30,7 +30,7 @@ typedef struct _yar_response {
 	long id;
 	int  status;
 	char *out;
-	size_t out_len;
+	size_t olen;
 	zval *err;
 	zval *retval;
 } yar_response_t;
@@ -41,7 +41,8 @@ void php_yar_response_alter_body(yar_response_t *response, char *body, uint len,
 void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len TSRMLS_DC); 
 void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC);
 void php_yar_response_set_retval(yar_response_t *response, zval *retval TSRMLS_DC);
-void php_yar_response_dtor(yar_response_t *response TSRMLS_DC);
+void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC);
+void php_yar_response_destroy(yar_response_t *response TSRMLS_DC);
 
 #endif	/* PHP_YAR_RESPONSE_H */
 

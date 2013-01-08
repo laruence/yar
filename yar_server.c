@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -340,9 +340,11 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 	ctr.line = header_line;
 	sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
-	ctr.line_len = snprintf(header_line, sizeof(header_line), "Connection: close");
+	/*
+	ctr.line_len = snprintf(header_line, sizeof(header_line), "Connection: Keep-Alive");
 	ctr.line = header_line;
 	sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
+	*/
 
 	php_header(TSRMLS_C);
 
@@ -401,7 +403,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	char *payload, *err_msg, method[256];
 	size_t payload_len;
 	zend_bool bailout = 0;
-	zval *post_data = NULL, output;
+	zval *post_data = NULL, output, func;
 	zend_class_entry *ce;
 	yar_response_t *response;
 	yar_request_t  *request = NULL;
@@ -414,7 +416,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 
 	payload = SG(request_info).raw_post_data;
 	payload_len = SG(request_info).raw_post_data_length;
-	if (!(header = php_yar_protocol_parse(&payload, &payload_len, &err_msg TSRMLS_CC))) {
+	if (!(header = php_yar_protocol_parse(payload, &err_msg TSRMLS_CC))) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
 		if (YAR_G(debug)) {
 			php_yar_debug_server("0: an malformed request '%s'", payload);
@@ -428,13 +430,16 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 				header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
 	}
 
+	payload += sizeof(yar_header_t);
+	payload_len -= sizeof(yar_header_t);
+
 	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg TSRMLS_CC))) {
         php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
 		efree(err_msg);
 		goto response_no_output;
 	}
 
-	request = php_yar_request_instance(post_data TSRMLS_CC);
+	request = php_yar_request_unpack(post_data TSRMLS_CC);
 	zval_ptr_dtor(&post_data);
 	ce = Z_OBJCE_P(obj);
 
@@ -452,9 +457,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 	ce = Z_OBJCE_P(obj);
-	zend_str_tolower_copy(method, Z_STRVAL_P(request->method), sizeof(method) - 1);
+	zend_str_tolower_copy(method, request->method, request->mlen);
 	if (!zend_hash_exists(&ce->function_table, method, strlen(method) + 1)) {
-		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to undefined api %s::%s()", ce->name, Z_STRVAL_P(request->method));
+		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to undefined api %s::%s()", ce->name, request->method);
 		goto response;
 	}
 
@@ -467,7 +472,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 		INIT_ZVAL(output);
 
 		if (zend_hash_exists(&ce->function_table, ZEND_STRS("__auth"))) {
-			zval *provider, *token, func;
+			zval *provider, *token;
 			MAKE_STD_ZVAL(provider);
 			MAKE_STD_ZVAL(token);
 			if (header->provider) {
@@ -526,11 +531,12 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			func_params = NULL;
 		}
 
-		if (call_user_function_ex(NULL, &obj, request->method, &retval_ptr, count, func_params, 0, NULL TSRMLS_CC) != SUCCESS) {
+		ZVAL_STRINGL(&func, request->method, request->mlen, 0);
+		if (call_user_function_ex(NULL, &obj, &func, &retval_ptr, count, func_params, 0, NULL TSRMLS_CC) != SUCCESS) {
 			if (func_params) {
 				efree(func_params);
 			}
-		    php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to api %s::%s() failed", ce->name, Z_STRVAL_P(request->method));
+		    php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to api %s::%s() failed", ce->name, request->method);
 			goto response;
 		}
 
@@ -567,8 +573,8 @@ response:
 
 response_no_output:
 	php_yar_server_response(request, response TSRMLS_CC);
-	php_yar_request_dtor(request TSRMLS_CC);
-	php_yar_response_dtor(response TSRMLS_CC);
+	php_yar_request_destroy(request TSRMLS_CC);
+	php_yar_response_destroy(response TSRMLS_CC);
 
 	if (bailout) {
 		zend_bailout();
