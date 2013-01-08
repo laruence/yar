@@ -32,6 +32,9 @@
 #endif
 
 #include "php_yar.h"
+#include "yar_protocol.h"
+#include "yar_request.h"
+#include "yar_response.h"
 #include "yar_transport.h"
 #include "yar_packager.h"
 #include "yar_exception.h"
@@ -47,7 +50,7 @@ typedef struct _yar_socket_data_t {
 	php_stream *stream;
 } yar_socket_data_t;
 
-int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len, char *hostname, long options, char **err_msg TSRMLS_DC) /* {{{ */ {
+int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len, long options, char **err_msg TSRMLS_DC) /* {{{ */ {
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	struct timeval tv;
 	php_stream *stream = NULL;
@@ -87,21 +90,25 @@ void php_yar_socket_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 }
 /* }}} */
 
-int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t *len, uint *code, char **msg TSRMLS_DC) /* {{{ */ {
-	int fd, retval, recvd;
+yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_request_t *request TSRMLS_DC) /* {{{ */ {
 	fd_set rfds;
-	char buf[1024];
 	struct timeval tv;
+	yar_header_t *header;
+	yar_response_t *response;
+	int fd, retval, recvd;
+   	size_t len, total_recvd = 0;
+	char *msg, buf[1024], *payload = NULL;
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
-	*response = NULL;
-	*len = 0;
+
+	response = ecalloc(1, sizeof(yar_response_t));
 
 	FD_ZERO(&rfds);
 	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
 		PHP_SAFE_FD_SET(fd, &rfds);
 	} else {
-		spprintf(msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
-		return 0;
+		len = snprintf(buf, sizeof(buf), "Unable cast socket fd form stream (%s)", strerror(errno));
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
+		return response;
 	}
 
 	tv.tv_sec = YAR_G(timeout);
@@ -109,40 +116,70 @@ int php_yar_socket_exec(yar_transport_interface_t* self, char **response, size_t
 
 wait_io:
 	while ((retval = php_select(fd+1, &rfds, NULL, NULL, &tv)) == 0);
+
 	if (retval == -1) {
-		spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
-		return 0;
+		len = snprintf(buf, sizeof(buf), "Unable to select %d '%s'", fd, strerror(errno));
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
+		return response;
 	}
 
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
-		while ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
-			if (*response) {
-				*len += recvd;
-				*response = erealloc(*response, *len + recvd + 1);
-				memcpy(*response + *len - 1, buf, recvd);
-				*len += recvd;
-			} else {
-				*response = emalloc(recvd + 1);
-				memcpy(*response, buf, recvd);
-				*len = recvd;
+		zval *retval;
+		if (!payload) {
+			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(yar_header_t), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
+				if (!(header = php_yar_protocol_parse(buf, &msg TSRMLS_CC))) {
+					php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
+					return response;
+				}
 			}
+			payload = emalloc(header->body_len);
+			len = header->body_len;
 		}
+
+		while ((recvd = php_stream_xport_recvfrom(data->stream, payload + total_recvd, len - total_recvd, 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
+			total_recvd += recvd;
+		}
+
+		if (total_recvd < len) {
+			goto wait_io;
+		}
+
+		if (len) {
+			if (!(retval = php_yar_packager_unpack(payload, len, &msg TSRMLS_CC))) {
+				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
+				return response;
+			}
+
+			efree(payload);
+
+			php_yar_response_map_retval(response, retval TSRMLS_CC);
+			zval_ptr_dtor(&retval);
+		} else {
+			php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
+		}
+		return response;
 	} else {
 		goto wait_io;
 	}
+} /* }}} */
 
-	if (!(*response)) {
-		spprintf(msg, 0, "server responsed emptry response");
+int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request, char **msg TSRMLS_DC) /* {{{ */ {
+	int ret;
+	zval *payload;
+	yar_header_t header = {0};
+	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
+
+	if (!(payload = php_yar_request_pack(request, msg TSRMLS_CC))) {
 		return 0;
 	}
 
-	(*response)[*len] = '\0';
-	return 1;
-} /* }}} */
+	php_yar_protocol_render(&header, request->id, NULL, NULL, Z_STRLEN_P(payload), 0 TSRMLS_CC);
 
-int php_yar_socket_send(yar_transport_interface_t* self, char *payload, size_t len TSRMLS_DC) /* {{{ */ {
-	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
-	return php_stream_xport_sendto(data->stream, payload, len, 0, NULL, 0 TSRMLS_CC);
+	ret = php_stream_xport_sendto(data->stream, (char *)&header, sizeof(yar_header_t), 0, NULL, 0 TSRMLS_CC)
+			&& php_stream_xport_sendto(data->stream, Z_STRVAL_P(payload), Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC);
+	zval_ptr_dtor(&payload);
+
+	return ret;
 } /* }}} */
 
 int php_yar_socket_setopt(yar_transport_interface_t* self, long type, void *value, void *addtional TSRMLS_DC) /* {{{ */ {
