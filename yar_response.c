@@ -49,7 +49,7 @@ void php_yar_response_set_error(yar_response_t *response, int type, char *messag
 	zval *msg;
 	response->status = type;
 	MAKE_STD_ZVAL(msg);
-	ZVAL_STRINGL(msg, message, len, 0);
+	ZVAL_STRINGL(msg, message, len, 1);
 	response->err = msg;
 } /* }}} */
 

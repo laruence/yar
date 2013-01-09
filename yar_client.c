@@ -129,7 +129,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		return NULL;
 	}
 
-	if (!transport->open(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), YAR_PROTOCOL_PERSISTENT, &msg TSRMLS_CC)) {
+	if (!transport->open(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), 0, &msg TSRMLS_CC)) {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 		php_yar_request_destroy(request TSRMLS_CC);
 		efree(msg);
@@ -360,7 +360,7 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 
 		transport = factory->init(TSRMLS_C);
 
-		if (!transport->open(transport, entry->uri, entry->ulen, YAR_PROTOCOL_PERSISTENT, &msg TSRMLS_CC)) {
+		if (!transport->open(transport, entry->uri, entry->ulen, 0, &msg TSRMLS_CC)) {
 			php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 			transport->close(transport TSRMLS_CC);
 			factory->destroy(transport TSRMLS_CC);
@@ -396,7 +396,7 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 	return 1;
 } /* }}} */
 
-/* {{{ proto Yar_Client::__construct($uri, array $options = NULL) */
+/* {{{ proto Yar_Client::__construct($uri[, array $options = NULL[, bool $persistent = FALSE]]) */
 PHP_METHOD(yar_client, __construct) {
 	char *url;
 	long len;
