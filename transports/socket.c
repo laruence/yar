@@ -226,6 +226,8 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 			  bytes_left -= ret;
 			  bytes_sent += ret;
 		  } else if (ret < 0) {
+			  /* php wrapped the send, simply return false here */
+			  zval_ptr_dtor(&payload);
 			  return 0;
 		  }
 		}
