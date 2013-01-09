@@ -71,8 +71,7 @@ int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len
 		data->persistent = 0;
 	}
 
-	stream = php_stream_xport_create(address, len, REPORT_ERRORS,
-			STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
+	stream = php_stream_xport_create(address, len, 0, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
 
 	if (persistent_key) {
 		efree(persistent_key);
@@ -198,11 +197,21 @@ wait_io:
 } /* }}} */
 
 int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request, char **msg TSRMLS_DC) /* {{{ */ {
-	int ret;
+	fd_set rfds;
 	zval *payload;
+	struct timeval tv;
+	int ret, fd, retval;
+	char buf[SEND_BUF_SIZE];
 	yar_header_t header = {0};
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
-	char buf[SEND_BUF_SIZE];
+
+	FD_ZERO(&rfds);
+	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
+		PHP_SAFE_FD_SET(fd, &rfds);
+	} else {
+		spprintf(msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
+		return 0;
+	}
 
 	if (!(payload = php_yar_request_pack(request, msg TSRMLS_CC))) {
 		return 0;
@@ -211,31 +220,58 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	php_yar_protocol_render(&header, request->id, NULL, NULL, Z_STRLEN_P(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0 TSRMLS_CC);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
-	if (Z_STRLEN_P(payload) > (sizeof(buf) - sizeof(yar_header_t))) {
-		size_t bytes_left, bytes_sent;
 
-		memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), sizeof(buf) - sizeof(yar_header_t));
-		if (php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0 TSRMLS_CC) < 0) {
-			return 0;
-		}
-		
-		bytes_sent = sizeof(buf) - sizeof(yar_header_t);
-		bytes_left = Z_STRLEN_P(payload) - (sizeof(buf) - sizeof(yar_header_t));
-		while (bytes_left) {
-		  if ((ret = php_stream_xport_sendto(data->stream, Z_STRVAL_P(payload) + bytes_sent, bytes_left, 0, NULL, 0 TSRMLS_CC)) > 0) {
-			  bytes_left -= ret;
-			  bytes_sent += ret;
-		  } else if (ret < 0) {
-			  /* php wrapped the send, simply return false here */
-			  zval_ptr_dtor(&payload);
-			  return 0;
-		  }
-		}
-	} else {
-		memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), Z_STRLEN_P(payload));
-		ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC);
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+
+	while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
+
+	if (retval == -1) {
+		zval_ptr_dtor(&payload);
+		spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
+		return 0;
 	}
-	
+
+	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
+		size_t bytes_left = 0, bytes_sent = 0;
+
+		if (Z_STRLEN_P(payload) > (sizeof(buf) - sizeof(yar_header_t))) {
+			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), sizeof(buf) - sizeof(yar_header_t));
+			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0 TSRMLS_CC)) < 0) {
+				zval_ptr_dtor(&payload);
+				return 0;
+			}
+		} else {
+			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), Z_STRLEN_P(payload));
+			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC) < 0)) {
+				zval_ptr_dtor(&payload);
+				return 0;
+			}
+		}
+
+		bytes_sent = ret - sizeof(yar_header_t);
+		bytes_left = Z_STRLEN_P(payload) - bytes_sent;
+
+wait_io:
+		if (bytes_left) {
+			while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
+
+			if (retval == -1) {
+				zval_ptr_dtor(&payload);
+				spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
+				return 0;
+			}
+
+			if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
+				if ((ret = php_stream_xport_sendto(data->stream, Z_STRVAL_P(payload) + bytes_sent, bytes_left, 0, NULL, 0 TSRMLS_CC)) > 0) {
+					bytes_left -= ret;
+					bytes_sent += ret;
+				}
+			}
+			goto wait_io;
+		}
+	}
+
 	zval_ptr_dtor(&payload);
 
 	return ret < 0? 0 : 1;
