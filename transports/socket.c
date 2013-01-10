@@ -85,7 +85,9 @@ int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len
 
 	php_stream_set_option(stream, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
 
+#if ZEND_DEBUG
 	stream->__exposed++;
+#endif
 
 	data->stream = stream;
 		
