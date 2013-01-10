@@ -70,9 +70,7 @@ void php_yar_error_ex(yar_response_t *response, int type TSRMLS_DC, const char *
 
 	len = vspprintf(&msg, 0, format, args);
 	php_yar_response_set_error(response, type, msg, len TSRMLS_CC);
-	/* intentionally missed
 	efree(msg);
-	*/
 
 	return;
 } /* }}} */

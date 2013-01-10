@@ -151,6 +151,7 @@ wait_io:
 			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
 				if (!(header = php_yar_protocol_parse(buf, &msg TSRMLS_CC))) {
 					php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
+					efree(msg);
 					return response;
 				}
 
@@ -180,6 +181,7 @@ wait_io:
 		if (len) {
 			if (!(retval = php_yar_packager_unpack(payload, len, &msg TSRMLS_CC))) {
 				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
+				efree(msg);
 				return response;
 			}
 

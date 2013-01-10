@@ -358,6 +358,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 	if (ret != CURLE_OK) {
 		len = spprintf(&msg, 0, "curl exec failed '%s'", curl_easy_strerror(ret));
 		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len TSRMLS_CC);
+		efree(msg);
 		return response;
 	} else {
 		long http_code;
@@ -366,6 +367,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 				&& http_code != 200) {
 			len = spprintf(&msg, 0, "server responsed non-200 code '%ld'", http_code);
 			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len TSRMLS_CC);
+			efree(msg);
 			return response;
 		}
 	}
@@ -383,6 +385,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 
 		if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
 			php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
+			efree(msg);
 			return response;
 		}
 
@@ -392,6 +395,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 
 		if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg TSRMLS_CC))) {
 			php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
+			efree(msg);
 			return response;
 		}
 
@@ -615,6 +619,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 								if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
 									php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
+									efree(msg);
 								} else {
 									/* skip over the leading header */
 									payload += sizeof(yar_header_t);
