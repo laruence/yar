@@ -87,6 +87,7 @@ size_t php_yar_packager_pack(char *packager_name, zval *pzval, char **payload, c
 zval * php_yar_packager_unpack(char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
     char *pack_info = content; /* 4 bytes, last byte is version */
 	yar_packager_t *packager;
+
 	content = content + 8;
     len -= 8;
 	*(pack_info + 7) = '\0';

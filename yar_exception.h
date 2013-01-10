@@ -49,13 +49,41 @@ void php_yar_error_ex(struct _yar_response *response, int type TSRMLS_DC, const 
 void php_yar_error(struct _yar_response *response, int type TSRMLS_DC, const char *format, ...);
 YAR_STARTUP_FUNCTION(exception);
 
+#ifndef EXPECTED
+# if (defined (__GNUC__) && __GNUC__ > 2 ) && !defined(DARWIN) && !defined(__hpux) && !defined(_AIX)
+#  define UNEXPECTED(condition)   __builtin_expect(condition, 0)
+# else
+#  define UNEXPECTED(condition)   (condition)
+# endif
+#endif
+
+#define DEBUG_S(fmt, ...) \
+	do { \
+		if (UNEXPECTED(YAR_G(debug))) { \
+			 php_yar_debug_server(fmt, __VA_ARGS__); \
+		} \
+	} while (0);
+
+#define DEBUG_C(fmt, ...) \
+	do { \
+		if (UNEXPECTED(YAR_G(debug))) { \
+			 php_yar_debug_client(fmt, __VA_ARGS__); \
+		} \
+	} while (0);
+
 static inline void php_yar_debug_server(const char *format, ...) {
 	va_list args;
 	char buf[1024];
 	char *message;
+	struct timeval tv;
+	struct tm *t;
+	ulong tv_usec;
+
+	gettimeofday(&tv, NULL);
+	t = localtime(&tv.tv_sec);
 
 	va_start(args, format);
-	snprintf(buf, sizeof(buf), "[Debug Yar_Server]: %s", format);
+	snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	vspprintf(&message, 0, buf, args);
 	php_error(E_NOTICE, "%s", message);
 	efree(message);
@@ -65,9 +93,15 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	va_list args;
 	char buf[1024];
 	char *message;
+	struct timeval tv;
+	struct tm *t;
+	ulong tv_usec;
+
+	gettimeofday(&tv, NULL);
+	t = localtime(&tv.tv_sec);
 
 	va_start(args, format);
-	snprintf(buf, sizeof(buf), "[Debug Yar_Client]: %s", format);
+	snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	vspprintf(&message, 0, buf, args);
 	php_error(E_NOTICE, "%s", message);
 	efree(message);

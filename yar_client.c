@@ -136,6 +136,9 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		return NULL;
 	}
 
+	DEBUG_C("%ld: call api '%s' at '%s' with '%d' parameters",
+			request->id, request->method, Z_STRVAL_P(uri), zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
+
 	if (!transport->send(transport, request, &msg TSRMLS_CC)) {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 		php_yar_request_destroy(request TSRMLS_CC);
@@ -374,6 +377,8 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 			return 0;
 		}
 
+		DEBUG_C("%ld: call api '%s' at '%s' with '%d' parameters",
+				request->id, request->method, entry->uri, zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
 		if (!transport->send(transport, request, &msg TSRMLS_CC)) {
 			php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 			transport->close(transport TSRMLS_CC);

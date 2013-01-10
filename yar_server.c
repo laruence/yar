@@ -383,10 +383,9 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	zval_dtor(&ret);
 
 	php_yar_protocol_render(&header, request->id, "PHP Yar Server", NULL, payload_len, 0 TSRMLS_CC);
-	if (YAR_G(debug)) {
-		php_yar_debug_server("%ld: server response: packager '%s', len '%ld', content '%s'",
-				request->id, payload, payload_len - 8, payload + 8);
-	}
+
+	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
+			request->id, payload, payload_len - 8, payload + 8);
 
 	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, payload TSRMLS_CC);
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
@@ -418,17 +417,13 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	payload_len = SG(request_info).raw_post_data_length;
 	if (!(header = php_yar_protocol_parse(payload, &err_msg TSRMLS_CC))) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
-		if (YAR_G(debug)) {
-			php_yar_debug_server("0: an malformed request '%s'", payload);
-		}
+		DEBUG_S("0: an malformed request '%s'", payload);
 		efree(err_msg);
 		goto response_no_output;
 	}
 
-	if (YAR_G(debug)) {
-		php_yar_debug_server("%ld: accpect rpc request form '%s'",
-				header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
-	}
+	DEBUG_S("%ld: accpect rpc request form '%s'",
+			header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
 
 	payload += sizeof(yar_header_t);
 	payload_len -= sizeof(yar_header_t);

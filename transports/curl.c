@@ -233,6 +233,13 @@ regular_link:
 	data->host = url;
 	data->cp = cp;
 
+	if (data->persistent) {
+		data->headers = curl_slist_append(data->headers, "Connection: Keep-Alive");
+		data->headers = curl_slist_append(data->headers, "Keep-Alive: 300");
+	} else {
+		data->headers = curl_slist_append(data->headers, "Connection: close");
+	}
+
 	snprintf(buf, sizeof(buf), "Hostname: %s", url->host);
 	buf[sizeof(buf) - 1] = '\0';
 	data->headers = curl_slist_append(data->headers, buf);
@@ -389,6 +396,10 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 		}
 
 		php_yar_response_map_retval(response, retval TSRMLS_CC);
+
+		DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
+				7, payload, header->body_len, payload + 8);
+
 		zval_ptr_dtor(&retval);
 	} else {
 		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
@@ -406,6 +417,9 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	if (!(payload = php_yar_request_pack(request, msg TSRMLS_CC))) {
 		return 0;
 	}
+
+	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
+			request->id, 7, Z_STRVAL_P(payload), Z_STRLEN_P(payload), Z_STRVAL_P(payload) + 8);
 
 	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, Z_STRLEN_P(payload), 0 TSRMLS_CC);
 
@@ -448,8 +462,6 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 	data->headers = curl_slist_append(data->headers, "Content-Type: application/octet-stream");
 	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" YAR_VERSION);
 	data->headers = curl_slist_append(data->headers, "Expect:");
-	data->headers = curl_slist_append(data->headers, "Connection: Keep-Alive");
-	data->headers = curl_slist_append(data->headers, "Keep-Alive: 300");
 
 	self->open   	= php_yar_curl_open;
 	self->send   	= php_yar_curl_send;
@@ -611,6 +623,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 										php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
 									} else {
 										php_yar_response_map_retval(response, retval TSRMLS_CC);
+										DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
+												7, payload, header->body_len, payload + 8);
 										zval_ptr_dtor(&retval);
 									}
 								}

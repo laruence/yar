@@ -107,9 +107,6 @@ zval * php_yar_request_pack(yar_request_t *request, char **msg TSRMLS_DC) /* {{{
 		if (zend_hash_index_find(Z_ARRVAL_P(request->options), YAR_OPT_PACKAGER, (void **)&ppzval) == SUCCESS
 				&& IS_STRING == Z_TYPE_PP(ppzval)) {
 			packager_name = Z_STRVAL_PP(ppzval);
-			if (YAR_G(debug)) {
-				php_yar_debug_client("%ld: pack request with packager '%s'", request->id, packager_name);
-			}
 		}
 	}
 
@@ -165,6 +162,8 @@ int php_yar_request_valid(yar_request_t *req, yar_response_t *response TSRMLS_DC
        php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request id");
 	   return 0;
 	}
+
+	response->id = req->id;
 
 	if (!req->method) {
        php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request method");

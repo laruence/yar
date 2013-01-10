@@ -183,9 +183,12 @@ wait_io:
 				return response;
 			}
 
-			efree(payload);
-
 			php_yar_response_map_retval(response, retval TSRMLS_CC);
+
+			DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
+					7, payload, header->body_len, payload + 8);
+
+			efree(payload);
 			zval_ptr_dtor(&retval);
 		} else {
 			php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
@@ -216,6 +219,9 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	if (!(payload = php_yar_request_pack(request, msg TSRMLS_CC))) {
 		return 0;
 	}
+
+	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
+			request->id, 7, Z_STRVAL_P(payload), Z_STRLEN_P(payload), Z_STRVAL_P(payload) + 8);
 
 	php_yar_protocol_render(&header, request->id, NULL, NULL, Z_STRLEN_P(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0 TSRMLS_CC);
 
