@@ -40,7 +40,7 @@ typedef struct _yar_call_data {
 
 typedef struct _yar_persistent_le {
 	void *ptr;
-	void (*dtor)(void *ptr);
+	void (*dtor)(void *ptr TSRMLS_DC);
 } yar_persistent_le_t;
 
 typedef int yar_concurrent_client_callback(yar_call_data_t *calldata, int status, struct _yar_response *response TSRMLS_DC);

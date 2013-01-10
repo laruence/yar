@@ -662,7 +662,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 							}
 						} else {
 							char *err = (char *)curl_easy_strerror(msg->data.result);
-							php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err) TSRMLS_C);
+							php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err) TSRMLS_CC);
 							if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
 								handle->close(handle TSRMLS_CC);
 								php_yar_response_destroy(response TSRMLS_CC);

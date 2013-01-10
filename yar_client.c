@@ -415,9 +415,9 @@ PHP_METHOD(yar_client, __construct) {
 
 	if (strncasecmp(url, ZEND_STRL("http://")) == 0 || strncasecmp(url, ZEND_STRL("https://")) == 0) {
 	} else if (strncasecmp(url, ZEND_STRL("tcp://")) == 0) {
-		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP);
+		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP TSRMLS_CC);
 	} else if (strncasecmp(url, ZEND_STRL("unix://")) == 0) {
-		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX);
+		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX TSRMLS_CC);
 	} else {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "Unsupported protocol address %s", url);
 		return;
