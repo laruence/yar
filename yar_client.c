@@ -532,7 +532,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 		efree(name);
 	}
 
-	entry = emalloc(sizeof(yar_call_data_t));
+	entry = ecalloc(1, sizeof(yar_call_data_t));
 
 	entry->uri = estrndup(uri, ulen);
 	entry->ulen = ulen;
