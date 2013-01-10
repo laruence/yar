@@ -77,7 +77,6 @@ static inline void php_yar_debug_server(const char *format, ...) {
 	char *message;
 	struct timeval tv;
 	struct tm *t;
-	ulong tv_usec;
 
 	gettimeofday(&tv, NULL);
 	t = localtime(&tv.tv_sec);
@@ -95,7 +94,6 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	char *message;
 	struct timeval tv;
 	struct tm *t;
-	ulong tv_usec;
 
 	gettimeofday(&tv, NULL);
 	t = localtime(&tv.tv_sec);
