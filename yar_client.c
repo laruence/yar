@@ -175,7 +175,7 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_DC
 		{
 			if (!verified) {
 				verified = 1;
-				if (IS_LONG != Z_TYPE_P(value) || IS_BOOL != Z_TYPE_P(value)) {
+				if (IS_LONG != Z_TYPE_P(value) && IS_BOOL != Z_TYPE_P(value)) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects a boolean persistent flag");
 					return 0;
 				}
