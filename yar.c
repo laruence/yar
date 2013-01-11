@@ -55,6 +55,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("yar.expose_info",  "On", PHP_INI_PERDIR, OnUpdateBool, expose_info, zend_yar_globals, yar_globals)
     STD_PHP_INI_ENTRY("yar.connect_timeout",  "1", PHP_INI_ALL, OnUpdateLong, connect_timeout, zend_yar_globals, yar_globals)
     STD_PHP_INI_ENTRY("yar.timeout",  "5", PHP_INI_ALL, OnUpdateLong, timeout, zend_yar_globals, yar_globals)
+    STD_PHP_INI_ENTRY("yar.persistent",  "0", PHP_INI_ALL, OnUpdateBool, persistent, zend_yar_globals, yar_globals)
 PHP_INI_END()
 /* }}} */
 
@@ -89,6 +90,7 @@ PHP_MINIT_FUNCTION(yar)
 	REGISTER_INI_ENTRIES();
 	REGISTER_STRINGL_CONSTANT("YAR_VERSION", YAR_VERSION, sizeof(YAR_VERSION)-1, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_PACKAGER", YAR_OPT_PACKAGER, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("YAR_OPT_PERSISTENT", YAR_OPT_PERSISTENT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_TIMEOUT", YAR_OPT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_CONNECT_TIMEOUT", YAR_OPT_CONNECT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
 

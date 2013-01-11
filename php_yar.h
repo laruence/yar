@@ -54,6 +54,7 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
     struct _yar_response *response;
 	zend_bool debug;
 	zend_bool expose_info;
+	zend_bool persistent;
 	long timeout;
 	long connect_timeout;
 ZEND_END_MODULE_GLOBALS(yar)
@@ -85,9 +86,10 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define Z_DELREF_P 	 ZVAL_DELREF
 #endif
 
-#define YAR_OPT_PACKAGER 			0x833701
-#define YAR_OPT_TIMEOUT  			0x833702
-#define YAR_OPT_CONNECT_TIMEOUT 	0x833703
+#define YAR_OPT_PACKAGER 			0x01
+#define YAR_OPT_PERSISTENT 			0x02
+#define YAR_OPT_TIMEOUT  			0x04
+#define YAR_OPT_CONNECT_TIMEOUT 	0x08
 
 #define YAR_STASH_VARIABLES()  \
 		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \
