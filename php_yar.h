@@ -54,9 +54,9 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
     struct _yar_response *response;
 	zend_bool debug;
 	zend_bool expose_info;
-	zend_bool persistent;
-	long timeout;
-	long connect_timeout;
+	zend_bool allow_persistent;
+	ulong timeout;
+	ulong connect_timeout;
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS

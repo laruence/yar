@@ -605,39 +605,13 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 						if (msg->data.result == CURLE_OK) {
 							curl_multi_remove_handle(multi->cm, data->cp);
-							if (data->buf.a) {
-								char *msg;
-								zval *retval;
-								yar_header_t *header;
-								char *payload;
-								size_t payload_len;
-
-								smart_str_0(&data->buf);
-
-								payload = data->buf.c;
-								payload_len = data->buf.len;
-
-								if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
-									php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
-									efree(msg);
-								} else {
-									/* skip over the leading header */
-									payload += sizeof(yar_header_t);
-									payload_len -= sizeof(yar_header_t);
-									if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg TSRMLS_CC))) {
-										php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
-									} else {
-										php_yar_response_map_retval(response, retval TSRMLS_CC);
-										DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
-												7, payload, header->body_len, payload + 8);
-										zval_ptr_dtor(&retval);
-									}
-								}
-							} else {
-								php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
-							}
 
 							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+								char buf[128];
+								uint len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
+
+								php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
+
 								if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
 									/* if f return zero, means user call exit/die explicitly */
 									handle->close(handle TSRMLS_CC);
@@ -654,6 +628,38 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								php_yar_response_destroy(response TSRMLS_CC);
 								continue;
 							} else {
+								if (data->buf.a) {
+									char *msg;
+									zval *retval;
+									yar_header_t *header;
+									char *payload;
+									size_t payload_len;
+
+									smart_str_0(&data->buf);
+
+									payload = data->buf.c;
+									payload_len = data->buf.len;
+
+									if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
+										php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
+										efree(msg);
+									} else {
+										/* skip over the leading header */
+										payload += sizeof(yar_header_t);
+										payload_len -= sizeof(yar_header_t);
+										if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg TSRMLS_CC))) {
+											php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
+										} else {
+											php_yar_response_map_retval(response, retval TSRMLS_CC);
+											DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
+													7, payload, header->body_len, payload + 8);
+											zval_ptr_dtor(&retval);
+										}
+									}
+								} else {
+									php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
+								}
+
 								if (!f(data->calldata, response->status, response TSRMLS_CC)) {
 									handle->close(handle TSRMLS_CC);
 									php_yar_response_destroy(response TSRMLS_CC);
