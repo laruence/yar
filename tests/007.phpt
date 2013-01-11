@@ -1,13 +1,17 @@
 --TEST--
 Check for yar client with exception
 --SKIPIF--
-<?php if (!extension_loaded("yar")) print "skip"; ?>
+<?php 
+if (!extension_loaded("yar")) {
+    print "skip";
+}
+include "skip.inc";
+?>
 --INI--
 url_fopen=1
 --FILE--
 <?php 
 include "yar.inc";
-
 
 $client = new Yar_Client(YAR_API_ADDRESS);
 

@@ -1,7 +1,12 @@
 --TEST--
 Check for yar client with exception
 --SKIPIF--
-<?php if (!extension_loaded("yar")) print "skip"; ?>
+<?php 
+if (!extension_loaded("yar")) {
+    print "skip";
+}
+include "skip.inc";
+?>
 --FILE--
 <?php 
 include "yar.inc";

@@ -1,7 +1,11 @@
 --TEST--
 Check for yar client
 --SKIPIF--
-<?php if (!extension_loaded("yar")) print "skip"; ?>
+<?php 
+if (!extension_loaded("yar")) {
+    print "skip";
+}
+?>
 --INI--
 yar.packager=php
 --FILE--
