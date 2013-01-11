@@ -8,9 +8,9 @@ yar.packager=php
 <?php 
 $client = new Yar_Client("http://www.laruence.com/yar/");
 
-var_dump($client->setOpt(YAR_CLIENT_OPT_PACKAGER, 1));
-var_dump($client->setOpt(YAR_CLIENT_OPT_PACKAGER, array()));
-print_r($client->setOpt(YAR_CLIENT_OPT_PACKAGER, "php"));
+var_dump($client->setOpt(YAR_OPT_PACKAGER, 1));
+var_dump($client->setOpt(YAR_OPT_PACKAGER, array()));
+print_r($client->setOpt(YAR_OPT_PACKAGER, "php"));
 ?>
 --EXPECTF--
 Warning: Yar_Client::setOpt(): expects a string packager name in %s004.php on line %d
@@ -24,7 +24,7 @@ Yar_Client Object
     [_uri:protected] => http://www.laruence.com/yar/
     [_options:protected] => Array
         (
-            [8599297] => php
+            [%d] => php
         )
 
     [_running:protected] => 

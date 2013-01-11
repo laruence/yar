@@ -1,0 +1,4 @@
+if you want to run tests of yar, please follow these steps:
+1. cp htdocs folders to your DocumentRoot
+2. config yar.inc, change the defination of API_HOST to the URL, which is point to the htdocs folder under DocumentRoot, please becareful, if you miss the last slash, Webserver will response 302 redirect
+3. then make test

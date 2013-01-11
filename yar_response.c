@@ -115,8 +115,7 @@ void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC) 
 				Z_ADDREF_P(*ppzval);         
 				response->retval = *ppzval;  
 			}                                
-		} else if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS
-				&& IS_STRING == Z_TYPE_PP(ppzval)) {
+		} else if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS) {
 			Z_ADDREF_P(*ppzval);
 			response->err = *ppzval;
 		}                      

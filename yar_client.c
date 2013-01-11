@@ -78,8 +78,6 @@ static void php_yar_client_trigger_error(int throw_exception TSRMLS_DC, int code
 	va_end(arg);
 
 	if (throw_exception) {
-		zval *ex;
-		MAKE_STD_ZVAL(ex);
 		switch (code) {
 			case YAR_ERR_PACKAGER:
 				ce = yar_client_packager_exception_ce;
@@ -89,6 +87,10 @@ static void php_yar_client_trigger_error(int throw_exception TSRMLS_DC, int code
 				break;
 			case YAR_ERR_TRANSPORT:
 				ce = yar_client_transport_exception_ce;
+				break;
+			case YAR_ERR_REQUEST:
+			case YAR_ERR_EXCEPTION:
+				ce = yar_server_exception_ce;
 				break;
 			default:
 				ce  = yar_client_exception_ce;
@@ -101,6 +103,48 @@ static void php_yar_client_trigger_error(int throw_exception TSRMLS_DC, int code
 
 	efree(message);
 } /* }}} */
+
+static void php_yar_client_handle_error(int throw_exception, yar_response_t *response  TSRMLS_CC) /* {{{ */ {
+	if (response->status == YAR_ERR_EXCEPTION) {
+		if (throw_exception) {
+			zval *ex, **property;
+			MAKE_STD_ZVAL(ex);
+			object_init_ex(ex, yar_server_exception_ce);
+
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("message"), (void **)&property) == SUCCESS) {
+				zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("message"), *property TSRMLS_CC);
+			}
+
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("code"), (void **)&property) == SUCCESS) {
+				zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("code"), *property TSRMLS_CC);
+			}
+
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("file"), (void **)&property) == SUCCESS) {
+				zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("file"), *property TSRMLS_CC);
+			}
+
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("line"), (void **)&property) == SUCCESS) {
+				zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("line"), *property TSRMLS_CC);
+			}
+
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("_type"), (void **)&property) == SUCCESS) {
+				zend_update_property(yar_server_exception_ce, ex, ZEND_STRL("_type"), *property TSRMLS_CC);
+			}
+			zend_throw_exception_object(ex TSRMLS_CC);
+		} else {
+			zval **msg, **code;
+			if (zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("message"), (void **)&msg) == SUCCESS
+					&& zend_hash_find(Z_ARRVAL_P(response->err), ZEND_STRS("code"), (void **)&code) == SUCCESS) {
+				convert_to_string_ex(msg);
+				convert_to_long_ex(code);
+				php_yar_client_trigger_error(0 TSRMLS_CC, Z_LVAL_PP(code), "server threw an exception with message `%s`", Z_STRVAL_PP(msg));
+			}
+		}
+	} else {
+		php_yar_client_trigger_error(throw_exception TSRMLS_CC, response->status, "%s", Z_STRVAL_P(response->err));
+	}
+}
+/* }}} */
 
 static zval * php_yar_client_get_opt(zval *options, long type TSRMLS_DC) /* {{{ */ {
 	zval **value;
@@ -229,7 +273,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 	response = transport->exec(transport, request TSRMLS_CC);
 
 	if (response->status != YAR_ERR_OKEY) {
-		php_yar_client_trigger_error(1 TSRMLS_CC, response->status, Z_STRVAL_P(response->err) TSRMLS_CC);
+		php_yar_client_handle_error(1, response TSRMLS_CC);
 		retval = NULL;
 	} else {
 		if (response->olen) {
@@ -275,7 +319,7 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 		if (ZVAL_IS_NULL(callback)) {
 			if (status != YAR_ERR_OKEY) {
 				if (response->err) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:%s", status, Z_STRVAL_P(response->err));
+					php_yar_client_handle_error(0, response TSRMLS_CC);
 				} else {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:Unknown Error", status);
 				}
@@ -642,7 +686,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 
 	zend_hash_next_index_insert(Z_ARRVAL_P(callstack), &item, sizeof(zval *), NULL);
 
-	RETURN_LONG(sequence);
+	RETURN_LONG(entry->sequence);
 }
 /* }}} */
 

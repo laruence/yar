@@ -1,34 +1,21 @@
 --TEST--
 Check for yar client with exception
 --SKIPIF--
-<?php if (!extension_loaded("yar") || version_compare(PHP_VERSION, '5.4.0', '<')) print "skip"; ?>
+<?php if (!extension_loaded("yar")) print "skip"; ?>
 --INI--
 url_fopen=1
 --FILE--
 <?php 
 include "yar.inc";
-yar_server_start(<<<'DOC'
-class Server {
 
-    /**
-     * hello world
-     * @param string $name
-     * @return boolean
-     */
-    public function helloworld($name) {
-       return "yar";
-    }
-}
 
-$server = new Yar_Server(new Server());
+$client = new Yar_Client(YAR_API_ADDRESS);
+
 try {
-    $server->handle();
-} catch (Yar_Server_Exception $e) {
-    echo $e->getCode() . " " . $e->getMessage();
+$client->fatal();
+} catch (Yar_Server_Exception $exceptin) {
+   var_dump($exceptin->getMessage());
 }
-DOC
-, false, false);
 
-var_dump(file_get_contents(YAR_SERVER_HTTP_ADDRESS));
 --EXPECT--
-string(39) "32 server info is not allowed to access"
+string(47) "call to undefined api Service_Provider::fatal()"

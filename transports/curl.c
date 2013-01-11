@@ -654,7 +654,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 								php_yar_response_destroy(response TSRMLS_CC);
 								continue;
 							} else {
-								if (!f(data->calldata, YAR_ERR_OKEY, response TSRMLS_CC)) {
+								if (!f(data->calldata, response->status, response TSRMLS_CC)) {
 									handle->close(handle TSRMLS_CC);
 									php_yar_response_destroy(response TSRMLS_CC);
 									goto bailout;
