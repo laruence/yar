@@ -104,7 +104,7 @@ static void php_yar_client_trigger_error(int throw_exception TSRMLS_DC, int code
 	efree(message);
 } /* }}} */
 
-static void php_yar_client_handle_error(int throw_exception, yar_response_t *response  TSRMLS_CC) /* {{{ */ {
+static void php_yar_client_handle_error(int throw_exception, yar_response_t *response TSRMLS_DC) /* {{{ */ {
 	if (response->status == YAR_ERR_EXCEPTION) {
 		if (throw_exception) {
 			zval *ex, **property;

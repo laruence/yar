@@ -73,7 +73,7 @@ typedef struct _yar_curl_multi_data_t {
 typedef struct _yar_curl_multi_gdata {
 	int epfd;
 	CURLM *multi;
-	int still_running;
+	uint still_running;
 } yar_curl_multi_gdata;
 
 typedef struct _yar_curl_multi_sockinfo {
@@ -515,7 +515,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	g.still_running = 0;
 #endif
 
-    multi = (yar_curl_multi_data_t *)self->data;
+	multi = (yar_curl_multi_data_t *)self->data;
 #ifdef ENABLE_EPOLL
 	g.multi = multi->cm;
 	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
@@ -724,7 +724,7 @@ void php_yar_curl_multi_close(yar_transport_multi_interface_t *self TSRMLS_DC) /
 } /* }}} */
 
 yar_transport_multi_interface_t * php_yar_curl_multi_init(TSRMLS_D) /* {{{ */ {
-	yar_transport_multi_interface_t *multi = ecalloc(1, sizeof(yar_transport_multi_interface_t));
+	yar_transport_multi_interface_t *multi = emalloc(sizeof(yar_transport_multi_interface_t));
 	yar_curl_multi_data_t *data = ecalloc(1, sizeof(yar_curl_multi_data_t));
 
 	data->cm = curl_multi_init();

@@ -60,14 +60,14 @@ YAR_STARTUP_FUNCTION(exception);
 #define DEBUG_S(fmt, ...) \
 	do { \
 		if (UNEXPECTED(YAR_G(debug))) { \
-			 php_yar_debug_server(fmt, __VA_ARGS__); \
+			 php_yar_debug_server(fmt, ##__VA_ARGS__); \
 		} \
 	} while (0);
 
 #define DEBUG_C(fmt, ...) \
 	do { \
 		if (UNEXPECTED(YAR_G(debug))) { \
-			 php_yar_debug_client(fmt, __VA_ARGS__); \
+			 php_yar_debug_client(fmt, ##__VA_ARGS__); \
 		} \
 	} while (0);
 

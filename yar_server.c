@@ -416,7 +416,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	payload = SG(request_info).raw_post_data;
 	payload_len = SG(request_info).raw_post_data_length;
 	if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
-		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload TSRMLS_CC);
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "malformed request header '%.10s'", payload TSRMLS_CC);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
 	}
