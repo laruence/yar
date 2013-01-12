@@ -73,7 +73,6 @@ typedef struct _yar_curl_multi_data_t {
 typedef struct _yar_curl_multi_gdata {
 	int epfd;
 	CURLM *multi;
-	uint still_running;
 } yar_curl_multi_gdata;
 
 typedef struct _yar_curl_multi_sockinfo {
@@ -82,32 +81,37 @@ typedef struct _yar_curl_multi_sockinfo {
 } yar_curl_multi_sockinfo;
 
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
+	struct epoll_event ev;
 	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
 	yar_curl_multi_sockinfo *fdp = (yar_curl_multi_sockinfo *) sockp;
 	const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
 
+	ev.data.fd = s;
+	ev.events = 0; /* EPOLLET does not work normally with libcurl */
 	/* fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
 	if (what == CURL_POLL_REMOVE) {
-        struct epoll_event ev;
 		if (fdp) {
 			efree(fdp);
 		}
-		--g->still_running;
-		ev.data.fd = s;
-		ev.events  = EPOLLIN;
 		epoll_ctl(g->epfd, EPOLL_CTL_DEL, s, &ev);
 	} else {
+		if (what == CURL_POLL_IN) {
+			ev.events |= EPOLLIN;
+		} else if (what == CURL_POLL_OUT) {
+			ev.events |= EPOLLOUT;
+		} else if (what == CURL_POLL_INOUT) {
+			ev.events |= EPOLLIN | EPOLLOUT;
+		}
 		if (!fdp) {
-            struct epoll_event ev;
-            fdp = ecalloc(1, sizeof(yar_curl_multi_sockinfo));
-            fdp->fd = s;
-            fdp->cp = e;
+			fdp = ecalloc(1, sizeof(yar_curl_multi_sockinfo));
+			fdp->fd = s;
+			fdp->cp = e;
 
-			ev.data.fd = s;
-			ev.events  = EPOLLIN;
 			epoll_ctl(g->epfd, EPOLL_CTL_ADD, s, &ev);	
 			curl_multi_assign(g->multi, s, fdp);
-		} 
+		} else {
+			epoll_ctl(g->epfd, EPOLL_CTL_MOD, s, &ev);	
+		}
 	}
 	return 0;
 } /* }}} */
@@ -638,7 +642,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 	epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
 	g.epfd = epfd;
-	g.still_running = 0;
 #endif
 
 	multi = (yar_curl_multi_data_t *)self->data;
@@ -671,8 +674,20 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			nfds = epoll_wait(epfd, events, 16, 500);
 			/* fprintf(stderr, "ready %ld sockets\n", nfds); */
 			for (i=0; i<nfds; i++) {
-				if(events[i].events & EPOLLIN) {
-					while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
+				if (events[i].events & EPOLLIN) {
+# if LIBCURL_VERSION_NUM >= 0x071000
+					curl_multi_socket_action(multi->cm, CURL_CSELECT_IN, events[i].data.fd, &running_count);
+# else
+					curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
+# endif
+				}
+
+				if (events[i].events & EPOLLOUT) {
+# if LIBCURL_VERSION_NUM >= 0x071000
+					curl_multi_socket_action(multi->cm, CURL_CSELECT_OUT, events[i].data.fd, &running_count);
+# else
+					curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
+# endif
 				}
 			}
 #else
