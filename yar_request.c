@@ -62,7 +62,7 @@ yar_request_t * php_yar_request_unpack(zval *body TSRMLS_DC) /* {{{ */ {
 	zval **ppzval;
 	HashTable *ht;
 
-    req = (yar_request_t *)ecalloc(sizeof(yar_request_t), 1);
+	req = (yar_request_t *)ecalloc(sizeof(yar_request_t), 1);
 
 	if (IS_ARRAY != Z_TYPE_P(body)) {
 		return req;
@@ -78,7 +78,7 @@ yar_request_t * php_yar_request_unpack(zval *body TSRMLS_DC) /* {{{ */ {
 
 	if (zend_hash_find(ht, "m", sizeof("m"), (void**)&ppzval) == SUCCESS) {
 		if (IS_STRING != Z_TYPE_PP(ppzval)) {
-           convert_to_string(*ppzval);
+			convert_to_string(*ppzval);
 		}
 		req->method = Z_STRVAL_PP(ppzval);
 		req->mlen = Z_STRLEN_PP(ppzval);
@@ -135,7 +135,7 @@ zval * php_yar_request_pack(yar_request_t *request, char **msg TSRMLS_DC) /* {{{
 
 	MAKE_STD_ZVAL(ret);
 	ZVAL_STRINGL(ret, payload, payload_len, 0);
-	
+
 	return ret;
 }
 /* }}} */
@@ -157,22 +157,17 @@ void php_yar_request_destroy(yar_request_t *request TSRMLS_DC) /* {{{ */ {
 }
 /* }}} */
 
-int php_yar_request_valid(yar_request_t *req, yar_response_t *response TSRMLS_DC) /* {{{ */ {
-	if (!req->id) {
-       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request id");
-	   return 0;
-	}
-
+int php_yar_request_valid(yar_request_t *req, yar_response_t *response, char **msg TSRMLS_DC) /* {{{ */ {
 	response->id = req->id;
 
 	if (!req->method) {
-       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request method");
-	   return 0;
+		spprintf(msg, 0, "%s", "need specifical request method");
+		return 0;
 	}
 
 	if (!req->parameters) {
-       php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "no specifical request parameters");
-	   return 0;
+		spprintf(msg, 0, "%s", "need specifical request parameters");
+		return 0;
 	}
 
 	return 1;

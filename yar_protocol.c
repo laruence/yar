@@ -42,13 +42,13 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	return;
 } /* }}} */
 
-yar_header_t * php_yar_protocol_parse(char *payload, char **err_msg TSRMLS_DC) /* {{{ */ {
+yar_header_t * php_yar_protocol_parse(char *payload TSRMLS_DC) /* {{{ */ {
 	yar_header_t *header = (yar_header_t *)payload;
 
 	header->magic_num = ntohl(header->magic_num);
 
 	if (header->magic_num != YAR_PROTOCOL_MAGIC_NUM) {
-		spprintf(err_msg, 0, "malformed protocol header, maybe not responsed/sent by a yar rpc server/client?");
+		header->magic_num = htonl(header->magic_num);
 		return NULL;
 	}
 

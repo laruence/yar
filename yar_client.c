@@ -704,7 +704,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
 	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0 TSRMLS_CC);
 	if (Z_BVAL_P(status)) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Concurrent client has already be started");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "concurrent client has already be started");
 		RETURN_FALSE;
 	}
 

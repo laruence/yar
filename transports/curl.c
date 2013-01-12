@@ -383,9 +383,8 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 		payload = data->buf.c;
 		payload_len = data->buf.len;
 
-		if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
-			php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
-			efree(msg);
+		if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
+			php_yar_error(response, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed response header '%.32s'", payload);
 			return response;
 		}
 
@@ -640,9 +639,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 									payload = data->buf.c;
 									payload_len = data->buf.len;
 
-									if (!(header = php_yar_protocol_parse(payload, &msg TSRMLS_CC))) {
-										php_yar_response_set_error(response, YAR_ERR_PROTOCOL, msg, strlen(msg) TSRMLS_CC);
-										efree(msg);
+									if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
+										php_yar_error(response, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed response header '%.32s'", payload);
 									} else {
 										/* skip over the leading header */
 										payload += sizeof(yar_header_t);

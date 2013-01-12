@@ -7,8 +7,6 @@ if (!extension_loaded("yar")) {
 }
 include "skip.inc";
 ?>
---INI--
-url_fopen=1
 --FILE--
 <?php 
 include "yar.inc";
