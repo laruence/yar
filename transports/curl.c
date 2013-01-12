@@ -504,6 +504,130 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 	return 1;
 } /* }}} */
 
+static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *f TSRMLS_DC) /* {{{ */ {
+	int msg_in_sequence;
+	CURLMsg *msg;
+
+	do {
+		msg = curl_multi_info_read(multi->cm, &msg_in_sequence);
+		if (msg->msg == CURLMSG_DONE) {
+			uint found = 0;
+			yar_transport_interface_t *handle = multi->chs, *q = NULL;
+
+			while (handle) {
+				if (msg->easy_handle == ((yar_curl_data_t*)handle->data)->cp) {
+					if (q) {
+						((yar_curl_data_t *)q->data)->next = ((yar_curl_data_t*)handle->data)->next;
+					} else {
+						multi->chs = ((yar_curl_data_t*)handle->data)->next;
+					}
+					found = 1;
+					break;
+				}
+				q = handle;
+				handle = ((yar_curl_data_t*)handle->data)->next;
+			}
+
+			if (found) {
+				long http_code = 200;
+				yar_response_t *response;
+				yar_curl_data_t *data = (yar_curl_data_t *)handle->data;
+
+				response = php_yar_response_instance(TSRMLS_C);
+
+				if (msg->data.result == CURLE_OK) {
+					curl_multi_remove_handle(multi->cm, data->cp);
+
+					if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+						char buf[128];
+						uint len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
+
+						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
+
+						if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
+							/* if f return zero, means user call exit/die explicitly */
+							handle->close(handle TSRMLS_CC);
+							php_yar_response_destroy(response TSRMLS_CC);
+							return -1;
+						}
+						if (EG(exception)) {
+							/* uncaught exception */
+							handle->close(handle TSRMLS_CC);
+							php_yar_response_destroy(response TSRMLS_CC);
+							return 0;
+						}
+						handle->close(handle TSRMLS_CC);
+						php_yar_response_destroy(response TSRMLS_CC);
+						continue;
+					} else {
+						if (data->buf.a) {
+							char *msg;
+							zval *retval;
+							yar_header_t *header;
+							char *payload;
+							size_t payload_len;
+
+							smart_str_0(&data->buf);
+
+							payload = data->buf.c;
+							payload_len = data->buf.len;
+
+							if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
+								php_yar_error(response, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed response header '%.32s'", payload);
+							} else {
+								/* skip over the leading header */
+								payload += sizeof(yar_header_t);
+								payload_len -= sizeof(yar_header_t);
+								if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg TSRMLS_CC))) {
+									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
+								} else {
+									php_yar_response_map_retval(response, retval TSRMLS_CC);
+									DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
+											7, payload, header->body_len, payload + 8);
+									zval_ptr_dtor(&retval);
+								}
+							}
+						} else {
+							php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
+						}
+
+						if (!f(data->calldata, response->status, response TSRMLS_CC)) {
+							handle->close(handle TSRMLS_CC);
+							php_yar_response_destroy(response TSRMLS_CC);
+							return -1;
+						}
+						if (EG(exception)) {
+							handle->close(handle TSRMLS_CC);
+							php_yar_response_destroy(response TSRMLS_CC);
+							return 0;
+						}
+					}
+				} else {
+					char *err = (char *)curl_easy_strerror(msg->data.result);
+					php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err) TSRMLS_CC);
+					if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
+						handle->close(handle TSRMLS_CC);
+						php_yar_response_destroy(response TSRMLS_CC);
+						return -1;
+					}
+					if (EG(exception)) {
+						handle->close(handle TSRMLS_CC);
+						php_yar_response_destroy(response TSRMLS_CC);
+						return 0;
+					}
+				}
+				handle->close(handle TSRMLS_CC);
+				php_yar_response_destroy(response TSRMLS_CC);
+			} else {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "unexpected transport info missed");
+			}
+		}
+	} while (msg_in_sequence);
+
+	return 1;
+}
+/* }}} */
+
 int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f TSRMLS_DC) /* {{{ */ {
 	int running_count, rest_count;
 	yar_curl_multi_data_t *multi;
@@ -534,165 +658,63 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	if (!f(NULL, YAR_ERR_OKEY, NULL TSRMLS_CC)) {
 		goto bailout;
 	}
-		
+
 	if (EG(exception)) {
 		goto onerror;
 	}
 
-    rest_count = running_count;
-	while (running_count) {
-#ifdef ENABLE_EPOLL
-		int i;
-		nfds = epoll_wait(epfd, events, 16, 500);
-		/* fprintf(stderr, "ready %ld sockets\n", nfds); */
-		for (i=0; i<nfds; i++) {
-			if(events[i].events & EPOLLIN) {
-				while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
-			}
-		}
-#else
-		int max_fd, return_code;
-		struct timeval tv;
-		fd_set readfds;
-		fd_set writefds;
-		fd_set exceptfds;
-
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);
-		FD_ZERO(&exceptfds);
-
-		curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
-		return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
-		if (-1 == return_code) {
+	rest_count = running_count;
+	if (!running_count) {
+		int ret = php_yar_curl_multi_parse_response(multi, f TSRMLS_CC);
+		if (ret == -1) {
+			goto bailout;
+		} else if (ret == 0) {
 			goto onerror;
-		} else {
-			while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 		}
+		rest_count = running_count;
+	} else {
+		while (running_count) {
+#ifdef ENABLE_EPOLL
+			int i;
+			nfds = epoll_wait(epfd, events, 16, 500);
+			/* fprintf(stderr, "ready %ld sockets\n", nfds); */
+			for (i=0; i<nfds; i++) {
+				if(events[i].events & EPOLLIN) {
+					while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
+				}
+			}
+#else
+			int max_fd, return_code;
+			struct timeval tv;
+			fd_set readfds;
+			fd_set writefds;
+			fd_set exceptfds;
+
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
+
+			FD_ZERO(&readfds);
+			FD_ZERO(&writefds);
+			FD_ZERO(&exceptfds);
+
+			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
+			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
+			if (-1 == return_code) {
+				goto onerror;
+			} else {
+				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+			}
 #endif
 
-        if (rest_count > running_count) {
-			int msg_in_sequence;
-			CURLMsg *msg;
-
-			do {
-				msg = curl_multi_info_read(multi->cm, &msg_in_sequence);
-				if (msg->msg == CURLMSG_DONE) {
-					uint found = 0;
-					yar_transport_interface_t *handle = multi->chs, *q = NULL;
-
-					while (handle) {
-						if (msg->easy_handle == ((yar_curl_data_t*)handle->data)->cp) {
-							if (q) {
-						        ((yar_curl_data_t *)q->data)->next = ((yar_curl_data_t*)handle->data)->next;
-							} else {
-								multi->chs = ((yar_curl_data_t*)handle->data)->next;
-							}
-							found = 1;
-							break;
-						}
-						q = handle;
-						handle = ((yar_curl_data_t*)handle->data)->next;
-					}
-
-					if (found) {
-						long http_code = 200;
-						yar_response_t *response;
-						yar_curl_data_t *data = (yar_curl_data_t *)handle->data;
-
-						response = php_yar_response_instance(TSRMLS_C);
-
-						if (msg->data.result == CURLE_OK) {
-							curl_multi_remove_handle(multi->cm, data->cp);
-
-							if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
-								char buf[128];
-								uint len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
-
-								php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
-
-								if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
-									/* if f return zero, means user call exit/die explicitly */
-									handle->close(handle TSRMLS_CC);
-									php_yar_response_destroy(response TSRMLS_CC);
-									goto bailout;
-								}
-								if (EG(exception)) {
-									/* uncaught exception */
-									handle->close(handle TSRMLS_CC);
-									php_yar_response_destroy(response TSRMLS_CC);
-									goto onerror;
-								}
-								handle->close(handle TSRMLS_CC);
-								php_yar_response_destroy(response TSRMLS_CC);
-								continue;
-							} else {
-								if (data->buf.a) {
-									char *msg;
-									zval *retval;
-									yar_header_t *header;
-									char *payload;
-									size_t payload_len;
-
-									smart_str_0(&data->buf);
-
-									payload = data->buf.c;
-									payload_len = data->buf.len;
-
-									if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
-										php_yar_error(response, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed response header '%.32s'", payload);
-									} else {
-										/* skip over the leading header */
-										payload += sizeof(yar_header_t);
-										payload_len -= sizeof(yar_header_t);
-										if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg TSRMLS_CC))) {
-											php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg) TSRMLS_CC);
-										} else {
-											php_yar_response_map_retval(response, retval TSRMLS_CC);
-											DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
-													7, payload, header->body_len, payload + 8);
-											zval_ptr_dtor(&retval);
-										}
-									}
-								} else {
-									php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response") TSRMLS_CC);
-								}
-
-								if (!f(data->calldata, response->status, response TSRMLS_CC)) {
-									handle->close(handle TSRMLS_CC);
-									php_yar_response_destroy(response TSRMLS_CC);
-									goto bailout;
-								}
-								if (EG(exception)) {
-									handle->close(handle TSRMLS_CC);
-									php_yar_response_destroy(response TSRMLS_CC);
-									goto onerror;
-								}
-							}
-						} else {
-							char *err = (char *)curl_easy_strerror(msg->data.result);
-							php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err) TSRMLS_CC);
-							if (!f(data->calldata, YAR_ERR_TRANSPORT, response TSRMLS_CC)) {
-								handle->close(handle TSRMLS_CC);
-								php_yar_response_destroy(response TSRMLS_CC);
-								goto bailout;
-							}
-							if (EG(exception)) {
-								handle->close(handle TSRMLS_CC);
-								php_yar_response_destroy(response TSRMLS_CC);
-								return 0;
-							}
-						}
-						handle->close(handle TSRMLS_CC);
-						php_yar_response_destroy(response TSRMLS_CC);
-					} else {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "unexpected transport info missed");
-					}
+			if (rest_count > running_count) {
+				int ret = php_yar_curl_multi_parse_response(multi, f TSRMLS_CC);
+				if (ret == -1) {
+					goto bailout;
+				} else if (ret == 0) {
+					goto onerror;
 				}
-			} while (msg_in_sequence);
-			rest_count = running_count;
+				rest_count = running_count;
+			}
 		}
 	}
 
