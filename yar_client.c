@@ -456,17 +456,17 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 			}
 		}
 
+		if (!(request = php_yar_request_instance(entry->method, entry->mlen, entry->parameters, entry->options TSRMLS_CC))) {
+			transport->close(transport TSRMLS_CC);
+			factory->destroy(transport TSRMLS_CC);
+			return 0;
+		}
+
 		if (!transport->open(transport, entry->uri, entry->ulen, flags, &msg TSRMLS_CC)) {
 			php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 			transport->close(transport TSRMLS_CC);
 			factory->destroy(transport TSRMLS_CC);
 			efree(msg);
-			return 0;
-		}
-
-		if (!(request = php_yar_request_instance(entry->method, entry->mlen, entry->parameters, entry->options TSRMLS_CC))) {
-			transport->close(transport TSRMLS_CC);
-			factory->destroy(transport TSRMLS_CC);
 			return 0;
 		}
 

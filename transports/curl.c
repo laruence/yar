@@ -262,9 +262,11 @@ regular_link:
 	/* let's cache the DNS result 5 mins */
 	curl_easy_setopt(cp, CURLOPT_DNS_CACHE_TIMEOUT, 300);
 	curl_easy_setopt(cp, CURLOPT_TCP_NODELAY, 0);
-	/*
-	curl_easy_setopt(cp, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
-	 */
+
+	if (!data->persistent) {
+		curl_easy_setopt(cp, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
+	}
+
 #if LIBCURL_VERSION_NUM > 0x071002 && 0
 	/* we don't really need MS time out */
 	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout) * 1000);
