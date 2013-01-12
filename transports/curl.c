@@ -510,7 +510,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 	do {
 		msg = curl_multi_info_read(multi->cm, &msg_in_sequence);
-		if (msg->msg == CURLMSG_DONE) {
+		if (msg && msg->msg == CURLMSG_DONE) {
 			uint found = 0;
 			yar_transport_interface_t *handle = multi->chs, *q = NULL;
 
@@ -663,17 +663,9 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 		goto onerror;
 	}
 
-	rest_count = running_count;
-	if (!running_count) {
-		int ret = php_yar_curl_multi_parse_response(multi, f TSRMLS_CC);
-		if (ret == -1) {
-			goto bailout;
-		} else if (ret == 0) {
-			goto onerror;
-		}
+	if (running_count) {
 		rest_count = running_count;
-	} else {
-		while (running_count) {
+		do {
 #ifdef ENABLE_EPOLL
 			int i;
 			nfds = epoll_wait(epfd, events, 16, 500);
@@ -715,6 +707,13 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				}
 				rest_count = running_count;
 			}
+		} while (running_count);
+	} else {
+		int ret = php_yar_curl_multi_parse_response(multi, f TSRMLS_CC);
+		if (ret == -1) {
+			goto bailout;
+		} else if (ret == 0) {
+			goto onerror;
 		}
 	}
 
