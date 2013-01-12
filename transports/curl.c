@@ -103,7 +103,7 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 			ev.events |= EPOLLIN | EPOLLOUT;
 		}
 		if (!fdp) {
-			fdp = ecalloc(1, sizeof(yar_curl_multi_sockinfo));
+			fdp = emalloc(sizeof(yar_curl_multi_sockinfo));
 			fdp->fd = s;
 			fdp->cp = e;
 

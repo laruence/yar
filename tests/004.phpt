@@ -1,5 +1,5 @@
 --TEST--
-Check for yar client
+Check for Yar_Client::setOpt
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {

@@ -1,5 +1,5 @@
 --TEST--
-Check for yar client with exception
+Check for yar client with fatal error
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {
