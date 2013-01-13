@@ -81,20 +81,20 @@ typedef struct _yar_curl_multi_sockinfo {
 } yar_curl_multi_sockinfo;
 
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
-	struct epoll_event ev;
+	struct epoll_event ev = {0};
 	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
 	yar_curl_multi_sockinfo *fdp = (yar_curl_multi_sockinfo *) sockp;
 	/* const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
 	fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
 
 	ev.data.fd = s;
-	ev.events = 0; /* EPOLLET does not work normally with libcurl */
 	if (what == CURL_POLL_REMOVE) {
 		if (fdp) {
 			efree(fdp);
 		}
 		epoll_ctl(g->epfd, EPOLL_CTL_DEL, s, &ev);
 	} else {
+		/* EPOLLET does not work normally with libcurl */
 		if (what == CURL_POLL_IN) {
 			ev.events |= EPOLLIN;
 		} else if (what == CURL_POLL_OUT) {
@@ -670,25 +670,33 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 		rest_count = running_count;
 		do {
 #ifdef ENABLE_EPOLL
-			int i;
+			/* timeout is milliseconds */
 			nfds = epoll_wait(epfd, events, 16, 500);
-			/* fprintf(stderr, "ready %ld sockets\n", nfds); */
-			for (i=0; i<nfds; i++) {
-				if (events[i].events & EPOLLIN) {
+			if (nfds > 0) {
+				int i;
+				for (i=0; i<nfds; i++) {
+					if (events[i].events & EPOLLIN) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-					curl_multi_socket_action(multi->cm, CURL_CSELECT_IN, events[i].data.fd, &running_count);
+						curl_multi_socket_action(multi->cm, CURL_CSELECT_IN, events[i].data.fd, &running_count);
 # else
-					curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
+						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif
-				}
+					}
 
-				if (events[i].events & EPOLLOUT) {
+					if (events[i].events & EPOLLOUT) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-					curl_multi_socket_action(multi->cm, CURL_CSELECT_OUT, events[i].data.fd, &running_count);
+						curl_multi_socket_action(multi->cm, CURL_CSELECT_OUT, events[i].data.fd, &running_count);
 # else
-					curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
+						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif
+					}
 				}
+			} else if (-1 == nfds) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait error '%s'", strerror(errno));
+				goto onerror;
+			} else {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait timeout '%d' seconds reached", YAR_G(timeout)); 
+				goto onerror;
 			}
 #else
 			int max_fd, return_code;
@@ -697,7 +705,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			fd_set writefds;
 			fd_set exceptfds;
 
-			tv.tv_sec = 1;
+			tv.tv_sec = YAR_G(timeout);
 			tv.tv_usec = 0;
 
 			FD_ZERO(&readfds);
@@ -705,11 +713,17 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			FD_ZERO(&exceptfds);
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
+
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
-			if (-1 == return_code) {
+			if (return_code > 0) {
+				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+			} else if (-1 == return_code) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select error '%s'", strerror(errno));
 				goto onerror;
 			} else {
-				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+				/* timeout */
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%d' seconds reached", YAR_G(timeout));
+				goto onerror;
 			}
 #endif
 
