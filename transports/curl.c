@@ -84,11 +84,11 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 	struct epoll_event ev;
 	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
 	yar_curl_multi_sockinfo *fdp = (yar_curl_multi_sockinfo *) sockp;
-	const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
+	/* const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
+	fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
 
 	ev.data.fd = s;
 	ev.events = 0; /* EPOLLET does not work normally with libcurl */
-	/* fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
 	if (what == CURL_POLL_REMOVE) {
 		if (fdp) {
 			efree(fdp);
