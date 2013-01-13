@@ -1,5 +1,5 @@
 --TEST--
-Check for yar client with fatal error
+Check for yar client with output by server
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {
@@ -13,11 +13,7 @@ include "yar.inc";
 
 $client = new Yar_Client(YAR_API_ADDRESS);
 
-try {
-$client->fatal();
-} catch (Yar_Server_Exception $exceptin) {
-   var_dump($exceptin->getMessage());
-}
+var_dump($client->output());
 
 --EXPECT--
-string(47) "call to undefined api Service_Provider::fatal()"
+outputstring(7) "success"

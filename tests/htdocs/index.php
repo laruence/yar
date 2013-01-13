@@ -14,8 +14,9 @@ class Service_Provider {
         throw new Exception("server exceptin");
     }
 
-    public function fatal() {
-        non_existst();
+    public function output() {
+        echo "output";
+        return "success";
     }
 
     protected function invisible() {
