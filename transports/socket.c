@@ -135,7 +135,7 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		return response;
 	}
 
-	tv.tv_sec = 1;
+	tv.tv_sec = YAR_G(timeout);
 	tv.tv_usec = 0;
 
 wait_io:
@@ -143,6 +143,10 @@ wait_io:
 
 	if (retval == -1) {
 		len = snprintf(buf, sizeof(buf), "Unable to select %d '%s'", fd, strerror(errno));
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
+		return response;
+	} else if (retval == 0) {
+		len = snprintf(buf, sizeof(buf), "select timeout '%d' seconds reached", YAR_G(timeout));
 		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
 		return response;
 	}
@@ -226,20 +230,26 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, Z_STRVAL_P(payload), Z_STRLEN_P(payload), Z_STRVAL_P(payload) + 8);
 
-	php_yar_protocol_render(&header, request->id, NULL, NULL, Z_STRLEN_P(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0 TSRMLS_CC);
+	/* for tcp/unix RPC, we need another way to supports auth */
+	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, Z_STRLEN_P(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0 TSRMLS_CC);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
-	tv.tv_sec = 1;
+	tv.tv_sec = YAR_G(timeout);
 	tv.tv_usec = 0;
 
 	while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
 
 	if (retval == -1) {
 		zval_ptr_dtor(&payload);
-		spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
+		spprintf(msg, 0, "select error '%s'", fd, strerror(errno));
+		return 0;
+	} else if (retval == 0) {
+		zval_ptr_dtor(&payload);
+		spprintf(msg, 0, "select timeout '%d' seconds reached", YAR_G(timeout));
 		return 0;
 	}
+
 
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		size_t bytes_left = 0, bytes_sent = 0;
@@ -267,7 +277,11 @@ wait_io:
 
 			if (retval == -1) {
 				zval_ptr_dtor(&payload);
-				spprintf(msg, 0, "Unable to select %d '%s'", fd, strerror(errno));
+				spprintf(msg, 0, "select error '%s'", fd, strerror(errno));
+				return 0;
+			} else if (retval == 0) {
+				zval_ptr_dtor(&payload);
+				spprintf(msg, 0, "select timeout '%d' seconds reached", YAR_G(timeout));
 				return 0;
 			}
 
@@ -294,7 +308,7 @@ yar_transport_interface_t * php_yar_socket_init(TSRMLS_D) /* {{{ */ {
 	yar_socket_data_t *data;
 	yar_transport_interface_t *self;
 
-	self = ecalloc(1, sizeof(yar_transport_interface_t));
+	self = emalloc(sizeof(yar_transport_interface_t));
 	self->data = data = ecalloc(1, sizeof(yar_socket_data_t));
 
 	self->open   	= php_yar_socket_open;

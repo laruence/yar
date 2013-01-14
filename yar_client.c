@@ -321,7 +321,7 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 				if (response->err) {
 					php_yar_client_handle_error(0, response TSRMLS_CC);
 				} else {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:Unknown Error", status);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "[%d]:unknown Error", status);
 				}
 			} else if (response->retval) {
 				zend_print_zval(response->retval, 1);
@@ -514,7 +514,7 @@ PHP_METHOD(yar_client, __construct) {
 	} else if (strncasecmp(url, ZEND_STRL("unix://")) == 0) {
 		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX TSRMLS_CC);
 	} else {
-		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "Unsupported protocol address %s", url);
+		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "unsupported protocol address %s", url);
 		return;
 	}
 
@@ -536,7 +536,6 @@ PHP_METHOD(yar_client, __call) {
 
 	protocol = zend_read_property(yar_client_ce, getThis(), ZEND_STRL("_protocol"), 0 TSRMLS_CC);
 
-	/* we only support HTTP now */
 	switch (Z_LVAL_P(protocol)) {
 		case YAR_CLIENT_PROTOCOL_TCP:
 		case YAR_CLIENT_PROTOCOL_UNIX:
@@ -548,7 +547,7 @@ PHP_METHOD(yar_client, __call) {
 			}
 			break;
 		default:
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unsupported protocol %ld", Z_LVAL_P(protocol));
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "unsupported protocol %ld", Z_LVAL_P(protocol));
 			break;
 	}
 
@@ -616,7 +615,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 	}
 
 	if (strncasecmp(uri, ZEND_STRL("http://")) && strncasecmp(uri, ZEND_STRL("https://"))) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "only http protocol is supported in concurrent client");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "only http protocol is supported in concurrent client for now");
 		return;
 	}
 
