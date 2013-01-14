@@ -601,7 +601,7 @@ PHP_METHOD(yar_client, setOpt) {
 PHP_METHOD(yar_concurrent_client, call) {
 	char *uri, *method, *name = NULL;
 	long sequence, ulen = 0, mlen = 0;
-	zval *callstack, *item;
+	zval *callstack, *item, *status;
 	zval *error_callback = NULL, *callback = NULL, *parameters = NULL, *options = NULL;
 	yar_call_data_t *entry;
 
@@ -644,6 +644,13 @@ PHP_METHOD(yar_concurrent_client, call) {
 	if (name) {
 		efree(name);
 	}
+
+	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0 TSRMLS_CC);
+	if (Z_BVAL_P(status)) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "concurrent client has already started");
+		RETURN_FALSE;
+	}
+
 
 	entry = ecalloc(1, sizeof(yar_call_data_t));
 
@@ -704,7 +711,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
 	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0 TSRMLS_CC);
 	if (Z_BVAL_P(status)) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "concurrent client has already be started");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "concurrent client has already started");
 		RETURN_FALSE;
 	}
 
