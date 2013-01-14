@@ -439,6 +439,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 
 	if (!php_yar_request_valid(request, response, &err_msg TSRMLS_CC)) {
 		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s", err_msg);
+		efree(err_msg);
 		goto response_no_output;
 	}
 
