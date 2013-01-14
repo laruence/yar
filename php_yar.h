@@ -37,7 +37,7 @@ extern zend_module_entry yar_module_entry;
 #include "TSRM.h"
 #endif
 
-#define YAR_VERSION  "1.0.1-dev"
+#define YAR_VERSION  "1.1.0-dev"
 
 PHP_MINIT_FUNCTION(yar);
 PHP_MSHUTDOWN_FUNCTION(yar);
