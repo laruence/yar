@@ -16,8 +16,8 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-01-14</date>
- <time>12:47:34</time>
+ <date>2013-02-18</date>
+ <time>16:47:34</time>
  <version>
   <release>1.1.0</release>
   <api>1.1.0</api>
@@ -107,6 +107,25 @@
  <providesextension>yar</providesextension>
  <extsrcrelease />
  <changelog> 
+  <release> 
+   <date>2013-02-18</date> 
+   <version> 
+    <release>1.1.0</release> 
+    <api>1.1.0</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Support TCP/Unix RPC
+    - Support perisitent link (HTTP/TCP/Unix)
+    - Reimplements http RPC for profermance
+    - Fix some memleaks
+   </notes> 
+  </release> 
+
   <release> 
    <date>2012-10-12</date> 
    <version> 

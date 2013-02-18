@@ -466,7 +466,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 		HashTable *func_params_ht;
 
 		INIT_ZVAL(output);
-
+#if 0 
 		if (zend_hash_exists(&ce->function_table, ZEND_STRS("__auth"))) {
 			zval *provider, *token;
 			MAKE_STD_ZVAL(provider);
@@ -511,6 +511,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			   retval_ptr = NULL;
 			}
 		}
+#endif
 
 		func_params_ht = Z_ARRVAL_P(request->parameters);
 		count = zend_hash_num_elements(func_params_ht);
