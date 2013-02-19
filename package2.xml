@@ -59,6 +59,7 @@
    <file name="yar_packager.c" role="src" />
    <dir name="transports">
     <file name="curl.c" role="src" />
+    <file name="socket.c" role="src" />
    </dir>
    <dir name="packagers">
     <file name="php.c" role="src" />
