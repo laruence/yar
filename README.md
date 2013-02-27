@@ -90,7 +90,7 @@ It's very easy for a PHP client to call remote RPC:
 ```php
 <?php
 $client = new Yar_Client("http://host/api/");
-$result = $client->api("parameter);
+$result = $client->api("parameter");
 ?>
 ```
 ### Concurrent call
