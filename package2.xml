@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2012-10-12</date>
- <time>16:01:34</time>
+ <date>2013-02-19</date>
+ <time>11:35:23</time>
  <version>
-  <release>1.0.0</release>
-  <api>1.0.0</api>
+  <release>1.1.1</release>
+  <api>1.1.1</api>
  </version>
  <stability>
   <release>beta</release>
@@ -28,7 +28,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - First release
+  - Add missed socket.c into package
  </notes>
  <contents> 
   <dir name="/"> 
@@ -56,6 +56,7 @@
    <file name="yar_packager.c" role="src" />
    <dir name="transports">
     <file name="curl.c" role="src" />
+    <file name="socket.c" role="src" />
    </dir>
    <dir name="packagers">
     <file name="php.c" role="src" />
@@ -70,7 +71,23 @@
     <file name="005.phpt" role="test" />
     <file name="006.phpt" role="test" />
     <file name="007.phpt" role="test" />
+    <file name="008.phpt" role="test" />
+    <file name="009.phpt" role="test" />
+    <file name="010.phpt" role="test" />
+    <file name="011.phpt" role="test" />
+    <file name="012.phpt" role="test" />
+    <file name="013.phpt" role="test" />
+    <file name="014.phpt" role="test" />
+    <file name="015.phpt" role="test" />
+    <file name="016.phpt" role="test" />
+    <file name="017.phpt" role="test" />
     <file name="yar.inc" role="test" />
+    <dir name="htdocs">
+     <file name="index.php" role="test"/>
+     <file name="auth.php" role="test"/>
+     <file name="302.php" role="test"/>
+     <file name="rest.php" role="test"/>
+    </dir>
    </dir>
   </dir> 
  </contents> 
@@ -88,6 +105,40 @@
  <providesextension>yar</providesextension>
  <extsrcrelease />
  <changelog> 
+  <release> 
+   <date>2013-02-19</date> 
+   <version> 
+    <release>1.1.1</release> 
+    <api>1.1.1</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Add missed socket.c into package
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2013-02-18</date> 
+   <version> 
+    <release>1.1.0</release> 
+    <api>1.1.0</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Support TCP/Unix RPC
+    - Support perisitent link (HTTP/TCP/Unix)
+    - Reimplements http RPC for profermance
+    - Fix some memleaks
+   </notes> 
+  </release> 
   <release> 
    <date>2012-10-12</date> 
    <version> 

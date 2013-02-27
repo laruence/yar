@@ -1,5 +1,5 @@
 --TEST--
-Check for yar concurrent client with exception
+Check for yar concurrent client with loop in callback
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {
@@ -15,10 +15,10 @@ $sequence = array();
 
 function callback($return, $callinfo) {
     global $sequence;
+
     if ($callinfo) {
+        Yar_Concurrent_Client::loop();
         $sequence[$callinfo["sequence"]] = $return;
-    } else {
-        $sequence[0] = NULL;
     }
 }
 
@@ -28,23 +28,14 @@ function error_callback($type, $error, $callinfo) {
 }
 
 $sequence[Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"))] = NULL;
-$sequence[Yar_Concurrent_Client::call(YAR_API_ADDRESS, "exception", array(), "callback")] = NULL;
+
 Yar_Concurrent_Client::loop("callback", "error_callback");
 
 ksort($sequence);
 print_r($sequence);
 --EXPECTF--
+Warning: Yar_Concurrent_Client::loop(): concurrent client has already started in %s014.php on line %d
 Array
 (
-    [0] => 
     [1] => 3.8
-    [2] => Array
-        (
-            [message] => server exceptin
-            [code] => 0
-            [file] => %s
-            [line] => %d
-            [_type] => Exception
-        )
-
 )

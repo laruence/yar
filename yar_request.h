@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -24,14 +24,18 @@
 
 typedef struct _yar_request {
 	long id;
-	zval *header;
-	zval *method;
+	char *method;
+	uint mlen;
 	zval *parameters;
+	/* following fileds don't going to packager */
+	zval *options;
 } yar_request_t;
 
-yar_request_t * php_yar_request_instance(zval *body TSRMLS_DC);
-int php_yar_request_valid(yar_request_t *req, struct _yar_response *response TSRMLS_DC);
-void php_yar_request_dtor(yar_request_t *req TSRMLS_DC);
+yar_request_t * php_yar_request_unpack(zval *body TSRMLS_DC);
+void php_yar_request_destroy(yar_request_t *request TSRMLS_DC);
+zval * php_yar_request_pack(yar_request_t *request, char **msg TSRMLS_DC);
+int php_yar_request_valid(yar_request_t *req, struct _yar_response *response, char **msg TSRMLS_DC);
+yar_request_t * php_yar_request_instance(char *method, long mlen, zval *params, zval *options TSRMLS_DC);
 
 #endif	/* PHP_YAR_REQUEST_H */
 

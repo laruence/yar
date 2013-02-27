@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -70,9 +70,7 @@ void php_yar_error_ex(yar_response_t *response, int type TSRMLS_DC, const char *
 
 	len = vspprintf(&msg, 0, format, args);
 	php_yar_response_set_error(response, type, msg, len TSRMLS_CC);
-	/* intentionally missed
 	efree(msg);
-	*/
 
 	return;
 } /* }}} */

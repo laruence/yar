@@ -20,7 +20,6 @@ It has the ability to concurrently call multiple remote services.
 - Concurrent RPC calls
 - Multiple data packager supported (php, json, msgpack built-in)
 - Multiple transfer protocols supported (http implemented,  tcp/unix will be supported later)
-- Authentication
 - Detailed debug informations
 
 ## Install
@@ -108,44 +107,6 @@ Yar_Concurrent_Client::loop(); //send
 ?>
 ```
     
-## Authentication
-
-Setting up a server that requires authentication is also rather easy. You just have to declare a method called "__auth" in the server class.
-```php
-<?php
-class API {
-
-    /**
-     * if this method return false, then the rpc call will be denied
-     */
-    public function __auth($user, $password) {
-    }
-
-    /**
-     * the doc info will be generated automatically into service info page.
-     * @params 
-     * @return
-     */
-    public function api($parameter, $option = "foo") {
-    }
-
-    protected function client_can_not_see() {
-    }
-}
-
-$service = new Yar_Server(new API());
-$service->handle();
-?>
-```
-
-Consequently, the client code should be change to :
-```php
-<?php
-$client = new Yar_Client("http://username:password@host/api/");
-$result = $client->api("parameter);
-?>
-```
-
 ## Protocols
 ### Yar Header
    Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header

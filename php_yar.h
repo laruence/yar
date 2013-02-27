@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -37,7 +37,7 @@ extern zend_module_entry yar_module_entry;
 #include "TSRM.h"
 #endif
 
-#define YAR_VERSION  "1.0.1-dev"
+#define YAR_VERSION  "1.2.0-dev"
 
 PHP_MINIT_FUNCTION(yar);
 PHP_MSHUTDOWN_FUNCTION(yar);
@@ -54,8 +54,9 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
     struct _yar_response *response;
 	zend_bool debug;
 	zend_bool expose_info;
-	long timeout;
-	long connect_timeout;
+	zend_bool allow_persistent;
+	ulong timeout;
+	ulong connect_timeout;
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS
@@ -84,6 +85,11 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define Z_REFCOUNT_P ZVAL_REFCOUNT
 #define Z_DELREF_P 	 ZVAL_DELREF
 #endif
+
+#define YAR_OPT_PACKAGER 			0x01
+#define YAR_OPT_PERSISTENT 			0x02
+#define YAR_OPT_TIMEOUT  			0x04
+#define YAR_OPT_CONNECT_TIMEOUT 	0x08
 
 #define YAR_STASH_VARIABLES()  \
 		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \

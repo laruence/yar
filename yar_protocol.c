@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | Yar - Light, concurrent RPC framework                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 2012-2013 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -34,30 +34,27 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
 	if (provider) {
-		memcpy(header->provider, provider, 16);
+		memcpy(header->provider, provider, strlen(provider));
 	}
 	if (token) {
-		memcpy(header->token, token, 16);
+		memcpy(header->token, token, strlen(token));
 	}
 	return;
 } /* }}} */
 
-yar_header_t * php_yar_protocol_parse(char **payload, size_t *payload_len, char **err_msg TSRMLS_DC) /* {{{ */ {
-	yar_header_t *header = (yar_header_t *)*payload;
+yar_header_t * php_yar_protocol_parse(char *payload TSRMLS_DC) /* {{{ */ {
+	yar_header_t *header = (yar_header_t *)payload;
 
 	header->magic_num = ntohl(header->magic_num);
 
 	if (header->magic_num != YAR_PROTOCOL_MAGIC_NUM) {
-		spprintf(err_msg, 0, "malformed protocol header, maybe not responsed/sent by a yar rpc server/client?");
+		header->magic_num = htonl(header->magic_num);
 		return NULL;
 	}
 
 	header->id = ntohl(header->id);
 	header->body_len = ntohl(header->body_len);
 	header->reserved = ntohl(header->reserved);
-  
-	*payload += sizeof(yar_header_t);
-	*payload_len -= sizeof(yar_header_t);
 
 	return header;
 } /* }}} */
