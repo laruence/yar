@@ -541,8 +541,7 @@ PHP_METHOD(yar_client, __call) {
 		case YAR_CLIENT_PROTOCOL_UNIX:
 		case YAR_CLIENT_PROTOCOL_HTTP:
 			if ((ret = php_yar_client_handle(Z_LVAL_P(protocol), getThis(), method, mlen, params TSRMLS_CC))) {
-				RETVAL_ZVAL(ret, 0, 0);
-				efree(ret);
+				RETVAL_ZVAL(ret, 1, 1);
 				return;
 			}
 			break;
