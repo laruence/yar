@@ -120,7 +120,7 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 	yar_header_t *header;
 	yar_response_t *response;
 	int fd, retval, recvd;
-   	size_t len, total_recvd = 0;
+   	size_t len = 0, total_recvd = 0;
 	char *msg, buf[RECV_BUF_SIZE], *payload = NULL;
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 
