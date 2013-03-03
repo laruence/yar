@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-02-19</date>
- <time>11:35:23</time>
+ <date>2013-03-03</date>
+ <time>22:01:49</time>
  <version>
-  <release>1.1.1</release>
-  <api>1.1.1</api>
+  <release>1.1.2</release>
+  <api>1.1.2</api>
  </version>
  <stability>
   <release>beta</release>
@@ -28,7 +28,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Add missed socket.c into package
+  - Fixed bug uninitialized value in socket transporter
  </notes>
  <contents> 
   <dir name="/"> 
@@ -106,6 +106,22 @@
  <extsrcrelease />
  <changelog> 
   <release> 
+   <date>2013-03-03</date> 
+   <version> 
+    <release>1.1.2</release> 
+    <api>1.1.2</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed bug uninitialized value in socket transporter
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2013-02-19</date> 
    <version> 
     <release>1.1.1</release> 
@@ -120,7 +136,6 @@
     - Add missed socket.c into package
    </notes> 
   </release> 
-
   <release> 
    <date>2013-02-18</date> 
    <version> 
