@@ -57,7 +57,7 @@ ZEND_END_ARG_INFO()
 	"<html>\n" \
 	" <head>\n" \
 	"  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" \
-	"  <title>%s - Yar Server</title>\n"
+	"  <title>%s + Yar Server</title>\n"
 
 #define HTML_MARKUP_CSS \
 	"  <style>\n" \
@@ -84,7 +84,7 @@ ZEND_END_ARG_INFO()
 	"    }\n" \
 	"    var isHidden = block.style.display == 'none';\n" \
 	"    block.style.display = isHidden ? '' : 'none';\n" \
-	"    info.innerHTML = isHidden ? '+'  : '-';\n" \
+	"    info.innerHTML = isHidden ? '-'  : '+';\n" \
 	"   }\n" \
 	"  </script>\n" \
 	" </head>\n" \
@@ -95,7 +95,7 @@ ZEND_END_ARG_INFO()
 	" <h1>Yar Server: %s</h1>"
 
 #define HTML_MARKUP_ENTRY \
-	" <h2 onclick=\"_t(this)\"><u>-</u>%s</h2>\n" \
+	" <h2 onclick=\"_t(this)\"><u>+</u>%s</h2>\n" \
 	" <div class=\"api-block\" style=\"display:none\">\n" \
     " <pre style=\"white-space:pre-line\">%s</pre>\n" \
 	" </div>\n" 
