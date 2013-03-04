@@ -57,7 +57,7 @@ ZEND_END_ARG_INFO()
 	"<html>\n" \
 	" <head>\n" \
 	"  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" \
-	"  <title>%s + Yar Server</title>\n"
+	"  <title>%s - Yar Server</title>\n"
 
 #define HTML_MARKUP_CSS \
 	"  <style>\n" \
