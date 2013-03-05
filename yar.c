@@ -140,6 +140,7 @@ PHP_RSHUTDOWN_FUNCTION(yar)
 PHP_MINFO_FUNCTION(yar)
 {
 	php_info_print_table_start();
+	php_info_print_table_header(2, "yar support", "enabled");
 	php_info_print_table_row(2, "Version", YAR_VERSION);
 	php_info_print_table_end();
 
