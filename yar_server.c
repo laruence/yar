@@ -332,7 +332,7 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 	ctr.line = header_line;
 	sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
-	ctr.line_len = snprintf(header_line, sizeof(header_line), "Content-Type: text/plain");
+	ctr.line_len = snprintf(header_line, sizeof(header_line), "Content-Type: %s", YAR_G(content_type));
 	ctr.line = header_line;
 	sapi_header_op(SAPI_HEADER_REPLACE, &ctr TSRMLS_CC);
 
