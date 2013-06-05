@@ -2,6 +2,7 @@
 Check for yar server __auth
 --SKIPIF--
 <?php 
+echo "skip"; //auth is not supported any more
 if (!extension_loaded("yar")) {
     print "skip";
 }
