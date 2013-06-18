@@ -52,7 +52,7 @@ $make && make install
 ## Runtime Configure
 - yar.timeout  //default 5
 - yar.connect_timeout  //default 1
-- yar.packger  //default "php", it should be one of "php", "json", "msgpack"
+- yar.packager  //default "php", when built with --enable-msgpack then default "msgpack", it should be one of "php", "json", "msgpack"
 - yar.debug    //default Off
 
 ## Server
