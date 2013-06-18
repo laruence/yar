@@ -623,7 +623,12 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name TSRMLS_CC)) {
+    if (callback && !ZVAL_IS_NULL(callback) &&
+			!zend_is_callable(callback, 0, &name
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2))
+				TSRMLS_CC
+#endif
+				)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "fourth parameter is expected to be a valid callback");
         efree(name);
         RETURN_FALSE;
@@ -634,7 +639,12 @@ PHP_METHOD(yar_concurrent_client, call) {
 		name = NULL;
 	}
 
-    if (error_callback && !ZVAL_IS_NULL(error_callback) && !zend_is_callable(error_callback, 0, &name TSRMLS_CC)) {
+    if (error_callback && !ZVAL_IS_NULL(error_callback) &&
+			!zend_is_callable(error_callback, 0, &name
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2))
+				TSRMLS_CC
+#endif
+				)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "fifth parameter is expected to be a valid error callback");
         efree(name);
         RETURN_FALSE;
@@ -713,7 +723,12 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		RETURN_FALSE;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) && !zend_is_callable(callback, 0, &name TSRMLS_CC)) {
+    if (callback && !ZVAL_IS_NULL(callback) &&
+			!zend_is_callable(callback, 0, &name
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2))
+				TSRMLS_CC
+#endif
+				)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "first argument is expected to be a valid callback");
         efree(name);
         RETURN_FALSE;
@@ -724,7 +739,12 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		name = NULL;
 	}
 
-    if (error_callback && !ZVAL_IS_NULL(error_callback) && !zend_is_callable(error_callback, 0, &name TSRMLS_CC)) {
+    if (error_callback && !ZVAL_IS_NULL(error_callback) &&
+			!zend_is_callable(error_callback, 0, &name
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2))
+				TSRMLS_CC
+#endif
+			)) {
         php_error_docref1(NULL TSRMLS_CC, name, E_ERROR, "second argument is expected to be a valid error callback");
         efree(name);
         RETURN_FALSE;
