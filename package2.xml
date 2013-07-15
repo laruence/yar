@@ -16,19 +16,20 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-03-03</date>
- <time>22:01:49</time>
+ <date>2013-07-15</date>
+ <time>18:00:30</time>
  <version>
-  <release>1.1.2</release>
-  <api>1.1.2</api>
+  <release>1.2.0</release>
+  <api>1.2.0</api>
  </version>
  <stability>
-  <release>beta</release>
-  <api>beta</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed bug uninitialized value in socket transporter
+  - Add ability to change the request/response Content-type
+  - Add Version info in phpinfo outputing
  </notes>
  <contents> 
   <dir name="/"> 
@@ -108,6 +109,23 @@
   <release> 
    <date>2013-03-03</date> 
    <version> 
+    <release>1.2.0</release> 
+    <api>1.2.0</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Add ability to change the request/response Content-type
+    - Add Version info in phpinfo outputing
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2013-03-03</date> 
+   <version> 
     <release>1.1.2</release> 
     <api>1.1.2</api> 
    </version> 
@@ -120,7 +138,6 @@
     - Fixed bug uninitialized value in socket transporter
    </notes> 
   </release> 
-
   <release> 
    <date>2013-02-19</date> 
    <version> 
