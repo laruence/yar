@@ -55,6 +55,14 @@ $make && make install
 - yar.packager  //default "php", when built with --enable-msgpack then default "msgpack", it should be one of "php", "json", "msgpack"
 - yar.debug    //default Off
 
+
+## Constants
+- YAR_VERSION
+- YAR_OPT_PACKAGER
+- YAR_OPT_PERSISTENT
+- YAR_OPT_TIMEOUT
+- YAR_OPT_CONNECT_TIMEOUT
+
 ## Server
 
 It's very easy to setup a Yar HTTP RPC Server
@@ -89,6 +97,10 @@ It's very easy for a PHP client to call remote RPC:
 ```php
 <?php
 $client = new Yar_Client("http://host/api/");
+/* the following setopt is optinal */
+$client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1);
+
+/* call remote service */
 $result = $client->api("parameter");
 ?>
 ```
