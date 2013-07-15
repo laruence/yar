@@ -84,7 +84,7 @@ static inline void php_yar_debug_server(const char *format, ...) {
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	vspprintf(&message, 0, buf, args);
-	php_error(E_NOTICE, "%s", message);
+	php_error(E_WARNING, "%s", message);
 	efree(message);
 }
 
@@ -101,7 +101,7 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	vspprintf(&message, 0, buf, args);
-	php_error(E_NOTICE, "%s", message);
+	php_error(E_WARNING, "%s", message);
 	efree(message);
 }
 
