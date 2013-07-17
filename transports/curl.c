@@ -721,7 +721,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				goto onerror;
 			} else {
 				/* timeout */
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%d' seconds reached", YAR_G(timeout));
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%ld' seconds reached", YAR_G(timeout));
 				goto onerror;
 			}
 #endif
