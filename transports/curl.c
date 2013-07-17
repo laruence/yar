@@ -418,7 +418,6 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 } /* }}} */
 
 int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, char **msg TSRMLS_DC) /* {{{ */ {
-	CURL *cp;
 	zval *payload;
 	yar_header_t header = {0};
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
@@ -432,7 +431,6 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 
 	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, Z_STRLEN_P(payload), 0 TSRMLS_CC);
 
-	cp = data->cp;
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
 	smart_str_appendl(&data->postfield, Z_STRVAL_P(payload), Z_STRLEN_P(payload));
 	zval_ptr_dtor(&payload);
@@ -723,7 +721,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				goto onerror;
 			} else {
 				/* timeout */
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%d' seconds reached", YAR_G(timeout));
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%ld' seconds reached", YAR_G(timeout));
 				goto onerror;
 			}
 #endif
