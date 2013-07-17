@@ -242,11 +242,11 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 
 	if (retval == -1) {
 		zval_ptr_dtor(&payload);
-		spprintf(msg, 0, "select error '%s'", fd, strerror(errno));
+		spprintf(msg, 0, "select error '%s'", strerror(errno));
 		return 0;
 	} else if (retval == 0) {
 		zval_ptr_dtor(&payload);
-		spprintf(msg, 0, "select timeout '%d' seconds reached", YAR_G(timeout));
+		spprintf(msg, 0, "select timeout '%ld' seconds reached", YAR_G(timeout));
 		return 0;
 	}
 
@@ -277,11 +277,11 @@ wait_io:
 
 			if (retval == -1) {
 				zval_ptr_dtor(&payload);
-				spprintf(msg, 0, "select error '%s'", fd, strerror(errno));
+				spprintf(msg, 0, "select error '%s'", strerror(errno));
 				return 0;
 			} else if (retval == 0) {
 				zval_ptr_dtor(&payload);
-				spprintf(msg, 0, "select timeout '%d' seconds reached", YAR_G(timeout));
+				spprintf(msg, 0, "select timeout '%ld' seconds reached", YAR_G(timeout));
 				return 0;
 			}
 
