@@ -228,6 +228,8 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		factory = php_yar_transport_get(ZEND_STRL("curl") TSRMLS_CC);
 	} else if (protocol == YAR_CLIENT_PROTOCOL_TCP || protocol == YAR_CLIENT_PROTOCOL_UNIX) {
 		factory = php_yar_transport_get(ZEND_STRL("sock") TSRMLS_CC);
+	} else {
+		return NULL;
 	}
 
 	transport = factory->init(TSRMLS_C);
