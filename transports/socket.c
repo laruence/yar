@@ -210,7 +210,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	fd_set rfds;
 	zval *payload;
 	struct timeval tv;
-	int ret, fd, retval;
+	int ret = -1, fd, retval;
 	char buf[SEND_BUF_SIZE];
 	yar_header_t header = {0};
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
