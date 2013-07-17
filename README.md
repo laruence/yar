@@ -54,8 +54,9 @@ $make && make install
 - yar.connect_timeout  //default 1
 - yar.packager  //default "php", when built with --enable-msgpack then default "msgpack", it should be one of "php", "json", "msgpack"
 - yar.debug    //default Off
+- yar.expose_info // default On, whether output the API info for GET requests
 - yar.content_type // default "application/octet-stream"
-- yar.allow_persistent // default Off
+- yar.allow_persistent // default Off 
 
 
 ## Constants
