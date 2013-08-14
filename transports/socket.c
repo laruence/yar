@@ -101,11 +101,9 @@ void php_yar_socket_close(yar_transport_interface_t* self TSRMLS_DC) /* {{{ */ {
 		return;
 	}
 
-	/* stream will be closed by engine
-	if (data->stream) {
+	if (!data->persistent && data->stream) {
 		php_stream_close(data->stream);
 	}
-	*/
 
 	efree(data);
 	efree(self);
