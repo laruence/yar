@@ -77,7 +77,7 @@ class API {
      * @params 
      * @return
      */
-    public function api($parameter, $option = "foo") {
+    public function some_method($parameter, $option = "foo") {
     }
 
     protected function client_can_not_see() {
@@ -104,7 +104,7 @@ $client = new Yar_Client("http://host/api/");
 $client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1);
 
 /* call remote service */
-$result = $client->api("parameter");
+$result = $client->some_method("parameter");
 ?>
 ```
 ### Concurrent call
@@ -118,12 +118,12 @@ function error_callback($type, $error, $callinfo) {
     error_log($error);
 }
 
-Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback");
-Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"));   // if the callback is not specificed, 
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback");
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"));   // if the callback is not specificed, 
                                                                                // callback in loop will be used
-Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback", array(YAR_OPT_PACKAGER => "json"));
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", array(YAR_OPT_PACKAGER => "json"));
                                                                                //this server accept json packager
-Yar_Concurrent_Client::call("http://host/api/", "api", array("parameters"), "callback", array(YAR_OPT_TIMEOUT=>1));
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", array(YAR_OPT_TIMEOUT=>1));
                                                                                //custom timeout 
  
 Yar_Concurrent_Client::loop("callback", "error_callback"); //send the requests, 
