@@ -712,6 +712,10 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			FD_ZERO(&exceptfds);
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
+			if (max_fd == -1) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "can not get fd from curl instance");
+				goto onerror;
+			}
 
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (return_code > 0) {
