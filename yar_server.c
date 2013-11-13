@@ -60,7 +60,7 @@ ZEND_END_ARG_INFO()
    initizing an Yar_Server object */
 PHP_METHOD(yar_server, __construct) {
     zval *obj;
-    zval *listen;
+    char *listen;
     long len = 0;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "o|s", &obj, &listen, &len) == FAILURE) {
         return;
