@@ -162,15 +162,15 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
 #endif
 
     data->server = server;
+    client_stream = (yar_listener_data_client_t *)emalloc(sizeof(yar_listener_data_client_t));
     while(1){
-        client_stream = (yar_listener_data_client_t *)emalloc(sizeof(yar_listener_data_client_t));
         php_stream_xport_accept(server,&(client_stream->stream),NULL,NULL,NULL,NULL,NULL,&errstr TSRMLS_CC);
         self->accept(self,(void *)client_stream);
         if(client_stream->stream){
-            php_stream_xport_shutdown(client_stream->stream, STREAM_SHUT_RDWR);
+            _php_stream_free(client_stream->stream, PHP_STREAM_FREE_CLOSE);
         }
-        efree(client_stream);
     }
+    efree(client_stream);    
     return 1;
 }
 /* }}} */
@@ -195,8 +195,9 @@ yar_request_t * php_yar_listener_socket_recv( yar_listener_interface_t *self, vo
     int recvd;
     yar_header_t *header;
     char read_buf[RECV_BUF_SIZE];
-    char *err_msg, *payload;
+    char *payload, *err_msg = NULL;
     zval* temp;
+    yar_request_t * request;
     yar_listener_data_client_t* socket_client = (yar_listener_data_client_t *)client;
      
     if(!socket_client->stream){
@@ -219,7 +220,13 @@ yar_request_t * php_yar_listener_socket_recv( yar_listener_interface_t *self, vo
         memcpy(payload + RECV_BUF_SIZE - sizeof(yar_header_t), read_buf, recvd);
     }
     temp = php_yar_packager_unpack(payload, header->body_len, &err_msg TSRMLS_CC);
-    return php_yar_request_unpack(temp);
+    efree(payload);
+    request = php_yar_request_unpack(temp);
+    zval_dtor(temp);
+    if(err_msg){
+        efree(err_msg);
+    }
+    return request;
 }
 /* }}} */
 
@@ -355,14 +362,14 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
     if (bailout) {
             zend_bailout();
     }
-    
     return 0;
 } 
 /* }}} */
 
 void php_yar_listener_socket_close( yar_listener_interface_t *self TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t *data = (yar_listener_data_t *)self->data;
-    php_stream_xport_shutdown(data->server,STREAM_SHUT_RDWR);
+    //php_stream_xport_shutdown(data->server,STREAM_SHUT_RDWR);
+    _php_stream_free(data->server, PHP_STREAM_FREE_CLOSE);
     return;
 } 
 /* }}} */
