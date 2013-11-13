@@ -216,8 +216,9 @@ yar_request_t * php_yar_listener_socket_recv( yar_listener_interface_t *self, vo
     payload = emalloc(header->body_len);
     memcpy(payload, read_buf + sizeof(yar_header_t), recvd - sizeof(yar_header_t));
     if(header->body_len + sizeof(yar_header_t) > RECV_BUF_SIZE){
-        recvd = php_stream_xport_recvfrom(socket_client->stream, read_buf, RECV_BUF_SIZE, 0, NULL, NULL, NULL, NULL TSRMLS_CC);
-        memcpy(payload + RECV_BUF_SIZE - sizeof(yar_header_t), read_buf, recvd);
+        recvd = php_stream_xport_recvfrom(socket_client->stream, payload + RECV_BUF_SIZE - sizeof(yar_header_t),
+                header->body_len + sizeof(yar_header_t) - RECV_BUF_SIZE, 0, NULL, NULL, NULL, NULL TSRMLS_CC);
+        //memcpy(payload + RECV_BUF_SIZE - sizeof(yar_header_t), read_buf, recvd);
     }
     temp = php_yar_packager_unpack(payload, header->body_len, &err_msg TSRMLS_CC);
     efree(payload);
