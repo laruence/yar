@@ -32,6 +32,7 @@
 #include "yar_packager.h"
 #include "yar_exception.h"
 #include "yar_transport.h"
+#include "yar_listener.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(yar);
 
@@ -100,6 +101,7 @@ PHP_MINIT_FUNCTION(yar)
 	YAR_STARTUP(client);
 	YAR_STARTUP(packager);
 	YAR_STARTUP(transport);
+        YAR_STARTUP(listener);
 	YAR_STARTUP(exception);
 
 	return SUCCESS;

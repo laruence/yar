@@ -51,11 +51,17 @@
    <file name="yar_exception.c" role="src" />
    <file name="yar_transport.h" role="src" />
    <file name="yar_transport.c" role="src" />
+   <file name="yar_listener.h" role="src" />
+   <file name="yar_listener.c" role="src" />
    <file name="yar_protocol.h" role="src" />
    <file name="yar_protocol.c" role="src" />
    <file name="yar_packager.h" role="src" />
    <file name="yar_packager.c" role="src" />
    <dir name="transports">
+    <file name="curl.c" role="src" />
+    <file name="socket.c" role="src" />
+   </dir>
+   <dir name="listeners">
     <file name="curl.c" role="src" />
     <file name="socket.c" role="src" />
    </dir>

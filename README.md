@@ -68,7 +68,8 @@ $make && make install
 
 ## Server
 
-It's very easy to setup a Yar HTTP RPC Server
+It's very easy to setup a Yar HTTP RPC Server 
+### Http
 ```php
 <?php
 class API {
@@ -92,6 +93,26 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
 
+### TCP
+```php
+<?php
+class API {
+    /**
+     * the doc info will be generated automatically into service info page.
+     * @params 
+     * @return
+     */
+    public function some_method($parameter, $option = "foo") {
+    }
+
+    protected function client_can_not_see() {
+    }
+}
+
+$service = new Yar_Server(new API(),"tcp://127.0.0.1/9090");
+$service->handle();
+?>
+```
 
 ## Client
 It's very easy for a PHP client to call remote RPC:
@@ -100,6 +121,8 @@ It's very easy for a PHP client to call remote RPC:
 ```php
 <?php
 $client = new Yar_Client("http://host/api/");
+// Or $client = new Yar_Client("tcp://127.0.0.1/9090");
+
 /* the following setopt is optinal */
 $client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1);
 

@@ -63,7 +63,6 @@ yar_request_t * php_yar_request_unpack(zval *body TSRMLS_DC) /* {{{ */ {
 	HashTable *ht;
 
 	req = (yar_request_t *)ecalloc(sizeof(yar_request_t), 1);
-
 	if (IS_ARRAY != Z_TYPE_P(body)) {
 		return req;
 	}
@@ -159,7 +158,6 @@ void php_yar_request_destroy(yar_request_t *request TSRMLS_DC) /* {{{ */ {
 
 int php_yar_request_valid(yar_request_t *req, yar_response_t *response, char **msg TSRMLS_DC) /* {{{ */ {
 	response->id = req->id;
-
 	if (!req->method) {
 		spprintf(msg, 0, "%s", "need specifical request method");
 		return 0;

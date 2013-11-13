@@ -14,6 +14,8 @@
   +----------------------------------------------------------------------+
   | Author:  Xinchen Hui   <laruence@php.net>                            |
   |          Zhenyu  Zhang <zhangzhenyu@php.net>                         |
+  |                                                                      |
+  | Fork:  Qinghui Zeng  <zengohm@gmail.com>                             |
   +----------------------------------------------------------------------+
 */
 
@@ -21,6 +23,9 @@
 
 #ifndef PHP_YAR_SERVER_H
 #define PHP_YAR_SERVER_H
+
+#define YAR_SERVER_PROTOCOL_HTTP  1
+#define YAR_SERVER_PROTOCOL_TCP   2
 
 YAR_STARTUP_FUNCTION(service);
 YAR_SHUTDOWN_FUNCTION(service);
