@@ -335,17 +335,17 @@ int php_yar_listener_curl_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{
 
 
 void php_yar_listener_curl_info(zval *obj TSRMLS_DC) /* {{{ */ {
-	char buf[1024];
-	zend_class_entry *ce = Z_OBJCE_P(obj);
+    char buf[1024];
+    zend_class_entry *ce = Z_OBJCE_P(obj);
 
-	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ce->name);
-	PHPWRITE(buf, strlen(buf));
+    snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ce->name);
+    PHPWRITE(buf, strlen(buf));
 
-	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
-	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
+    PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
+    PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
 
-	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ce->name);
-	PHPWRITE(buf, strlen(buf));
+    snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ce->name);
+    PHPWRITE(buf, strlen(buf));
 
     zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_listener_curl_print_info, (void *)(ce) TSRMLS_CC);
 
