@@ -29,7 +29,7 @@ typedef struct _yar_listener_interface {
         zval *executor;
 	int  (*listen)(struct _yar_listener_interface *self, char *address, uint len, zval *executor, char **err_msg TSRMLS_DC);
         int  (*accept)(struct _yar_listener_interface *self, void* client TSRMLS_DC);
-        struct _yar_request_t * (*recv)(struct _yar_listener_interface *self, void* client TSRMLS_DC);
+        int  (*recv)(struct _yar_listener_interface *self, void* client, struct _yar_request_t ** TSRMLS_DC);
 	int  (*exec)(struct _yar_listener_interface *self, struct _yar_request *request, struct _yar_response * TSRMLS_DC);
 	void (*close)(struct _yar_listener_interface *self TSRMLS_DC);
 } yar_listener_interface_t;
