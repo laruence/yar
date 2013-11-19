@@ -58,7 +58,7 @@ $make && make install
 - yar.content_type // default "application/octet-stream"
 - yar.allow_persistent // default Off 
 
-*NOTE* before version 1.2.1, the timeout and connect_time are 5 and 1
+*NOTE* yar.connect_time is a value in milliseconds, and was measured in seconds in 1.2.1 and before.
 
 ## Constants
 - YAR_VERSION
