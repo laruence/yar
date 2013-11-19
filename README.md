@@ -122,9 +122,9 @@ function error_callback($type, $error, $callinfo) {
 Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback");
 Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"));   // if the callback is not specificed, 
                                                                                // callback in loop will be used
-Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", array(YAR_OPT_PACKAGER => "json"));
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", "error_callback", array(YAR_OPT_PACKAGER => "json"));
                                                                                //this server accept json packager
-Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", array(YAR_OPT_TIMEOUT=>1));
+Yar_Concurrent_Client::call("http://host/api/", "some_method", array("parameters"), "callback", "error_callback", array(YAR_OPT_TIMEOUT=>1));
                                                                                //custom timeout 
  
 Yar_Concurrent_Client::loop("callback", "error_callback"); //send the requests, 
