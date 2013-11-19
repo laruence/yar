@@ -50,8 +50,8 @@ $configure --with-php-config=/path/to/php-config/ --enable-msgpack
 $make && make install
 ```
 ## Runtime Configure
-- yar.timeout  //default 5
-- yar.connect_timeout  //default 1
+- yar.timeout  //default 5000 (ms)
+- yar.connect_timeout  //default 1000 (ms)
 - yar.packager  //default "php", when built with --enable-msgpack then default "msgpack", it should be one of "php", "json", "msgpack"
 - yar.debug    //default Off
 - yar.expose_info // default On, whether output the API info for GET requests
