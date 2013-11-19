@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-07-15</date>
- <time>18:00:30</time>
+ <date>2013-11-19</date>
+ <time>17:52:00</time>
  <version>
-  <release>1.2.0</release>
-  <api>1.2.0</api>
+  <release>1.2.1</release>
+  <api>1.2.1</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,8 +28,9 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Add ability to change the request/response Content-type
-  - Add Version info in phpinfo outputing
+  - (NOTE) yar.connect_timeout and yar.timeout are ms now
+  - Fixed bug(a typo) by zengohm at gmail.com
+  - Fixed bug that curl_multi_fdset may return -1
  </notes>
  <contents> 
   <dir name="/"> 
@@ -106,6 +107,24 @@
  <extsrcrelease />
  <changelog> 
   <release> 
+   <date>2013-11-19</date> 
+   <version> 
+    <release>1.2.1</release> 
+    <api>1.2.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - (NOTE) yar.connect_timeout and yar.timeout are ms now
+    - Fixed bug(a typo) by zengohm at gmail.com
+    - Fixed bug that curl_multi_fdset may return -1
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2013-03-03</date> 
    <version> 
     <release>1.2.0</release> 
@@ -121,7 +140,6 @@
     - Add Version info in phpinfo outputing
    </notes> 
   </release> 
-
   <release> 
    <date>2013-03-03</date> 
    <version> 
