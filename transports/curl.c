@@ -467,7 +467,7 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 	self->data = data = ecalloc(1, sizeof(yar_curl_data_t));
 
 	snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type));
-	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" YAR_VERSION);
+	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" PHP_YAR_VERSION);
 	data->headers = curl_slist_append(data->headers, "Expect:");
 
 	self->open   	= php_yar_curl_open;
