@@ -37,6 +37,7 @@
    <file name="config.m4"  role="src" />
    <file name="config.w32" role="src" />
    <file name="CREDITS" role="src" />
+   <file name="LICENSE" role="src" />
    <file name="EXPERIMENTAL" role="src" />
    <file name="php_yar.h" role="src" />
    <file name="yar.c" role="src" />
