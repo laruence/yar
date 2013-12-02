@@ -406,19 +406,46 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	yar_response_t *response;
 	yar_request_t  *request = NULL;
 	yar_header_t *header;
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+	php_stream *s;
+	smart_str raw_data = {0};
+#endif
 
 	response = php_yar_response_instance(TSRMLS_C);
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+	s = SG(request_info).request_body;
+	if (!s || FAILURE == php_stream_rewind(s)) {
+		goto response_no_output;
+	}
+	memset(&raw_data, 0, sizeof(raw_data));
+	while (!php_stream_eof(s)) {
+		char buf[512];
+		size_t len = php_stream_read(s, buf, sizeof(buf));
+
+		if (len && len != (size_t) -1) {
+			smart_str_appendl(&raw_data, buf, len);
+		}
+	}
+	payload = raw_data.c;
+	payload_len = raw_data.len;
+#else
 	if (!SG(request_info).raw_post_data) {
 		goto response_no_output;
 	}
 
 	payload = SG(request_info).raw_post_data;
 	payload_len = SG(request_info).raw_post_data_length;
+#endif
+
 	if (!(header = php_yar_protocol_parse(payload TSRMLS_CC))) {
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+		smart_str_free(&raw_data);
+#endif
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "malformed request header '%.10s'", payload TSRMLS_CC);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
 	}
+
 
 	DEBUG_S("%ld: accpect rpc request form '%s'",
 			header->id, header->provider? (char *)header->provider : "Yar PHP " PHP_YAR_VERSION);
@@ -427,6 +454,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	payload_len -= sizeof(yar_header_t);
 
 	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg TSRMLS_CC))) {
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+		smart_str_free(&raw_data);
+#endif
         php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, err_msg);
 		efree(err_msg);
 		goto response_no_output;
@@ -437,6 +467,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	ce = Z_OBJCE_P(obj);
 
 	if (!php_yar_request_valid(request, response, &err_msg TSRMLS_CC)) {
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+		smart_str_free(&raw_data);
+#endif
 		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s", err_msg);
 		efree(err_msg);
 		goto response_no_output;
@@ -447,6 +480,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 #else
 	if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC) == FAILURE) {
 #endif
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+		smart_str_free(&raw_data);
+#endif
 		php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "start output buffer failed");
 		goto response_no_output;
 	}
@@ -454,6 +490,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	ce = Z_OBJCE_P(obj);
 	zend_str_tolower_copy(method, request->method, request->mlen);
 	if (!zend_hash_exists(&ce->function_table, method, strlen(method) + 1)) {
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+		smart_str_free(&raw_data);
+#endif
 		php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "call to undefined api %s::%s()", ce->name, request->method);
 		goto response;
 	}
@@ -551,6 +590,10 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 		php_yar_response_set_exception(response, EG(exception) TSRMLS_CC);
 		EG(exception) = NULL;
 	}
+
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+	smart_str_free(&raw_data);
+#endif
 
 response:
 #if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 4))
