@@ -62,6 +62,8 @@ typedef struct _yar_listener_data_client_t{
 typedef struct _yar_listener_date_t{
     unsigned int size;
     unsigned int num;
+    fd_set rfds;
+    int fd;
     php_stream *server;
     yar_listener_data_client_t **clients;
     int (*register_client)(struct _yar_listener_date_t *data, struct _yar_listener_data_client_t *client TSRMLS_DC);
@@ -139,16 +141,27 @@ void php_yar_listener_socket_response(php_stream *client, yar_request_t *request
 
 int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t * data = (yar_listener_data_t*)self->data;
-    php_stream *server = NULL;
+    //php_stream *server = NULL;
     yar_listener_data_client_t *client_stream = NULL;
     char *errstr = NULL, *persistent_key = NULL;
     int err;
     
     self->executor = executor;
     
-    server = php_stream_xport_create(address, len, ENFORCE_SAFE_MODE | REPORT_ERRORS,
-            STREAM_XPORT_SERVER | STREAM_XPORT_BIND | STREAM_XPORT_LISTEN, persistent_key, NULL, NULL, &errstr, &err);
-
+    FD_ZERO(&data->rfds);
+    
+    data->server = php_stream_xport_create(address, len, ENFORCE_SAFE_MODE | REPORT_ERRORS,
+            STREAM_XPORT_SERVER | STREAM_XPORT_BIND | STREAM_XPORT_LISTEN , persistent_key, NULL, NULL, &errstr, &err);
+    
+    if (SUCCESS == php_stream_cast(data->server, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&data->fd, 1) && data->fd >= 0) {
+            PHP_SAFE_FD_SET(data->fd, &data->rfds);
+    } else {
+            spprintf(err_msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable cast socket fd form stream (%s) : %s", address, errstr == NULL ? "Unknown error" : errstr);
+            efree(errstr);
+            return 0;
+    }
+    
     if (persistent_key) {
         efree(persistent_key);
     }
@@ -157,7 +170,7 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
         efree(errstr);
     }
     
-    if (server == NULL) {
+    if (data->server == NULL) {
             spprintf(err_msg, 0, "Unable to listen to %s (%s)", address, strerror(errno));
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "unable to listen to %s (%s)", address, errstr == NULL ? "Unknown error" : errstr);
             efree(errstr);
@@ -167,13 +180,12 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
     //php_stream_set_option(server, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     
 #if ZEND_DEBUG
-    server->__exposed++;
+    data->server->__exposed++;
 #endif
 
-    data->server = server;
     client_stream = (yar_listener_data_client_t *)emalloc(sizeof(yar_listener_data_client_t));
     while(1){
-        php_stream_xport_accept(server,&(client_stream->stream),NULL,NULL,NULL,NULL,NULL,&errstr TSRMLS_CC);
+        php_stream_xport_accept(data->server,&(client_stream->stream),NULL,NULL,NULL,NULL,NULL,&errstr TSRMLS_CC);
         client_stream->is_live = 1;
         data->register_client(data, client_stream);
         //pthread_create(&(client_stream->pid),NULL,self->accept,NULL);
@@ -403,8 +415,9 @@ yar_listener_interface_t * php_yar_listener_socket_init(TSRMLS_D) /* {{{ */ {
     yar_listener_interface_t *self;
     yar_listener_data_t *data = (yar_listener_data_t *)emalloc(sizeof(yar_listener_data_t));
     data->register_client = php_yar_listener_data_client_register;
-    data->num=0;
-    data->size=0;
+    data->num = 0;
+    data->size = 0;
+    data->fd = 0;
     
     self = ecalloc(1, sizeof(yar_listener_interface_t));
     self->data = (void *)data;
