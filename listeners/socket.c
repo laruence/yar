@@ -157,7 +157,7 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
             PHP_SAFE_FD_SET(data->fd, &data->rfds);
     } else {
             spprintf(err_msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable cast socket fd form stream (%s) : %s", address, errstr == NULL ? "Unknown error" : errstr);
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable cast socket fd form stream (%s) : %s", address, (errstr == NULL ? "Unknown error" : errstr));
             efree(errstr);
             return 0;
     }
