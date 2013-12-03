@@ -120,9 +120,6 @@ void php_yar_listener_socket_response(php_stream *client, yar_request_t *request
 
     DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
                     request->id, payload, payload_len - 8, payload + 8);
-
-    //php_yar_listener_curl_response_header(sizeof(yar_header_t) + payload_len, payload TSRMLS_CC);
-    //PHPWRITE((char *)&header, sizeof(yar_header_t));
     if(client){
             php_stream_xport_sendto(client,(char *)&header, sizeof(yar_header_t), 0, NULL, 0 TSRMLS_CC);
     }
@@ -153,15 +150,6 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
     data->server = php_stream_xport_create(address, len, ENFORCE_SAFE_MODE | REPORT_ERRORS,
             STREAM_XPORT_SERVER | STREAM_XPORT_BIND | STREAM_XPORT_LISTEN , persistent_key, NULL, NULL, &errstr, &err);
     
-    if (SUCCESS == php_stream_cast(data->server, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&data->fd, 1) && data->fd >= 0) {
-            PHP_SAFE_FD_SET(data->fd, &data->rfds);
-    } else {
-            spprintf(err_msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable cast socket fd form stream (%s) : %s", address, (errstr == NULL ? "Unknown error" : errstr));
-            efree(errstr);
-            return 0;
-    }
-    
     if (persistent_key) {
         efree(persistent_key);
     }
@@ -176,8 +164,6 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
             efree(errstr);
             return 0;
     }
-
-    //php_stream_set_option(server, PHP_STREAM_OPTION_BLOCKING, 0, NULL);
     
 #if ZEND_DEBUG
     data->server->__exposed++;
@@ -188,8 +174,6 @@ int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address
         php_stream_xport_accept(data->server,&(client_stream->stream),NULL,NULL,NULL,NULL,NULL,&errstr TSRMLS_CC);
         client_stream->is_live = 1;
         data->register_client(data, client_stream);
-        //pthread_create(&(client_stream->pid),NULL,self->accept,NULL);
-        //self->accept(self,(void *)client_stream);
         while(self->accept(self,(void *)client_stream)){
             ;
         }
@@ -246,7 +230,7 @@ int php_yar_listener_socket_recv( yar_listener_interface_t *self, void* client,y
         return -1;
     }
     if (!(header = php_yar_protocol_parse(read_buf TSRMLS_CC))) {
-        //php_yar_error(NULL, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed request header '%.32s'", read_buf);
+        php_yar_error(NULL, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed request header '%.32s'", read_buf);
         return 0;
     }
     
@@ -405,7 +389,6 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
 
 void php_yar_listener_socket_close( yar_listener_interface_t *self TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t *data = (yar_listener_data_t *)self->data;
-    //php_stream_xport_shutdown(data->server,STREAM_SHUT_RDWR);
     php_stream_close(data->server);
     return;
 } 
