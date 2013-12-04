@@ -641,7 +641,7 @@ static void php_yar_server_info(zval *obj TSRMLS_DC) /* {{{ */ {
 }
 /* }}} */
 
-/* {{{ proto Yar_Server::__construct($obj, $protocol = NULL)
+/* {{{ proto Yar_Server::__construct($obj)
    initizing an Yar_Server object */
 PHP_METHOD(yar_server, __construct) {
     zval *obj;
