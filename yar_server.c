@@ -350,7 +350,7 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 	return;
 } /* }}} */
 
-static void php_yar_server_response(yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
+static void php_yar_server_response(yar_request_t *request, yar_response_t *response, char *pkg_name TSRMLS_DC) /* {{{ */ {
 	zval ret;
 	char *payload, *err_msg;
 	size_t payload_len;
@@ -373,7 +373,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 		add_assoc_zval_ex(&ret, ZEND_STRS("e"), response->err);
 	}
 
-    if (!(payload_len = php_yar_packager_pack(NULL, &ret, &payload, &err_msg TSRMLS_CC))) {
+    if (!(payload_len = php_yar_packager_pack(pkg_name, &ret, &payload, &err_msg TSRMLS_CC))) {
 		zval_dtor(&ret);
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "%s", err_msg);
 		efree(err_msg);
@@ -399,6 +399,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
 static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	char *payload, *err_msg, method[256];
+	char *pkg_name = NULL;
 	size_t payload_len;
 	zend_bool bailout = 0;
 	zval *post_data = NULL, output, func;
@@ -461,6 +462,8 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 		efree(err_msg);
 		goto response_no_output;
 	}
+
+	pkg_name = payload;
 
 	request = php_yar_request_unpack(post_data TSRMLS_CC);
 	zval_ptr_dtor(&post_data);
@@ -611,7 +614,7 @@ response:
 	php_yar_response_alter_body(response, Z_STRVAL(output), Z_STRLEN(output), YAR_RESPONSE_REPLACE TSRMLS_CC);
 
 response_no_output:
-	php_yar_server_response(request, response TSRMLS_CC);
+	php_yar_server_response(request, response, pkg_name TSRMLS_CC);
 	php_yar_request_destroy(request TSRMLS_CC);
 	php_yar_response_destroy(response TSRMLS_CC);
 
