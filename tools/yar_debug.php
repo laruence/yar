@@ -128,12 +128,14 @@ class Yar_Debug_Transports {
 
 		$address = gethostbyname($urlinfo['host']);
 
-		$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-		$result = socket_connect($socket, $address, $port);
-		socket_write($socket, $in . $data['data'], strlen($in . $data['data']));
+		$fp = fsockopen($address, $port, $err, $errstr);
+		if (!$fp) {
+			die ("cannot conncect to {$address} at port {$port} '{$errstr}'");
+		}
+		fwrite($fp, $in . $data['data'], strlen($in . $data['data']));
 
 		$f_out = '';
-		while ($out = socket_read($socket, 2048))
+		while ($out = fread($fp, 2048))
 			$f_out .= $out;
 
 		$tmp = explode("\r\n\r\n", $f_out);
@@ -142,6 +144,7 @@ class Yar_Debug_Transports {
             'body'      =>  $tmp[1],
 			'return'	=>	unserialize(substr($tmp[1], 82 + 8)),
 		);
+		fclose($fp);
 	}
 }
 ?>
