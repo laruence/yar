@@ -139,6 +139,7 @@ class Yar_Debug_Transports {
 		$tmp = explode("\r\n\r\n", $f_out);
 		return array (
 			'header'	=>	$tmp[0],
+            'body'      =>  $tmp[1],
 			'return'	=>	unserialize(substr($tmp[1], 82 + 8)),
 		);
 	}
