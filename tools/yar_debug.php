@@ -1,61 +1,58 @@
 <?php
+/*
+  +----------------------------------------------------------------------+
+  | Yar - Light, concurrent RPC framework                                |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 2012-2013 The PHP Group                                |
+  +----------------------------------------------------------------------+
+  | This source file is subject to version 3.01 of the PHP license,      |
+  | that is bundled with this package in the file LICENSE, and is        |
+  | available through the world-wide-web at the following url:           |
+  | http://www.php.net/license/3_01.txt                                  |
+  | If you did not receive a copy of the PHP license and are unable to   |
+  | obtain it through the world-wide-web, please send a note to          |
+  | license@php.net so we can mail you a copy immediately.               |
+  +----------------------------------------------------------------------+
+  | Author:  Syber       <ibar@163.com>                                  |
+  |          Xinchen Hui <laruence@php.net>                              |
+  +----------------------------------------------------------------------+
+*/
+
 /***************************************************************************
- *                                 yar_debug.php
- *                            -------------------------
- *   begin                : Thursday, Apr 27, 2006
- *   copyright            : (C) 2002 The Bleso.com
- *   email                : 1881191@qq.com
- *   qq                   : 1881191
- *   msn                  : ibar@163.com
- *   last modify on       : 
- *
- *   $Id: yar_debug.php, v 0.0.0.1 2013/12/7 23:52:07 Syber Exp $
- *
  *   用法：按照正常yar调用方法，只是把类名修改为本调试类名。
  *   1
- *   $yar = new dYar_client('http://yar_server/path');
+ *   $yar = new Yar_Debug_Client('http://yar_server/path');
  *   var_dump($yar->call('method', $params));			//这里通常能看到server端代码是否有错误，错误在那里。
  *   2
- *   dYar_Concurrent_Client::call('http://yar_server/path', 'method', $params, $callback, $errcallback);
- *   dYar_Concurrent_Client::loop();		//在callback也可以看到server反馈
+ *   Yar_Debug_Concurrent_Client::call('http://yar_server/path', 'method', $params, $callback, $errcallback);
+ *   Yar_Debug_Concurrent_Client::loop();		//在callback也可以看到server反馈
  *
  *
  *   也可以用这个封装类做一个在线调试 exp:
  *   http://hk.yafdev.com/yar_server_response_viewer.php
  *
  *
- ***************************************************************************/
+***************************************************************************/
 
-/***************************************************************************
- *
- *   Free Code
- *
- ***************************************************************************/
-
-class dYar_client {
+class Yar_Debug_Client {
 	private $url;
 	public function __construct($url) {
 		$this->url = $url;
 	}
 
-	public function call() {
-		if (!func_num_args())
-			throw new exception('参数不够');
-		$args = func_get_args();
-		$m = $args[0];
-		array_shift($args);
-		return dYar_transports::exec($this->url, dYar_protocol::Package($m, $args));
+	public function call($method, $arguments) {
+		return Yar_Debug_Transports::exec($this->url, Yar_Debug_Protocol::Package($method, $arguments));
 	}
 
-	public function __call($name, $arguments) {
-		return dYar_transports::exec($this->url, dYar_protocol::Package($name, $arguments));
+	public function __call($method, $arguments) {
+		return Yar_Debug_Transports::exec($this->url, Yar_Debug_Protocol::Package($method, $arguments));
 	}
 }
 
-class dYar_Concurrent_Client {
+class Yar_Debug_Concurrent_Client {
 	private $data = array();
 	public static function call($uri, $m, $params = null, $callback = null, $errorcallback = null) {
-		$package = dYar_protocol::Package($m, $params);
+		$package = Yar_Debug_Protocol::Package($m, $params);
 		$this->data[] = array(
 			'uri'		=>	$uri,
 			'data'		=>	$package,
@@ -67,7 +64,7 @@ class dYar_Concurrent_Client {
 
 	public static function loop() {
 		foreach($this->data as $v) {
-			$ret = dYar_transports::exec($v['uri'], $v['data']);
+			$ret = Yar_Debug_Transports::exec($v['uri'], $v['data']);
 			if (strpos('HTTP/1.1 200 OK', $ret['header']) !== false) {
 				$call = $v['callback'];
 				$return = true;
@@ -85,7 +82,7 @@ class dYar_Concurrent_Client {
 	}
 }
 
-class dYar_protocol {
+class Yar_Debug_Protocol {
 	public static function Package($m, $params) {
 		$struct = array(
 			'i'	=>	time(),
@@ -99,7 +96,7 @@ class dYar_protocol {
 		$header = '';
 		$header = $transaction;						//transaction id
 		$header .= sprintf('%04x', 0);				//protocl version
-		$header .= '80dfec60';						//magic_num, default is: 0x80DFEC60
+		$header .= '80DFEC60';						//magic_num, default is: 0x80DFEC60
 		$header .= sprintf('%08x', 0);				//reserved
 		$header .= sprintf('%064x', 0);				//reqeust from who
 		$header .= sprintf('%064x', 0);				//request token, used for authentication
@@ -116,9 +113,10 @@ class dYar_protocol {
 	}
 }
 
-class dYar_transports {
+class Yar_Debug_Transports {
 	public static function exec($url, $data) {
 		$urlinfo = parse_url($url);
+        $port = isset($urlinfo["port"])? $urlinfo["port"] : 80;
 		$path = $urlinfo['path'] . (!empty($urlinfo['query']) ? '?' . $urlinfo['query'] : '') . (!empty($urlinfo['fragment']) ? '#' . $urlinfo['fragment'] : '');
 
 		$in = "POST {$path} HTTP/1.1\r\n";
@@ -131,7 +129,7 @@ class dYar_transports {
 		$address = gethostbyname($urlinfo['host']);
 
 		$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-		$result = socket_connect($socket, $address, 80);
+		$result = socket_connect($socket, $address, $port);
 		socket_write($socket, $in . $data['data'], strlen($in . $data['data']));
 
 		$f_out = '';
@@ -145,3 +143,4 @@ class dYar_transports {
 		);
 	}
 }
+?>
