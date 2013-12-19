@@ -50,42 +50,38 @@
 #define YAR_EPOLL_MAX_SIZE 128
 #endif
 
+
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280
 
+#define YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX 128
+#define YAR_LISTENER_SOCKET_CLIENT_LISTENQ 14
+
+#ifndef INFTIM
+#define YAR_LISTENER_SOCKET_INFTIM -1
+#else
+#define YAR_LISTENER_SOCKET_INFTIM INFTIM
+#endif
+
 typedef struct _yar_listener_data_client_t{
-    php_stream *stream;
-    int is_live;
-    pthread_t pid;
+    yar_header_t *header;
+    char* read_buff;
+    char* header_buff;
+    int header_offset;
+    int buff_offset;
+    int is_read_finished;
 } yar_listener_data_client_t;
 
 typedef struct _yar_listener_date_t{
-    unsigned int size;
-    unsigned int num;
-    fd_set rfds;
-    int fd;
-    php_stream *server;
-    yar_listener_data_client_t **clients;
-    int (*register_client)(struct _yar_listener_date_t *data, struct _yar_listener_data_client_t *client TSRMLS_DC);
+    int listenfd;
+    yar_listener_data_client_t clients_data[YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX];
+    struct pollfd clients_socket[YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX];
 } yar_listener_data_t;
 
-int php_yar_listener_data_client_register(yar_listener_data_t *data, yar_listener_data_client_t *client TSRMLS_DC) /* {{{ */ {
-    if (!data->size) {
-        data->size = 5;
-        data->clients = (yar_listener_data_client_t **)malloc(sizeof(yar_listener_data_client_t *) * data->size);
-     } else if (data->num == data->size) {
-        data->size += 5;
-        data->clients = (yar_listener_data_client_t **)realloc(data->clients, sizeof(yar_listener_data_client_t *) * data->size);
-     }
-     data->clients[data->num] = client;
-
-     return data->num++;
-}
-/* }}} */
 
 
 
-void php_yar_listener_socket_response(php_stream *client, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
+void php_yar_listener_socket_response(int client, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
     zval ret;
     char *payload, *err_msg;
     size_t payload_len;
@@ -121,11 +117,11 @@ void php_yar_listener_socket_response(php_stream *client, yar_request_t *request
     DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
                     request->id, payload, payload_len - 8, payload + 8);
     if(client){
-            php_stream_xport_sendto(client,(char *)&header, sizeof(yar_header_t), 0, NULL, 0 TSRMLS_CC);
+            write(client,(char *)&header, sizeof(yar_header_t));
     }
     if (payload_len) {
         if(client){
-            php_stream_xport_sendto(client,payload, payload_len, 0, NULL, 0 TSRMLS_CC);            
+            write(client,payload, payload_len);           
         }
         //PHPWRITE(payload, payload_len);
         efree(payload);
@@ -136,120 +132,183 @@ void php_yar_listener_socket_response(php_stream *client, yar_request_t *request
 }
 /* }}} */
 
-int php_yar_listener_socket_listen(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
+int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t * data = (yar_listener_data_t*)self->data;
-    //php_stream *server = NULL;
-    yar_listener_data_client_t *client_stream = NULL;
-    char *errstr = NULL, *persistent_key = NULL;
-    int err;
+    int listenfd, connfd, i, maxi, sockfd;
+    int nready;
+    ssize_t n;
+    char buf[RECV_BUF_SIZE];
+    socklen_t clilen;
+    struct pollfd *client = data->clients_socket;
+    struct sockaddr_in cliaddr, servaddr;
+    char *host;
+    char *p;
+    int port;
+    zval* temp;
+    yar_request_t * request;
+    yar_response_t *response;
     
     self->executor = executor;
     
-    FD_ZERO(&data->rfds);
-    
-    data->server = php_stream_xport_create(address, len, ENFORCE_SAFE_MODE | REPORT_ERRORS,
-            STREAM_XPORT_SERVER | STREAM_XPORT_BIND | STREAM_XPORT_LISTEN , persistent_key, NULL, NULL, &errstr, &err);
-    
-    if (persistent_key) {
-        efree(persistent_key);
+    host = pestrdup(address+6,1);
+    if(!host){
+        return -1;
     }
-    
-    if(errstr){
-        efree(errstr);
+    p = strchr(host,':');
+    if(p){
+        *p++= '\0';
+        port = strtol(p,&p,10);
     }
-    
-    if (data->server == NULL) {
-            spprintf(err_msg, 0, "Unable to listen to %s (%s)", address, strerror(errno));
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "unable to listen to %s (%s)", address, errstr == NULL ? "Unknown error" : errstr);
-            efree(errstr);
-            return 0;
+    if(port<=0){
+        return -1;
     }
-    
-#if ZEND_DEBUG
-    data->server->__exposed++;
-#endif
 
-    client_stream = (yar_listener_data_client_t *)emalloc(sizeof(yar_listener_data_client_t));
-    while(1){
-        php_stream_xport_accept(data->server,&(client_stream->stream),NULL,NULL,NULL,NULL,NULL,&errstr TSRMLS_CC);
-        client_stream->is_live = 1;
-        data->register_client(data, client_stream);
-        while(self->accept(self,(void *)client_stream)){
-            ;
-        }
-        if(client_stream->stream){
-            php_stream_close(client_stream->stream);
-        }
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    //servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_addr.s_addr = inet_addr(host);
+    servaddr.sin_port = htons(port);
+
+    bind(listenfd, &servaddr, sizeof(servaddr));
+    listen(listenfd, YAR_LISTENER_SOCKET_CLIENT_LISTENQ);
+
+    client[0].fd = listenfd;
+    client[0].events = POLLRDNORM;
+    for(i=1;i < YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX; i++){
+        client[i].fd = -1;
     }
-    efree(client_stream);   
-    
-    if(errstr){
-        efree(errstr);
+
+    maxi = 0;
+    data->listenfd = listenfd;
+    while(1){
+        nready = poll(client, maxi+1, YAR_LISTENER_SOCKET_INFTIM);
+
+        if(client[0].revents & POLLRDNORM) {
+            clilen = sizeof(cliaddr);
+            connfd = accept(listenfd, &cliaddr, &clilen);
+
+            for(i=1;i<YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX;i++){
+                if(client[i].fd<0){
+                    client[i].fd = connfd;
+                    data->clients_data[i].header_buff = (char *)emalloc(sizeof(yar_header_t));
+                    data->clients_data[i].read_buff = NULL;
+                    data->clients_data[i].is_read_finished = 0;
+                    data->clients_data[i].header_offset = 0;
+                    data->clients_data[i].buff_offset = 0;
+                    break;
+                }
+            }
+
+            if(i==YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX){
+                printf("Too many clients");
+                exit(0);
+            }
+
+            client[i].events = POLLRDNORM;
+
+            if(i>maxi){
+                maxi = i;
+            }
+
+            if(--nready <= 0){
+                continue;
+            }
+
+        }
+
+        for(i=1;i<=maxi;i++){
+            if((sockfd=client[i].fd)<0){
+                continue;
+            }
+
+            if(client[i].revents & (POLLRDNORM | POLLERR)){
+                if((n=read(sockfd,buf,RECV_BUF_SIZE))<0){
+                    close(sockfd);
+                    client[i].fd = -1;
+                    efree(data->clients_data[i].header);
+                    if(data->clients_data[i].read_buff){
+                        efree(data->clients_data[i].read_buff);
+                    }
+                }else if(n==0){
+                    close(sockfd);
+                    client[i].fd = -1;
+                    efree(data->clients_data[i].header);
+                    if(data->clients_data[i].read_buff){
+                        efree(data->clients_data[i].read_buff);
+                    }
+                } else {
+                    if(data->clients_data[i].header_offset<sizeof(yar_header_t)){
+                        if((data->clients_data[i].header_offset + n)<sizeof(yar_header_t)){
+                            data->clients_data[i].header_offset += n;
+                            memcpy(data->clients_data[i].header_buff + data->clients_data[i].header_offset,buf,n);
+                        }else{
+                            memcpy(data->clients_data[i].header_buff + data->clients_data[i].header_offset,buf,sizeof(yar_header_t) - data->clients_data[i].header_offset);
+                            data->clients_data[i].header = php_yar_protocol_parse(data->clients_data[i].header_buff TSRMLS_CC);
+                            data->clients_data[i].read_buff = (char *)emalloc(data->clients_data[i].header->body_len);
+                            data->clients_data[i].buff_offset = n - (sizeof(yar_header_t) - data->clients_data[i].header_offset);
+                            data->clients_data[i].header_offset = sizeof(yar_header_t);
+                            memcpy(
+                                    data->clients_data[i].read_buff,
+                                    buf +  n - data->clients_data[i].buff_offset,
+                                    data->clients_data[i].buff_offset
+                            );
+                            
+                            if(data->clients_data[i].buff_offset == data->clients_data[i].header->body_len){
+                                 data->clients_data[i].is_read_finished = 1;
+                            }
+                        }
+                    }else{
+                        if((data->clients_data[i].buff_offset + n) <= data->clients_data[i].header->body_len){
+                            data->clients_data[i].buff_offset += n;
+                            memcpy(data->clients_data[i].read_buff + data->clients_data[i].buff_offset,buf,n);
+                            
+                            if(data->clients_data[i].buff_offset == data->clients_data[i].header->body_len){
+                                data->clients_data[i].is_read_finished = 1;
+                            }
+                        }else{
+                            //Error
+                        }
+                    }
+                    
+                    if(data->clients_data[i].is_read_finished == 1){
+                        temp = php_yar_packager_unpack(data->clients_data[i].read_buff, data->clients_data[i].header->body_len, err_msg TSRMLS_CC);
+                        request = php_yar_request_unpack(temp);
+                        zval_dtor(temp);            
+                        response = php_yar_response_instance(TSRMLS_C);
+                        php_yar_listener_socket_exec(self, request, response);
+                        php_yar_listener_socket_response(sockfd, request, response TSRMLS_CC);
+                        php_yar_request_destroy(request TSRMLS_CC);
+                        php_yar_response_destroy(response TSRMLS_CC);
+                        
+                        data->clients_data[i].buff_offset = 0;
+                        data->clients_data[i].header_offset = 0;
+                        if(data->clients_data[i].read_buff){
+                            efree(data->clients_data[i].read_buff);
+                        }
+                        data->clients_data[i].is_read_finished = 0;
+                        
+                        
+                        close(sockfd);
+                        client[i].fd = -1;
+                        if(data->clients_data[i].header_buff){
+                            efree(data->clients_data[i].header_buff);
+                        }
+                    }
+                }
+
+                if (--nready <= 0){
+                    break;
+                }
+            }
+        }
     }
     
     return 1;
 }
 /* }}} */
 
-int php_yar_listener_socket_accept(yar_listener_interface_t *self, void* client TSRMLS_DC) /* {{{ */ {
-    yar_response_t *response;
-    yar_request_t *request;
-    yar_listener_data_client_t* socket_client = (yar_listener_data_client_t *)client;
-
-    response = php_yar_response_instance(TSRMLS_C);
-    if(self->recv(self, client, &request)>0){
-        self->exec(self, request, response);
-        php_yar_listener_socket_response(socket_client->stream, request, response TSRMLS_CC);
-        php_yar_request_destroy(request TSRMLS_CC);
-        php_yar_response_destroy(response TSRMLS_CC);
-        return 1;
-    }else{
-        php_yar_response_destroy(response TSRMLS_CC);
-        return 0;
-    }
-    
-}
-/* }}} */
-
-int php_yar_listener_socket_recv( yar_listener_interface_t *self, void* client,yar_request_t ** request TSRMLS_DC) /* {{{ */ {
-    int recvd;
-    yar_header_t *header;
-    char read_buf[RECV_BUF_SIZE];
-    char *payload, *err_msg = NULL;
-    zval* temp;
-    yar_listener_data_client_t* socket_client = (yar_listener_data_client_t *)client;
-     
-
-
-    if(!socket_client->stream){
-        return -1;
-    }
-    
-    
-    if((recvd = php_stream_xport_recvfrom(socket_client->stream, read_buf, RECV_BUF_SIZE, 0, NULL, NULL, NULL, NULL TSRMLS_CC))<=0){
-        return -1;
-    }
-    if (!(header = php_yar_protocol_parse(read_buf TSRMLS_CC))) {
-        php_yar_error(NULL, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed request header '%.32s'", read_buf);
-        return 0;
-    }
-    
-    payload = emalloc(header->body_len);
-    memcpy(payload, read_buf + sizeof(yar_header_t), recvd - sizeof(yar_header_t));
-    if(header->body_len + sizeof(yar_header_t) > RECV_BUF_SIZE){
-        recvd = php_stream_xport_recvfrom(socket_client->stream, payload + RECV_BUF_SIZE - sizeof(yar_header_t),
-                header->body_len + sizeof(yar_header_t) - RECV_BUF_SIZE, 0, NULL, NULL, NULL, NULL TSRMLS_CC);
-        //memcpy(payload + RECV_BUF_SIZE - sizeof(yar_header_t), read_buf, recvd);
-    }
-    temp = php_yar_packager_unpack(payload, header->body_len, &err_msg TSRMLS_CC);
-    efree(payload);
-    *request = php_yar_request_unpack(temp);
-    zval_dtor(temp);
-    if(err_msg){
-        efree(err_msg);
-    }
-}
-/* }}} */
 
 int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
     char *msg, *err_msg, method[256];
@@ -389,7 +448,9 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
 
 void php_yar_listener_socket_close( yar_listener_interface_t *self TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t *data = (yar_listener_data_t *)self->data;
-    php_stream_close(data->server);
+    //php_stream_close(data->server);
+    close(data->listenfd);
+    data->listenfd = 0;
     return;
 } 
 /* }}} */
@@ -397,20 +458,13 @@ void php_yar_listener_socket_close( yar_listener_interface_t *self TSRMLS_DC) /*
 yar_listener_interface_t * php_yar_listener_socket_init(TSRMLS_D) /* {{{ */ {
     yar_listener_interface_t *self;
     yar_listener_data_t *data = (yar_listener_data_t *)emalloc(sizeof(yar_listener_data_t));
-    data->register_client = php_yar_listener_data_client_register;
-    data->num = 0;
-    data->size = 0;
-    data->fd = 0;
     
     self = ecalloc(1, sizeof(yar_listener_interface_t));
     self->data = (void *)data;
     
     self->executor = NULL;
     
-    self->listen = php_yar_listener_socket_listen;
-    self->accept = php_yar_listener_socket_accept;
-    self->recv = php_yar_listener_socket_recv;
-    self->exec = php_yar_listener_socket_exec;
+    self->handle = php_yar_listener_socket_handle;
     self->close = php_yar_listener_socket_close;
     
     return self;
@@ -418,6 +472,11 @@ yar_listener_interface_t * php_yar_listener_socket_init(TSRMLS_D) /* {{{ */ {
 /* }}} */
 
 void php_yar_listener_socket_destroy(yar_listener_interface_t *self TSRMLS_DC) /* {{{ */ {
+    yar_listener_data_t *data = (yar_listener_data_t *)self->data;
+    if(data->listenfd){
+        close(data->listenfd);
+        data->listenfd = 0;
+    }
     efree(self->data);
 } 
 /* }}} */

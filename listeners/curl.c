@@ -306,7 +306,7 @@ int php_yar_listener_curl_listen(yar_listener_interface_t *self, char *address, 
                     return -1;
             }
     }
-    self->accept(self, NULL);
+    php_yar_listener_curl_accept(self, NULL);
     return 0;
 } 
 /* }}} */
@@ -631,10 +631,7 @@ yar_listener_interface_t * php_yar_listener_curl_init(TSRMLS_D) /* {{{ */ {
     self->data = NULL;
     self->executor = NULL;
     
-    self->listen = php_yar_listener_curl_listen;
-    self->accept = php_yar_listener_curl_accept;
-    self->recv = NULL;
-    self->exec = NULL;
+    self->handle = php_yar_listener_curl_listen;
     self->close = php_yar_listener_curl_close;
     
     return self;
