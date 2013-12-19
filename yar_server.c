@@ -115,7 +115,7 @@ PHP_METHOD(yar_server, handle)
     }
 
     listener = factory->init(TSRMLS_C);
-    listener->listen(listener,Z_STRVAL_P(uri),Z_STRLEN_P(uri),executor, &msg TSRMLS_CC);
+    listener->handle(listener,Z_STRVAL_P(uri),Z_STRLEN_P(uri),executor, &msg TSRMLS_CC);
     listener->close(listener);
     RETURN_TRUE;
 }
