@@ -27,32 +27,14 @@
 typedef struct _yar_listener_interface {
 	void *data;
         zval *executor;
-	int  (*listen)(struct _yar_listener_interface *self, char *address, uint len, zval *executor, char **err_msg TSRMLS_DC);
-        int  (*accept)(struct _yar_listener_interface *self, void* client TSRMLS_DC);
-        int  (*recv)(struct _yar_listener_interface *self, void* client, struct _yar_request ** TSRMLS_DC);
-	int  (*exec)(struct _yar_listener_interface *self, struct _yar_request *request, struct _yar_response * TSRMLS_DC);
+	int  (*handle)(struct _yar_listener_interface *self, char *address, uint len, zval *executor, char **err_msg TSRMLS_DC);
 	void (*close)(struct _yar_listener_interface *self TSRMLS_DC);
 } yar_listener_interface_t;
 
-/*typedef struct _yar_call_data {
-	ulong sequence;
-	char *uri;
-	uint ulen;
-	char *method;
-	uint mlen;
-	zval *callback;
-	zval *ecallback;
-	zval *parameters;
-	zval *options;
-} yar_call_data_t;
-
-typedef int yar_concurrent_server_callback(yar_call_data_t *calldata, int status, struct _yar_request *request TSRMLS_DC);
-*/
 typedef struct _yar_listener_multi_interface {
     void *data;
-	int (*add)(struct _yar_listener_multi_interface *self, yar_listener_interface_t *cp TSRMLS_DC);
-  /*  int (*exec)(struct _yar_listener_multi_interface *self, yar_concurrent_server_callback *callback TSRMLS_DC); */
-	void (*close)(struct _yar_listener_multi_interface *self TSRMLS_DC);
+    int (*add)(struct _yar_listener_multi_interface *self, yar_listener_interface_t *cp TSRMLS_DC);
+    void (*close)(struct _yar_listener_multi_interface *self TSRMLS_DC);
 } yar_listener_multi_interface_t;
 
 typedef struct _yar_listener_multi {
