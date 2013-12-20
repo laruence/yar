@@ -142,7 +142,8 @@ YAR_STARTUP_FUNCTION(service) /* {{{ */ {
 /* }}} */
 
 YAR_SHUTDOWN_FUNCTION(service) /* {{{ */ {
-	return SUCCESS;
+    YAR_SHUTDOWN(listener);
+    return SUCCESS;
 } /* }}} */
 
 /*

@@ -113,10 +113,9 @@ PHP_MINIT_FUNCTION(yar)
 PHP_MSHUTDOWN_FUNCTION(yar)
 {
 	UNREGISTER_INI_ENTRIES();
-
 	YAR_SHUTDOWN(service);
 	YAR_SHUTDOWN(packager);
-
+        YAR_SHUTDOWN(client);
 	return SUCCESS;
 }
 /* }}} */
