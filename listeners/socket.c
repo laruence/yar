@@ -64,11 +64,10 @@
 #endif
 
 typedef struct _yar_listener_data_client_t{
-    yar_header_t *header;
+    yar_header_t header;
     char* read_buff;
-    char* header_buff;
-    int header_offset;
-    int buff_offset;
+    ssize_t header_offset;
+    ssize_t buff_offset;
     int is_read_finished;
 } yar_listener_data_client_t;
 
@@ -78,8 +77,12 @@ typedef struct _yar_listener_date_t{
     struct pollfd clients_socket[YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX];
 } yar_listener_data_t;
 
+static int yar_listener_socket_running = 0;
 
-
+static void yar_listener_socket_sigint_handler(int sig) /* {{{ */
+{
+	yar_listener_socket_running = 0;
+}
 
 void php_yar_listener_socket_response(int client, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
     zval ret;
@@ -132,11 +135,22 @@ void php_yar_listener_socket_response(int client, yar_request_t *request, yar_re
 }
 /* }}} */
 
+void php_yar_listener_socket_clear_client_data(yar_listener_data_client_t* client)
+{
+    client->buff_offset = 0;
+    client->header_offset = 0;
+    if(client->read_buff != NULL){
+        efree(client->read_buff);
+        client->read_buff = NULL;
+    }
+    client->is_read_finished = 0;
+}
+
 int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t * data = (yar_listener_data_t*)self->data;
     int listenfd, connfd, i, maxi, sockfd;
     int nready;
-    ssize_t n;
+    ssize_t recv_byte, left_recv_byte;
     char buf[RECV_BUF_SIZE];
     socklen_t clilen;
     struct pollfd *client = data->clients_socket;
@@ -147,6 +161,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
     zval* temp;
     yar_request_t * request;
     yar_response_t *response;
+    yar_listener_data_client_t* cursor_data;
     
     self->executor = executor;
     
@@ -167,10 +182,9 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    //servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_addr.s_addr = inet_addr(host);
+    pefree(host,1);
     servaddr.sin_port = htons(port);
-
     bind(listenfd, &servaddr, sizeof(servaddr));
     listen(listenfd, YAR_LISTENER_SOCKET_CLIENT_LISTENQ);
 
@@ -178,11 +192,16 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
     client[0].events = POLLRDNORM;
     for(i=1;i < YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX; i++){
         client[i].fd = -1;
+        data->clients_data[i].read_buff = NULL;
     }
 
     maxi = 0;
     data->listenfd = listenfd;
-    while(1){
+    yar_listener_socket_running = 1;
+    #if defined(HAVE_SIGNAL_H) && defined(SIGINT)
+        signal(SIGINT, yar_listener_socket_sigint_handler);
+    #endif
+    while(yar_listener_socket_running){
         nready = poll(client, maxi+1, YAR_LISTENER_SOCKET_INFTIM);
 
         if(client[0].revents & POLLRDNORM) {
@@ -192,7 +211,6 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
             for(i=1;i<YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX;i++){
                 if(client[i].fd<0){
                     client[i].fd = connfd;
-                    data->clients_data[i].header_buff = (char *)emalloc(sizeof(yar_header_t));
                     data->clients_data[i].read_buff = NULL;
                     data->clients_data[i].is_read_finished = 0;
                     data->clients_data[i].header_offset = 0;
@@ -224,56 +242,51 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
             }
 
             if(client[i].revents & (POLLRDNORM | POLLERR)){
-                if((n=read(sockfd,buf,RECV_BUF_SIZE))<0){
+                recv_byte=read(sockfd,buf,RECV_BUF_SIZE);
+                if(recv_byte<0){
                     close(sockfd);
                     client[i].fd = -1;
-                    efree(data->clients_data[i].header);
-                    if(data->clients_data[i].read_buff){
-                        efree(data->clients_data[i].read_buff);
-                    }
-                }else if(n==0){
+                    php_yar_listener_socket_clear_client_data(&(data->clients_data[i]));
+                }else if(recv_byte==0){
                     close(sockfd);
                     client[i].fd = -1;
-                    efree(data->clients_data[i].header);
-                    if(data->clients_data[i].read_buff){
-                        efree(data->clients_data[i].read_buff);
-                    }
+                    php_yar_listener_socket_clear_client_data(&(data->clients_data[i]));
                 } else {
-                    if(data->clients_data[i].header_offset<sizeof(yar_header_t)){
-                        if((data->clients_data[i].header_offset + n)<sizeof(yar_header_t)){
-                            data->clients_data[i].header_offset += n;
-                            memcpy(data->clients_data[i].header_buff + data->clients_data[i].header_offset,buf,n);
+                    cursor_data = &(data->clients_data[i]);
+                    if(cursor_data->header_offset<sizeof(yar_header_t)){
+                        if(recv_byte < (sizeof(yar_header_t) - cursor_data->header_offset)){
+                            memcpy((char *)&cursor_data->header + cursor_data->header_offset, buf, recv_byte);
+                            cursor_data->header_offset += recv_byte;
                         }else{
-                            memcpy(data->clients_data[i].header_buff + data->clients_data[i].header_offset,buf,sizeof(yar_header_t) - data->clients_data[i].header_offset);
-                            data->clients_data[i].header = php_yar_protocol_parse(data->clients_data[i].header_buff TSRMLS_CC);
-                            data->clients_data[i].read_buff = (char *)emalloc(data->clients_data[i].header->body_len);
-                            data->clients_data[i].buff_offset = n - (sizeof(yar_header_t) - data->clients_data[i].header_offset);
-                            data->clients_data[i].header_offset = sizeof(yar_header_t);
-                            memcpy(
-                                    data->clients_data[i].read_buff,
-                                    buf +  n - data->clients_data[i].buff_offset,
-                                    data->clients_data[i].buff_offset
-                            );
-                            
-                            if(data->clients_data[i].buff_offset == data->clients_data[i].header->body_len){
-                                 data->clients_data[i].is_read_finished = 1;
+                            left_recv_byte = (sizeof(yar_header_t) - cursor_data->header_offset);
+                            memcpy((char *)&cursor_data->header + cursor_data->header_offset, buf, left_recv_byte);
+                            cursor_data->header_offset = sizeof(yar_header_t);
+                            php_yar_protocol_parse((char *)&cursor_data->header TSRMLS_CC);
+                            cursor_data->read_buff = (char *)emalloc(cursor_data->header.body_len);
+                            memcpy(cursor_data->read_buff, buf + left_recv_byte, recv_byte - left_recv_byte);
+                            cursor_data->buff_offset = recv_byte - left_recv_byte;
+                            left_recv_byte = recv_byte;
+                            if(cursor_data->buff_offset == cursor_data->header.body_len){
+                                cursor_data->is_read_finished = 1;
                             }
                         }
                     }else{
-                        if((data->clients_data[i].buff_offset + n) <= data->clients_data[i].header->body_len){
-                            data->clients_data[i].buff_offset += n;
-                            memcpy(data->clients_data[i].read_buff + data->clients_data[i].buff_offset,buf,n);
-                            
-                            if(data->clients_data[i].buff_offset == data->clients_data[i].header->body_len){
-                                data->clients_data[i].is_read_finished = 1;
+                        if(recv_byte <= (cursor_data->header.body_len - cursor_data->buff_offset)){
+                            memcpy(cursor_data->read_buff + cursor_data->buff_offset, buf, recv_byte);
+                            cursor_data->buff_offset += recv_byte;
+                            if(cursor_data->buff_offset == cursor_data->header.body_len){
+                                cursor_data->is_read_finished = 1;
                             }
                         }else{
-                            //Error
+                            php_error(E_WARNING,"Yar recive error format request");
+                            close(sockfd);
+                            client[i].fd = -1;
+                            php_yar_listener_socket_clear_client_data(&(data->clients_data[i]));
                         }
                     }
                     
-                    if(data->clients_data[i].is_read_finished == 1){
-                        temp = php_yar_packager_unpack(data->clients_data[i].read_buff, data->clients_data[i].header->body_len, err_msg TSRMLS_CC);
+                    if(cursor_data->is_read_finished == 1){
+                        temp = php_yar_packager_unpack(data->clients_data[i].read_buff, data->clients_data[i].header.body_len, err_msg TSRMLS_CC);
                         request = php_yar_request_unpack(temp);
                         zval_dtor(temp);            
                         response = php_yar_response_instance(TSRMLS_C);
@@ -282,19 +295,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
                         php_yar_request_destroy(request TSRMLS_CC);
                         php_yar_response_destroy(response TSRMLS_CC);
                         
-                        data->clients_data[i].buff_offset = 0;
-                        data->clients_data[i].header_offset = 0;
-                        if(data->clients_data[i].read_buff){
-                            efree(data->clients_data[i].read_buff);
-                        }
-                        data->clients_data[i].is_read_finished = 0;
-                        
-                        
-                        close(sockfd);
-                        client[i].fd = -1;
-                        if(data->clients_data[i].header_buff){
-                            efree(data->clients_data[i].header_buff);
-                        }
+                        php_yar_listener_socket_clear_client_data(&(data->clients_data[i]));
                     }
                 }
 
@@ -303,6 +304,11 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
                 }
             }
         }
+    }
+        
+    for(i=1;i < YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX; i++){
+        client[i].fd = -1;
+        php_yar_listener_socket_clear_client_data(&(data->clients_data[i]));
     }
     
     return 1;
@@ -478,7 +484,7 @@ void php_yar_listener_socket_destroy(yar_listener_interface_t *self TSRMLS_DC) /
         data->listenfd = 0;
     }
     efree(self->data);
-} 
+}
 /* }}} */
 
 /* {{{ yar_listener_t yar_listener_socket
