@@ -222,8 +222,9 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
             }
 
             if(i==YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX){
-                printf("Too many clients");
-                exit(0);
+                php_error(E_WARNING,"Yar recive too many clients");
+                close(connfd);
+                continue;
             }
 
             client[i].events = POLLRDNORM;
