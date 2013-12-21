@@ -292,7 +292,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 /* }}} */
 
 
-int php_yar_listener_curl_listen(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
+int php_yar_listener_curl_handle(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     const char *method;
     self->executor = executor;
     method = SG(request_info).request_method;
@@ -353,7 +353,7 @@ void php_yar_listener_curl_info(zval *obj TSRMLS_DC) /* {{{ */ {
 } 
 /* }}} */
 
-void php_yar_listener_curl_handle(zval *obj TSRMLS_DC) /* {{{ */ {
+void php_yar_listener_curl_exec(zval *obj TSRMLS_DC) /* {{{ */ {
 	char *payload, *err_msg, method[256];
 	size_t payload_len;
 	zend_bool bailout = 0;
@@ -615,7 +615,7 @@ void php_yar_listener_curl_response_header(size_t content_lenth, void *packager_
 /* }}} */
 
 int php_yar_listener_curl_accept( yar_listener_interface_t *self, void* client TSRMLS_DC) /* {{{ */ {
-    php_yar_listener_curl_handle(self->executor TSRMLS_CC);
+    php_yar_listener_curl_exec(self->executor TSRMLS_CC);
     return 0;
 } 
 /* }}} */
@@ -631,7 +631,7 @@ yar_listener_interface_t * php_yar_listener_curl_init(TSRMLS_D) /* {{{ */ {
     self->data = NULL;
     self->executor = NULL;
     
-    self->handle = php_yar_listener_curl_listen;
+    self->handle = php_yar_listener_curl_handle;
     self->close = php_yar_listener_curl_close;
     
     return self;

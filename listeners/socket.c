@@ -83,6 +83,7 @@ static void yar_listener_socket_sigint_handler(int sig) /* {{{ */
 {
 	yar_listener_socket_running = 0;
 }
+/* }}} */
 
 void php_yar_listener_socket_response(int client, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
     zval ret;
@@ -135,7 +136,7 @@ void php_yar_listener_socket_response(int client, yar_request_t *request, yar_re
 }
 /* }}} */
 
-void php_yar_listener_socket_clear_client_data(yar_listener_data_client_t* client)
+void php_yar_listener_socket_clear_client_data(yar_listener_data_client_t* client) /* {{{ */
 {
     client->buff_offset = 0;
     client->header_offset = 0;
@@ -145,6 +146,7 @@ void php_yar_listener_socket_clear_client_data(yar_listener_data_client_t* clien
     }
     client->is_read_finished = 0;
 }
+/* }}} */
 
 int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t * data = (yar_listener_data_t*)self->data;
@@ -437,7 +439,6 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
             if (php_output_get_contents(&output TSRMLS_CC) == FAILURE) {
                     php_output_end(TSRMLS_C);
                     php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "unable to get ob content");
-                    //goto response_no_output;
                     return 0;
             }
 
@@ -454,7 +455,6 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
 
 void php_yar_listener_socket_close( yar_listener_interface_t *self TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t *data = (yar_listener_data_t *)self->data;
-    //php_stream_close(data->server);
     close(data->listenfd);
     data->listenfd = 0;
     return;
