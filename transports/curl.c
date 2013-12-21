@@ -271,16 +271,15 @@ regular_link:
 		curl_easy_setopt(cp, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
 	}
 
-#if LIBCURL_VERSION_NUM > 0x071002 && 0
-	/* we don't really need MS time out */
-	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout) * 1000);
+#if LIBCURL_VERSION_NUM > 0x071002
+	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout));
 #else
-	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, YAR_G(connect_timeout));
+	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, (ulong)(YAR_G(connect_timeout) / 1000));
 #endif
 #if LIBCURL_VERSION_NUM > 0x071002
-	curl_easy_setopt(cp, CURLOPT_TIMEOUT_MS, YAR_G(timeout) * 1000);
+	curl_easy_setopt(cp, CURLOPT_TIMEOUT_MS, YAR_G(timeout));
 #else
-	curl_easy_setopt(cp, CURLOPT_TIMEOUT, YAR_G(timeout));
+	curl_easy_setopt(cp, CURLOPT_TIMEOUT, (ulong)(YAR_G(timeout) / 1000));
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071100
@@ -468,7 +467,7 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 	self->data = data = ecalloc(1, sizeof(yar_curl_data_t));
 
 	snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type));
-	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" YAR_VERSION);
+	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" PHP_YAR_VERSION);
 	data->headers = curl_slist_append(data->headers, "Expect:");
 
 	self->open   	= php_yar_curl_open;
@@ -694,7 +693,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait error '%s'", strerror(errno));
 				goto onerror;
 			} else {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait timeout '%d' seconds reached", YAR_G(timeout)); 
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "epoll_wait timeout %ldms reached", YAR_G(timeout)); 
 				goto onerror;
 			}
 #else
@@ -704,8 +703,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			fd_set writefds;
 			fd_set exceptfds;
 
-			tv.tv_sec = YAR_G(timeout);
-			tv.tv_usec = 0;
+			tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+			tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 			FD_ZERO(&readfds);
 			FD_ZERO(&writefds);
@@ -725,7 +724,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				goto onerror;
 			} else {
 				/* timeout */
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout '%ld' seconds reached", YAR_G(timeout));
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "select timeout %ldms reached", YAR_G(timeout));
 				goto onerror;
 			}
 #endif

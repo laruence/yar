@@ -61,8 +61,8 @@ int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len
 	char *errstr = NULL, *persistent_key = NULL;
 	int err;
 
-	tv.tv_sec = YAR_G(connect_timeout);
-	tv.tv_usec = 0;
+	tv.tv_sec = (ulong)(YAR_G(connect_timeout) / 1000);
+	tv.tv_usec = (ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) & 1000) * 1000 : 0);
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
@@ -133,8 +133,8 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		return response;
 	}
 
-	tv.tv_sec = YAR_G(timeout);
-	tv.tv_usec = 0;
+	tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 wait_io:
 	while ((retval = php_select(fd+1, &rfds, NULL, NULL, &tv)) == 0);
@@ -144,7 +144,7 @@ wait_io:
 		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
 		return response;
 	} else if (retval == 0) {
-		len = snprintf(buf, sizeof(buf), "select timeout '%d' seconds reached", YAR_G(timeout));
+		len = snprintf(buf, sizeof(buf), "select timeout %ldms reached", YAR_G(timeout));
 		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len TSRMLS_CC);
 		return response;
 	}
@@ -234,8 +234,8 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
-	tv.tv_sec = YAR_G(timeout);
-	tv.tv_usec = 0;
+	tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 	while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
 
@@ -261,7 +261,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 			}
 		} else {
 			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), Z_STRLEN_P(payload));
-			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC)) < 0 ) {
+			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC)) < 0) {
 				zval_ptr_dtor(&payload);
 				return 0;
 			}
@@ -280,7 +280,7 @@ wait_io:
 				return 0;
 			} else if (retval == 0) {
 				zval_ptr_dtor(&payload);
-				spprintf(msg, 0, "select timeout '%ld' seconds reached", YAR_G(timeout));
+				spprintf(msg, 0, "select timeout %ldms reached", YAR_G(timeout));
 				return 0;
 			}
 

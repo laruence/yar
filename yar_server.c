@@ -54,10 +54,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_service_void, 0, 0, 1)
 ZEND_END_ARG_INFO()
 /* }}} */
 
-
-
-/* {{{ proto Yar_Server::__construct($obj, $listen = NULL)
-   initizing an Yar_Server object */
+/* {{{ proto Yar_Server::__construct($obj, $listen = NULL initizing an Yar_Server object */
 PHP_METHOD(yar_server, __construct) {
     zval *obj;
     char *listen;
