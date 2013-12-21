@@ -110,7 +110,7 @@ class API {
     }
 }
 
-$service = new Yar_Server(new API(),"tcp://127.0.0.1/9090");
+$service = new Yar_Server(new API(),"tcp://127.0.0.1:9090");
 $service->handle();
 ?>
 ```
