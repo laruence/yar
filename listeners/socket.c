@@ -150,7 +150,7 @@ void php_yar_listener_socket_clear_client_data(yar_listener_data_client_t* clien
 
 int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address, uint len, zval *executor, char **err_msg  TSRMLS_DC) /* {{{ */ {
     yar_listener_data_t * data = (yar_listener_data_t*)self->data;
-    int listenfd, connfd, i, maxi, sockfd;
+    int listenfd, connfd, i, maxi, sockfd, flag;
     int nready;
     ssize_t recv_byte, left_recv_byte;
     char buf[RECV_BUF_SIZE];
@@ -169,6 +169,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
     
     host = pestrdup(address+6,1);
     if(!host){
+        php_error(E_ERROR,"Yar cannot listen to address %s",address);
         return -1;
     }
     p = strchr(host,':');
@@ -177,19 +178,32 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
         port = strtol(p,&p,10);
     }
     if(port<=0){
+        php_error(E_ERROR,"Yar cannot listen to address %s",address);
         return -1;
     }
 
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    if(listenfd<=0){
+        php_error(E_ERROR,"Yar cannot listen to address %s",address);
+        return -1;
+    }
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr(host);
     pefree(host,1);
     servaddr.sin_port = htons(port);
-    bind(listenfd, &servaddr, sizeof(servaddr));
-    listen(listenfd, YAR_LISTENER_SOCKET_CLIENT_LISTENQ);
-
+    flag = bind(listenfd, (const struct sockaddr_in *)&servaddr, sizeof(servaddr));
+    if(flag!=0){
+        php_error(E_ERROR,"Yar cannot bind to address %s",address);
+        return -1;
+    }
+    flag = listen(listenfd, YAR_LISTENER_SOCKET_CLIENT_LISTENQ);
+    if(flag!=0){
+        php_error(E_ERROR,"Yar cannot listen to address %s",address);
+        return -1;
+    }
     client[0].fd = listenfd;
     client[0].events = POLLRDNORM;
     for(i=1;i < YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX; i++){
