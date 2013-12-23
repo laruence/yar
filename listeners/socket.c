@@ -88,7 +88,7 @@ static void yar_listener_socket_sigint_handler(int sig) /* {{{ */
 void php_yar_listener_socket_response(int client, yar_request_t *request, yar_response_t *response TSRMLS_DC) /* {{{ */ {
     zval ret;
     char *payload, *err_msg;
-    size_t payload_len;
+    size_t payload_len, write_len;
     yar_header_t header = {0};
 
     INIT_ZVAL(ret);
@@ -121,18 +121,12 @@ void php_yar_listener_socket_response(int client, yar_request_t *request, yar_re
     DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
                     request->id, payload, payload_len - 8, payload + 8);
     if(client){
-            write(client,(char *)&header, sizeof(yar_header_t));
-    }
-    if (payload_len) {
-        if(client){
-            write(client,payload, payload_len);           
+        write_len = write(client,(char *)&header, sizeof(yar_header_t));
+        if (write_len > 0 && payload_len) {
+            write_len = write(client,payload, payload_len);
+            efree(payload);
         }
-        //PHPWRITE(payload, payload_len);
-        efree(payload);
-        return;
     }
-
-    return;
 }
 /* }}} */
 
@@ -194,7 +188,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
     servaddr.sin_addr.s_addr = inet_addr(host);
     pefree(host,1);
     servaddr.sin_port = htons(port);
-    flag = bind(listenfd, (const struct sockaddr_in *)&servaddr, sizeof(servaddr));
+    flag = bind(listenfd, (__CONST_SOCKADDR_ARG)&servaddr, sizeof(servaddr));
     if(flag!=0){
         php_error(E_ERROR,"Yar cannot bind to address %s",address);
         return -1;
@@ -222,7 +216,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
 
         if(client[0].revents & POLLRDNORM) {
             clilen = sizeof(cliaddr);
-            connfd = accept(listenfd, &cliaddr, &clilen);
+            connfd = accept(listenfd, (__SOCKADDR_ARG)&cliaddr, &clilen);
 
             for(i=1;i<YAR_LISTENER_SOCKET_CLIENT_OPEN_MAX;i++){
                 if(client[i].fd<0){
