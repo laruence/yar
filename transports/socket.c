@@ -137,7 +137,7 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 wait_io:
-	while ((retval = php_select(fd+1, &rfds, NULL, NULL, &tv)) == 0);
+	retval = php_select(fd+1, &rfds, NULL, NULL, &tv);
 
 	if (retval == -1) {
 		len = snprintf(buf, sizeof(buf), "Unable to select %d '%s'", fd, strerror(errno));
@@ -236,7 +236,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
 	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
-	while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
+	retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
 	if (retval == -1) {
 		zval_ptr_dtor(&payload);
@@ -271,7 +271,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 
 wait_io:
 		if (bytes_left) {
-			while ((retval = php_select(fd+1, NULL, &rfds, NULL, &tv)) == 0);
+			retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
 			if (retval == -1) {
 				zval_ptr_dtor(&payload);
