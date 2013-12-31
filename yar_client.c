@@ -510,10 +510,11 @@ PHP_METHOD(yar_client, __construct) {
 
     zend_update_property_stringl(yar_client_ce, getThis(), ZEND_STRL("_uri"), url, len TSRMLS_CC);
 
-	if (strncasecmp(url, ZEND_STRL("http://")) == 0 || strncasecmp(url, ZEND_STRL("https://")) == 0) {
-	} else if (strncasecmp(url, ZEND_STRL("tcp://")) == 0) {
+	if (strncasecmp(url, "http://", sizeof("http://") - 1) == 0
+			|| strncasecmp(url, "https://", sizeof("https://") - 1) == 0) {
+	} else if (strncasecmp(url, "tcp://", sizeof("tcp://") - 1) == 0) {
 		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP TSRMLS_CC);
-	} else if (strncasecmp(url, ZEND_STRL("unix://")) == 0) {
+	} else if (strncasecmp(url, "unix://", sizeof("unix://") - 1) == 0) {
 		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX TSRMLS_CC);
 	} else {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_PROTOCOL, "unsupported protocol address %s", url);
