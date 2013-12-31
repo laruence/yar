@@ -92,8 +92,8 @@
     </dir>
    </dir>
    <dir name="tools">
-    <file name="debug.php" role="test"/>
-    <file name="yar_debug.php" role="test"/>
+    <file name="yar_debug.inc" role="php"/>
+    <file name="yar_debug.php" role="script"/>
    </dir>
   </dir> 
  </contents> 
