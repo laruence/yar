@@ -9,5 +9,7 @@ ARG_ENABLE("yar", "enable yar support", "no");
 
 if (PHP_YAR != "no") {
 	EXTENSION("yar", "yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c yar_transport.c transports/curl.c transports/socket.c");
+
+    AC_DEFINE("HAVE_YAR", 1, "Have Yar Support");
 }
 
