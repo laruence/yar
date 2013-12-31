@@ -616,7 +616,8 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-	if (strncasecmp(uri, ZEND_STRL("http://")) && strncasecmp(uri, ZEND_STRL("https://"))) {
+	if (strncasecmp(uri, "http://", sizeof("http://") - 1) 
+			&& strncasecmp(uri, "https://", sizeof("https://") - 1)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "only http protocol is supported in concurrent client for now");
 		return;
 	}
