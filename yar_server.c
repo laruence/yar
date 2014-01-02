@@ -381,10 +381,10 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	}
 	zval_dtor(&ret);
 
-	php_yar_protocol_render(&header, request->id, "PHP Yar Server", NULL, payload_len, 0 TSRMLS_CC);
+	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, payload_len, 0 TSRMLS_CC);
 
 	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
-			request->id, payload, payload_len - 8, payload + 8);
+			request? request->id : 0, payload, payload_len - 8, payload + 8);
 
 	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, payload TSRMLS_CC);
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
@@ -416,6 +416,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
 	s = SG(request_info).request_body;
 	if (!s || FAILURE == php_stream_rewind(s)) {
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
 		goto response_no_output;
 	}
 	memset(&raw_data, 0, sizeof(raw_data));
@@ -431,6 +432,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	payload_len = raw_data.len;
 #else
 	if (!SG(request_info).raw_post_data) {
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
 		goto response_no_output;
 	}
 
@@ -442,7 +444,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
 		smart_str_free(&raw_data);
 #endif
-		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "malformed request header '%.10s'", payload TSRMLS_CC);
+		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
 	}
@@ -615,7 +617,9 @@ response:
 
 response_no_output:
 	php_yar_server_response(request, response, pkg_name TSRMLS_CC);
-	php_yar_request_destroy(request TSRMLS_CC);
+	if (request) {
+		php_yar_request_destroy(request TSRMLS_CC);
+	}
 	php_yar_response_destroy(response TSRMLS_CC);
 
 	if (bailout) {
