@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-12-31</date>
- <time>16:33:00</time>
+ <date>2013-02-02</date>
+ <time>16:08:00</time>
  <version>
-  <release>1.2.2</release>
-  <api>1.2.2</api>
+  <release>1.2.3</release>
+  <api>1.2.3</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,9 +28,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed Issue #9 (Yar Server will response in the same package as client packaged)
-  - Fixed Bug (Unterminatable select)
-  - Add debug tool (A PHP implemented Yar debug client)
+  - Fixed windows building 
+  - Fixed segfault NULL pointer dereference
  </notes>
  <contents> 
   <dir name="/"> 
@@ -113,6 +112,23 @@
   <release> 
    <date>2013-12-31</date> 
    <version> 
+    <release>1.2.3</release> 
+    <api>1.2.3</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed windows building 
+    - Fixed segfault NULL pointer dereference
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2013-12-31</date> 
+   <version> 
     <release>1.2.2</release> 
     <api>1.2.2</api> 
    </version> 
@@ -127,7 +143,6 @@
     - Add debug tool (A PHP implemented Yar debug client)
    </notes> 
   </release> 
-
   <release> 
    <date>2013-11-19</date> 
    <version> 
