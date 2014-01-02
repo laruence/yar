@@ -417,6 +417,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	s = SG(request_info).request_body;
 	if (!s || FAILURE == php_stream_rewind(s)) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
+		DEBUG_S("0: empty request");
 		goto response_no_output;
 	}
 	memset(&raw_data, 0, sizeof(raw_data));
@@ -433,6 +434,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 #else
 	if (!SG(request_info).raw_post_data) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
+		DEBUG_S("0: empty request");
 		goto response_no_output;
 	}
 
