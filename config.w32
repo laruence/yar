@@ -9,7 +9,6 @@
 ARG_ENABLE("yar", "enable yar support", "no");
 
 if (PHP_YAR != "no") {
-	EXTENSION("yar", "yar.c");
 	if (CHECK_LIB("libcurl_a.lib;libcurl.lib", "yar") &&
 		CHECK_HEADER_ADD_INCLUDE("curl/easy.h", "CFLAGS_YAR")) {
 
@@ -26,4 +25,3 @@ if (PHP_YAR != "no") {
 		WARNING("yar not enabled, libs or headers not found");
 	}
 }
- 
