@@ -724,6 +724,19 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 #endif
 			} 
 
+
+			/* maybe we should use curl_multi_timeout like:
+			 * curl_multi_timeout(curlm, (long *)&curl_timeout);
+			 * if (curl_timeout == 0) {
+			 * 	  continue;
+			 * } else if (curl_timeout == -1) {
+			 *	  tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+			 *    tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+			 * } else {
+			 *    tv.tv_sec  =  curl_timeout / 1000;
+			 * 	  tv.tv_usec = (curl_timeout % 1000) * 1000;
+			 * }
+			 */
 			tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
 			tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
