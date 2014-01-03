@@ -718,6 +718,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 				continue;
 #else
+				/* should not reach here*/
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "can not get fd from curl instance"); 
 				goto onerror;
 #endif
