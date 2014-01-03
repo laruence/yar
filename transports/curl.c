@@ -713,7 +713,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				/*	When  max_fd  returns  with  -1,  you  need  to  wait  a  while  and then proceed and call
 					curl_multi_perform anyway, How long to wait? I would suggest 100 milliseconds at least */
 				tv.tv_sec = 0;
-				tv.tv_usec = 1000;
+				tv.tv_usec = 5000; /* sleep 5ms */
 				select(1, &readfds, &writefds, &exceptfds, &tv);
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 				continue;
