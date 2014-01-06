@@ -50,10 +50,10 @@ class Yar_Debug_Client {
 }
 
 class Yar_Debug_Concurrent_Client {
-	private $data = array();
+	private static $data = array();
 	public static function call($uri, $m, $params = null, $callback = null, $errorcallback = null) {
 		$package = Yar_Debug_Protocol::Package($m, $params);
-		$this->data[] = array(
+		self::$data[] = array(
 			'uri'		=>	$uri,
 			'data'		=>	$package,
 			'callback'	=>	$callback,
@@ -63,7 +63,7 @@ class Yar_Debug_Concurrent_Client {
 	}
 
 	public static function loop() {
-		foreach($this->data as $v) {
+		foreach(self::$data as $v) {
 			$ret = Yar_Debug_Transports::exec($v['uri'], $v['data']);
 			if (strpos('HTTP/1.1 200 OK', $ret['header']) !== false) {
 				$call = $v['callback'];
