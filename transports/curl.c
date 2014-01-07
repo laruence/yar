@@ -703,18 +703,42 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			fd_set writefds;
 			fd_set exceptfds;
 
-			tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
-			tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
-
 			FD_ZERO(&readfds);
 			FD_ZERO(&writefds);
 			FD_ZERO(&exceptfds);
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
 			if (max_fd == -1) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "can not get fd from curl instance");
+#if defined(PHP_WIN32) || defined(__DARWIN__) || defined(__APPLE__)
+				/*	When  max_fd  returns  with  -1,  you  need  to  wait  a  while  and then proceed and call
+					curl_multi_perform anyway, How long to wait? I would suggest 100 milliseconds at least */
+				tv.tv_sec = 0;
+				tv.tv_usec = 5000; /* sleep 5ms */
+				select(1, &readfds, &writefds, &exceptfds, &tv);
+				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+				continue;
+#else
+				/* should not reach here*/
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "can not get fd from curl instance"); 
 				goto onerror;
-			}
+#endif
+			} 
+
+
+			/* maybe we should use curl_multi_timeout like:
+			 * curl_multi_timeout(curlm, (long *)&curl_timeout);
+			 * if (curl_timeout == 0) {
+			 * 	  continue;
+			 * } else if (curl_timeout == -1) {
+			 *	  tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+			 *    tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+			 * } else {
+			 *    tv.tv_sec  =  curl_timeout / 1000;
+			 * 	  tv.tv_usec = (curl_timeout % 1000) * 1000;
+			 * }
+			 */
+			tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
+			tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (return_code > 0) {

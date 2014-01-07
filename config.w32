@@ -5,9 +5,23 @@
 // ARG_WITH("yar", "for yar support", "no");
 
 // Otherwise, use ARG_ENABLE
+// ARG_ENABLE("yar", "enable yar support", "no");
 ARG_ENABLE("yar", "enable yar support", "no");
 
 if (PHP_YAR != "no") {
-	EXTENSION("yar", "yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c packagers/php.c packagers/json.c packagers/msgpack.c yar_transport.c transports/curl.c transports/socket.c");
-}
+	if (CHECK_LIB("libcurl_a.lib;libcurl.lib", "yar") &&
+		CHECK_HEADER_ADD_INCLUDE("curl/easy.h", "CFLAGS_YAR")) {
 
+		ADD_EXTENSION_DEP("yar", "json");
+
+		ADD_FLAG("CFLAGS_YAR", "/I " + configure_module_dirname);
+		ADD_FLAG("CFLAGS_YAR", "/D CURL_STATICLIB");
+
+		EXTENSION("yar", "yar.c yar_server.c yar_client.c yar_request.c yar_response.c yar_exception.c yar_packager.c yar_protocol.c yar_transport.c");
+		ADD_SOURCES(configure_module_dirname + "\\packagers", "php.c json.c msgpack.c", "yar");
+		ADD_SOURCES(configure_module_dirname + "\\transports", "curl.c socket.c", "yar");
+		AC_DEFINE("HAVE_YAR", 1, "Have Yar Support");
+	} else {
+		WARNING("yar not enabled, libs or headers not found");
+	}
+}

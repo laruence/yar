@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2013-11-19</date>
- <time>17:52:00</time>
+ <date>2013-02-02</date>
+ <time>16:08:00</time>
  <version>
-  <release>1.2.1</release>
-  <api>1.2.1</api>
+  <release>1.2.3</release>
+  <api>1.2.3</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,17 +28,15 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - (NOTE) yar.connect_timeout and yar.timeout are ms now
-  - Fixed bug(a typo) by zengohm at gmail.com
-  - Fixed bug that curl_multi_fdset may return -1
+  - Fixed windows building 
+  - Fixed segfault NULL pointer dereference
  </notes>
  <contents> 
   <dir name="/"> 
    <file name="config.m4"  role="src" />
    <file name="config.w32" role="src" />
-   <file name="CREDITS" role="src" />
-   <file name="LICENSE" role="src" />
-   <file name="EXPERIMENTAL" role="src" />
+   <file name="CREDITS" role="doc" />
+   <file name="LICENSE" role="doc" />
    <file name="php_yar.h" role="src" />
    <file name="yar.c" role="src" />
    <file name="yar_server.h" role="src" />
@@ -98,6 +96,10 @@
      <file name="rest.php" role="test"/>
     </dir>
    </dir>
+   <dir name="tools">
+    <file name="yar_debug.inc" role="php"/>
+    <file name="yar_debug.php" role="script"/>
+   </dir>
   </dir> 
  </contents> 
  <dependencies> 
@@ -113,6 +115,40 @@
  <providesextension>yar</providesextension>
  <extsrcrelease />
  <changelog> 
+  <release> 
+   <date>2013-12-31</date> 
+   <version> 
+    <release>1.2.3</release> 
+    <api>1.2.3</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed windows building 
+    - Fixed segfault NULL pointer dereference
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2013-12-31</date> 
+   <version> 
+    <release>1.2.2</release> 
+    <api>1.2.2</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed Issue #9 (Yar Server will response in the same package as client packaged)
+    - Fixed Bug (Unterminatable select)
+    - Add debug tool (A PHP implemented Yar debug client)
+   </notes> 
+  </release> 
   <release> 
    <date>2013-11-19</date> 
    <version> 
@@ -130,7 +166,6 @@
     - Fixed bug that curl_multi_fdset may return -1
    </notes> 
   </release> 
-
   <release> 
    <date>2013-03-03</date> 
    <version> 
