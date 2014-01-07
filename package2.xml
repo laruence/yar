@@ -105,9 +105,17 @@
     <min>1.4.0</min> 
    </pearinstaller> 
   </required> 
+  <optional>
+   <extension><name>msgpack</name></extension>
+  </optional>
  </dependencies> 
  <providesextension>yar</providesextension>
- <extsrcrelease />
+ <extsrcrelease>
+  <configureoption 
+   name="enable-msgpack"
+   prompt="Enable Msgpack Supports"
+   default="no" />
+ </extsrcrelease>
  <changelog> 
   <release> 
    <date>2013-12-31</date> 
