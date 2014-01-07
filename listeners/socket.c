@@ -188,7 +188,7 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
     servaddr.sin_addr.s_addr = inet_addr(host);
     pefree(host,1);
     servaddr.sin_port = htons(port);
-    flag = bind(listenfd, (__CONST_SOCKADDR_ARG)&servaddr, sizeof(servaddr));
+    flag = bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
     if(flag!=0){
         php_error(E_ERROR,"Yar cannot bind to address %s",address);
         return -1;

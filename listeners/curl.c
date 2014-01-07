@@ -78,7 +78,7 @@
 	"  </script>\n" \
 	" </head>\n" \
 	" <body>\n" \
-	" <!-- powered by yar-" YAR_VERSION " -->\n"
+	" <!-- powered by yar-" PHP_YAR_VERSION " -->\n"
 
 #define HTML_MARKUP_TITLE \
 	" <h1>Yar Server: %s</h1>"
@@ -377,7 +377,7 @@ void php_yar_listener_curl_exec(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 	DEBUG_S("%ld: accpect rpc request form '%s'",
-			header->id, header->provider? (char *)header->provider : "Yar PHP " YAR_VERSION);
+			header->id, header->provider? (char *)header->provider : "Yar PHP " PHP_YAR_VERSION);
 
 	payload += sizeof(yar_header_t);
 	payload_len -= sizeof(yar_header_t);
