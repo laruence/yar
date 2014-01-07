@@ -202,6 +202,7 @@ class Yar_Simple_Transport
 		$opt[CURLOPT_RETURNTRANSFER] = 1;
 		$opt[CURLOPT_POST] = 1;
 		$opt[CURLOPT_POSTFIELDS] = $data;
+		$opt[CURLOPT_USERAGENT] = 'PHP Yar Rpc Simple Client';
 		curl_setopt_array($ch, $opt);
 		return $ch;
 	}
