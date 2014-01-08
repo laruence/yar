@@ -27,6 +27,10 @@
 #define YAR_CLIENT_PROTOCOL_UDP   3
 #define YAR_CLIENT_PROTOCOL_UNIX  4
 
+#ifndef ZEND_FETCH_RESOURCE_NO_RETURN
+#define ZEND_FETCH_RESOURCE_NO_RETURN(rsrc, rsrc_type, passed_id, default_id, resource_type_name, resource_type)    \
+	    (rsrc = (rsrc_type) zend_fetch_resource(passed_id TSRMLS_CC, default_id, resource_type_name, NULL, 1, resource_type))
+#endif
 
 YAR_STARTUP_FUNCTION(client);
 YAR_SHUTDOWN_FUNCTION(client);
