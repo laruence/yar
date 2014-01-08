@@ -90,7 +90,6 @@ void php_yar_listener_socket_response(int client, yar_request_t *request, yar_re
     char *payload, *err_msg;
     size_t payload_len, write_len;
     yar_header_t header = {0};
-
     INIT_ZVAL(ret);
     array_init(&ret);
 
@@ -175,7 +174,6 @@ int php_yar_listener_socket_handle(yar_listener_interface_t *self, char *address
         php_error(E_ERROR,"Yar cannot listen to address %s",address);
         return -1;
     }
-
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     
     if(listenfd<=0){
@@ -337,6 +335,15 @@ int php_yar_listener_socket_exec( yar_listener_interface_t *self, yar_request_t 
         php_yar_error(response, YAR_ERR_REQUEST TSRMLS_CC, "%s", err_msg);
         efree(err_msg);
         return 0;
+    }
+    
+#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 4))
+    if (php_start_ob_buffer(NULL, 0, 0 TSRMLS_CC) != SUCCESS) {
+#else
+    if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC) == FAILURE) {
+#endif
+	php_yar_error(response, YAR_ERR_OUTPUT TSRMLS_CC, "start output buffer failed");
+	return 0;
     }
     
     ce = Z_OBJCE_P(self->executor);
