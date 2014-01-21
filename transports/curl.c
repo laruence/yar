@@ -259,6 +259,8 @@ regular_link:
 	curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(cp, CURLOPT_POST, 1);
 	curl_easy_setopt(cp, CURLOPT_NOPROGRESS, 1);
+	/* For the bug that when libcurl use standard name resolver, 
+	 * Any timeout less than 1000ms will cause libcurl return timeout immediately */
 	curl_easy_setopt(cp, CURLOPT_NOSIGNAL, 1);
 	curl_easy_setopt(cp, CURLOPT_DNS_USE_GLOBAL_CACHE, 1);
 	/* let's cache the DNS result 5 mins */
