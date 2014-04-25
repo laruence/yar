@@ -709,6 +709,20 @@ PHP_METHOD(yar_concurrent_client, call) {
 }
 /* }}} */
 
+/* {{{ proto Yar_Concurrent_Client::reset(void) */
+PHP_METHOD(yar_concurrent_client, reset) {
+	zval *callstack;
+
+
+	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0 TSRMLS_CC);
+	if (ZVAL_IS_NULL(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
+		RETURN_TRUE;
+	}
+	zend_hash_clean(Z_ARRVAL_P(callstack));
+	RETURN_TRUE;
+}
+/* }}} */
+
 /* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback) */
 PHP_METHOD(yar_concurrent_client, loop) {
 	char *name = NULL;
@@ -792,6 +806,7 @@ zend_function_entry yar_client_methods[] = {
 zend_function_entry yar_concurrent_client_methods[] = {
 	PHP_ME(yar_concurrent_client, call, arginfo_client_async, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(yar_concurrent_client, loop, arginfo_client_loop, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(yar_concurrent_client, reset, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 /* }}} */
