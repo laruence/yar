@@ -80,7 +80,7 @@ void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC
 	add_assoc_string_ex(ret, ZEND_STRS("_type"), (char *)ce->name, 1);
 
 	response->status = YAR_ERR_EXCEPTION;
-    response->err = ret;
+        response->err = ret;
 	zval_ptr_dtor(&ex);
 } /* }}} */
 

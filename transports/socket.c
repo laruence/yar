@@ -152,6 +152,7 @@ wait_io:
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		zval *retval;
 		if (!payload) {
+                        //if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(yar_header_t), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
 			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL, NULL TSRMLS_CC)) > 0) {
 				if (!(header = php_yar_protocol_parse(buf TSRMLS_CC))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL TSRMLS_CC, "malformed response header '%.32s'", payload);

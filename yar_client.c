@@ -838,6 +838,7 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 /* }}} */
 
 YAR_SHUTDOWN_FUNCTION(client) /* {{{ */ {
+        YAR_SHUTDOWN(transport);
 	return SUCCESS;
 } /* }}} */
 
