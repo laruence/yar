@@ -244,6 +244,21 @@ regular_link:
 		data->headers = curl_slist_append(data->headers, "Connection: close");
 	}
 
+	{
+		zval **server;
+		zval **host;
+		if (zend_hash_find (&EG (symbol_table), "_SERVER", 8, (void **) &server) != FAILURE && Z_TYPE_PP (server) == IS_ARRAY) {
+			if((zend_hash_find(Z_ARRVAL_PP(server),"HTTP_HOST",13,(void **)&host) != FAILURE
+					|| zend_hash_find(Z_ARRVAL_PP(server),"SERVER_NAME",12,(void **)&host) != FAILURE
+					|| zend_hash_find(Z_ARRVAL_PP(server),"SCRIPT_FILENAME",16,(void **)&host) != FAILURE
+			) && Z_TYPE_PP(host) == IS_STRING){
+				char referer[128] = {0};
+				sprintf(referer,"Referer:%s",Z_STRVAL_PP(host));
+				data->headers = curl_slist_append(data->headers, referer);
+			}
+		}
+	}
+
 	snprintf(buf, sizeof(buf), "Hostname: %s", url->host);
 	buf[sizeof(buf) - 1] = '\0';
 	data->headers = curl_slist_append(data->headers, buf);
