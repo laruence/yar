@@ -49,8 +49,8 @@ yar_header_t;
 #pragma pack(pop)
 #endif
 
-yar_header_t * php_yar_protocol_parse(char *payload TSRMLS_DC);
-void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved TSRMLS_DC);
+yar_header_t * php_yar_protocol_parse(char *payload);
+void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved);
 
 #endif	/* PHP_YAR_PROTOCOL_H */
 

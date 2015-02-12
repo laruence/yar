@@ -28,26 +28,22 @@
 #include "ext/json/php_json.h"
 #include "yar_packager.h"
 
-int php_yar_packager_json_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
+int php_yar_packager_json_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 #if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3))
-	php_json_encode(buf, pzval TSRMLS_CC);
+	php_json_encode(buf, pzval);
 #else
-	php_json_encode(buf, pzval, 0 TSRMLS_CC); /* options */
+	php_json_encode(buf, pzval, 0); /* options */
 #endif
 
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_json_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
+zval * php_yar_packager_json_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
-	MAKE_STD_ZVAL(return_value);
 
-#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3))
-	php_json_decode(return_value, content, len, 1 TSRMLS_CC);
-#else
-	php_json_decode(return_value, content, len, 1, 512 TSRMLS_CC);
-#endif
+	php_json_decode(rret, content, len, 1, 512);
 
+	return_value = rret;
 	return return_value;
 } /* }}} */
 

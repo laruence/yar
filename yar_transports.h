@@ -24,12 +24,12 @@
 
 typedef struct _yar_protocol {
 	const char *name;
-	int (*request) (struct _yar_protocol *self, struct _yar_request *request, struct _yar_response *response TSRMLS_DC);
-	int (*async) (zval *callstack TSRMLS_DC);
+	int (*request) (struct _yar_protocol *self, struct _yar_request *request, struct _yar_response *response);
+	int (*async) (zval *callstack);
 } yar_protocol_t;
 
-PHP_YAR_API int php_yar_protocol_register(yar_protocol_t *protocol TSRMLS_DC);
-PHP_YAR_API yar_protocol_t * php_yar_protocol_get(char *name, int nlen TSRMLS_DC);
+PHP_YAR_API int php_yar_protocol_register(yar_protocol_t *protocol);
+PHP_YAR_API yar_protocol_t * php_yar_protocol_get(char *name, int nlen);
 
 YAR_STARTUP_FUNCTION(protocol);
 

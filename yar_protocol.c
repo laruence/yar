@@ -26,9 +26,11 @@
 #include "php.h"
 #include "php_yar.h"
 #include "yar_protocol.h"
+#if HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
 
-void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved TSRMLS_DC) /* {{{ */ {
+void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
 	header->magic_num = htonl(YAR_PROTOCOL_MAGIC_NUM);
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
@@ -42,7 +44,7 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	return;
 } /* }}} */
 
-yar_header_t * php_yar_protocol_parse(char *payload TSRMLS_DC) /* {{{ */ {
+yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 	yar_header_t *header = (yar_header_t *)payload;
 
 	header->magic_num = ntohl(header->magic_num);

@@ -60,18 +60,18 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 /* }}} */
 
-/* {{{ void php_yar_debug(int server_side TSRMLS_DC, const char *format, ...) 
+/* {{{ void php_yar_debug(int server_side, const char *format, ...) 
  */
-void php_yar_debug(int server_side TSRMLS_DC, const char *format, ...) {
+void php_yar_debug(int server_side, const char *format, ...) {
 	va_list args;
 	if (!YAR_G(debug)) {
 		return;
 	}
 	va_start(args, format);
 	if (server_side) {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Server]: %s", args TSRMLS_CC);
+		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Server]: %s", args);
 	} else {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Client]: %s", args TSRMLS_CC);
+		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Client]: %s", args);
 	}
 	va_end(args);
 }
@@ -89,7 +89,7 @@ PHP_GINIT_FUNCTION(yar)
 PHP_MINIT_FUNCTION(yar)
 {
 	REGISTER_INI_ENTRIES();
-	REGISTER_STRINGL_CONSTANT("PHP_YAR_VERSION", PHP_YAR_VERSION, sizeof(PHP_YAR_VERSION)-1, CONST_CS|CONST_PERSISTENT);
+	REGISTER_STRINGL_CONSTANT("YAR_VERSION", PHP_YAR_VERSION, sizeof(PHP_YAR_VERSION)-1, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_PACKAGER", YAR_OPT_PACKAGER, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_PERSISTENT", YAR_OPT_PERSISTENT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_TIMEOUT", YAR_OPT_TIMEOUT, CONST_CS|CONST_PERSISTENT);

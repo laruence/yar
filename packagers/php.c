@@ -28,32 +28,32 @@
 #include "yar_packager.h"
 #include "ext/standard/php_var.h" /* for serialize */
 
-int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
+int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 	php_serialize_data_t var_hash;
 
 	PHP_VAR_SERIALIZE_INIT(var_hash);
-	php_var_serialize(buf, &pzval, &var_hash TSRMLS_CC);
+	php_var_serialize(buf, pzval, &var_hash);
 	PHP_VAR_SERIALIZE_DESTROY(var_hash);
 
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_php_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
+zval * php_yar_packager_php_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
 	p = (const unsigned char*)content;
 
-	MAKE_STD_ZVAL(return_value);
 	PHP_VAR_UNSERIALIZE_INIT(var_hash);
-	if (!php_var_unserialize(&return_value, &p, p + len,  &var_hash TSRMLS_CC)) {
-		zval_ptr_dtor(&return_value);
+	if (!php_var_unserialize(rret, &p, p + len,  &var_hash)) {
+		zval_ptr_dtor(rret);
 		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 		spprintf(msg, 0, "unpack error at offset %ld of %ld bytes", (long)((char*)p - content), len);
 		return NULL;
 	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
+	return_value = rret;
 	return return_value;
 } /* }}} */
 
