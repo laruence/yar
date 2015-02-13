@@ -29,110 +29,102 @@
 #include "yar_request.h"
 #include "yar_response.h"
 
-yar_response_t * php_yar_response_instance(TSRMLS_D) /* {{{ */ {
-	yar_response_t *response = ecalloc(sizeof(yar_response_t), 1);
+yar_response_t * php_yar_response_instance() /* {{{ */ {
+	yar_response_t *response = ecalloc(1, sizeof(yar_response_t));
+	ZVAL_UNDEF(&response->err);
+	ZVAL_UNDEF(&response->retval);
 
 	return response;
 } /* }}} */
 
-int php_yar_response_bind_request(yar_response_t *response, yar_request_t *request TSRMLS_DC) /* {{{ */ {
+int php_yar_response_bind_request(yar_response_t *response, yar_request_t *request) /* {{{ */ {
     response->id = request->id;
 	return 1;
 } /* }}} */
 
-void php_yar_response_alter_body(yar_response_t *response, char *body, uint len, int method TSRMLS_DC) /* {{{ */ {
+void php_yar_response_alter_body(yar_response_t *response, zend_string *body, int method) /* {{{ */ {
 	response->out = body;
-	response->olen = len;
 } /* }}} */
 
-void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len TSRMLS_DC) /* {{{ */ {
-	zval *msg;
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len, zval *zerr) /* {{{ */ {
+	ZVAL_STRINGL(&response->err, message, len);
 	response->status = type;
-	MAKE_STD_ZVAL(msg);
-	ZVAL_STRINGL(msg, message, len, 1);
-	response->err = msg;
 } /* }}} */
 
-void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC) /* {{{ */ {
-	zval *msg, *code, *file, *line, *ret;
+void php_yar_response_set_exception(yar_response_t *response, zend_object *ex, zval *zerr) /* {{{ */ {
+	zval *msg, *code, *file, *line, ret;
 	zend_class_entry *ce;
+	zval zv, rv;
 
-	ce = Z_OBJCE_P(ex);
 
-	msg = zend_read_property(ce, ex, ZEND_STRL("message"), 0 TSRMLS_CC);
-	code = zend_read_property(ce, ex, ZEND_STRL("code"), 0 TSRMLS_CC);
-	file = zend_read_property(ce, ex, ZEND_STRL("file"), 0 TSRMLS_CC);
-	line = zend_read_property(ce, ex, ZEND_STRL("line"), 0 TSRMLS_CC);
+	ZVAL_OBJ(&zv, ex);
+	ce = Z_OBJCE(zv);
 
-	MAKE_STD_ZVAL(ret);
-	array_init(ret);
+	msg = zend_read_property(ce, &zv, ZEND_STRL("message"), 0, &rv);
+	code = zend_read_property(ce, &zv, ZEND_STRL("code"), 0, &rv);
+	file = zend_read_property(ce, &zv, ZEND_STRL("file"), 0, &rv);
+	line = zend_read_property(ce, &zv, ZEND_STRL("line"), 0, &rv);
 
-	Z_ADDREF_P(msg);
-	Z_ADDREF_P(code);
-	Z_ADDREF_P(file);
-	Z_ADDREF_P(line);
+	array_init(zerr);
 
-	add_assoc_zval_ex(ret, ZEND_STRS("message"), msg);
-	add_assoc_zval_ex(ret, ZEND_STRS("code"), code);
-	add_assoc_zval_ex(ret, ZEND_STRS("file"), file);
-	add_assoc_zval_ex(ret, ZEND_STRS("line"), line);
+	Z_TRY_ADDREF_P(msg);
+	Z_TRY_ADDREF_P(code);
+	Z_TRY_ADDREF_P(file);
+	Z_TRY_ADDREF_P(line);
 
-	add_assoc_string_ex(ret, ZEND_STRS("_type"), (char *)ce->name, 1);
+	add_assoc_zval_ex(zerr, ZEND_STRL("message"), msg);
+	add_assoc_zval_ex(zerr, ZEND_STRL("code"), code);
+	add_assoc_zval_ex(zerr, ZEND_STRL("file"), file);
+	add_assoc_zval_ex(zerr, ZEND_STRL("line"), line);
+
+	add_assoc_str_ex(zerr, ZEND_STRL("_type"), ce->name);
 
 	response->status = YAR_ERR_EXCEPTION;
-    response->err = ret;
-	zval_ptr_dtor(&ex);
+	ZVAL_COPY(&response->err, zerr);
 } /* }}} */
 
-void php_yar_response_set_retval(yar_response_t *response, zval *retval TSRMLS_DC) /* {{{ */ {
-	response->retval = retval;
+void php_yar_response_set_retval(yar_response_t *response, zval *retval) /* {{{ */ {
+	ZVAL_COPY(&response->retval, retval);
 } /* }}} */
 
-void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC) /* {{{ */ {
+void php_yar_response_map_retval(yar_response_t *response, zval *ret) /* {{{ */ {
 	if (IS_ARRAY != Z_TYPE_P(ret)) {         
 		return;
 	} else { 
-		zval **ppzval;                       
+		zval *pzval;                       
 		HashTable *ht = Z_ARRVAL_P(ret);     
 
-		if (zend_hash_find(ht, ZEND_STRS("i"), (void **)&ppzval) == FAILURE) {
+		if ((pzval = zend_hash_str_find(ht, ZEND_STRL("i"))) == NULL) {
 			return;
 		}                                    
-		convert_to_long(*ppzval);            
-		response->id = Z_LVAL_PP(ppzval);    
+		convert_to_long(pzval);            
+		response->id = Z_LVAL_P(pzval);    
 
-		if (zend_hash_find(ht, ZEND_STRS("s"), (void **)&ppzval) == FAILURE) {
+		if ((pzval = zend_hash_str_find(ht, ZEND_STRL("s"))) == NULL) {
 			return;
 		}                                    
-		convert_to_long(*ppzval);            
-		if ((response->status = Z_LVAL_PP(ppzval)) == YAR_ERR_OKEY) {
-			if (zend_hash_find(ht, ZEND_STRS("o"), (void **)&ppzval) == SUCCESS) {
-				response->out = Z_STRVAL_PP(ppzval);
-				response->olen = Z_STRLEN_PP(ppzval);
-				ZVAL_NULL(*ppzval);          
+		convert_to_long(pzval);            
+		if ((response->status = Z_LVAL_P(pzval)) == YAR_ERR_OKEY) {
+			if ((pzval = zend_hash_str_find(ht, ZEND_STRL("o"))) != NULL) {
+				response->out = Z_STR_P(pzval);
+				ZVAL_NULL(pzval);          
 			}                                
-			if (zend_hash_find(ht, ZEND_STRS("r"), (void **)&ppzval) == SUCCESS) {
-				Z_ADDREF_P(*ppzval);         
-				response->retval = *ppzval;  
+			if ((pzval = zend_hash_str_find(ht, ZEND_STRL("r"))) != NULL) {
+				ZVAL_COPY(&response->retval, pzval);
 			}                                
-		} else if (zend_hash_find(ht, ZEND_STRS("e"), (void **)&ppzval) == SUCCESS) {
-			Z_ADDREF_P(*ppzval);
-			response->err = *ppzval;
+		} else if ((pzval = zend_hash_str_find(ht, ZEND_STRL("e"))) != NULL) {
+			ZVAL_COPY(&response->err, pzval);
 		}                      
 	}
 }
 /* }}} */
 
-void php_yar_response_destroy(yar_response_t *response TSRMLS_DC) /* {{{ */ {
+void php_yar_response_destroy(yar_response_t *response) /* {{{ */ {
 	if (response->out) {
-		efree(response->out);
+		zend_string_release(response->out);
 	}
 
-	if (response->retval) {
-		zval_ptr_dtor(&response->retval);
-	}
-
-	if (response->err) {
+	if (!Z_ISUNDEF(response->err)) {
 		zval_ptr_dtor(&response->err);
 	}
 

@@ -45,8 +45,8 @@ extern zend_class_entry *yar_client_protocol_exception_ce;
 
 extern void (*zend_orig_error_cb)(int, const char *, const uint, const char *, va_list);
  
-void php_yar_error_ex(struct _yar_response *response, int type TSRMLS_DC, const char *format, va_list args);
-void php_yar_error(struct _yar_response *response, int type TSRMLS_DC, const char *format, ...);
+void php_yar_error_ex(struct _yar_response *response, int type, zval *zerr, const char *format, va_list args);
+void php_yar_error(struct _yar_response *response, int type, zval *zerr, const char *format, ...);
 YAR_STARTUP_FUNCTION(exception);
 
 #ifndef EXPECTED

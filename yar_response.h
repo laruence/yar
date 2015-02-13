@@ -29,20 +29,19 @@
 typedef struct _yar_response {
 	long id;
 	int  status;
-	char *out;
-	size_t olen;
-	zval *err;
-	zval *retval;
+	zend_string *out;
+	zval err;
+	zval retval;
 } yar_response_t;
 
-yar_response_t * php_yar_response_instance(TSRMLS_D);
-int php_yar_response_bind_request(yar_response_t *response, struct _yar_request *request TSRMLS_DC);
-void php_yar_response_alter_body(yar_response_t *response, char *body, uint len, int method TSRMLS_DC); 
-void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len TSRMLS_DC); 
-void php_yar_response_set_exception(yar_response_t *response, zval *ex TSRMLS_DC);
-void php_yar_response_set_retval(yar_response_t *response, zval *retval TSRMLS_DC);
-void php_yar_response_map_retval(yar_response_t *response, zval *ret TSRMLS_DC);
-void php_yar_response_destroy(yar_response_t *response TSRMLS_DC);
+yar_response_t * php_yar_response_instance();
+int php_yar_response_bind_request(yar_response_t *response, struct _yar_request *request);
+void php_yar_response_alter_body(yar_response_t *response, zend_string *body, int method); 
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len, zval *zerr); 
+void php_yar_response_set_exception(yar_response_t *response, zend_object *ex, zval *zerr);
+void php_yar_response_set_retval(yar_response_t *response, zval *retval);
+void php_yar_response_map_retval(yar_response_t *response, zval *ret);
+void php_yar_response_destroy(yar_response_t *response);
 
 #endif	/* PHP_YAR_RESPONSE_H */
 

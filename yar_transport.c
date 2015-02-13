@@ -40,14 +40,14 @@ struct _yar_transports_list {
 extern yar_transport_t yar_transport_curl;
 extern yar_transport_t yar_transport_socket;
 
-static void php_yar_plink_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ */ {
+static void php_yar_plink_dtor(zend_resource *rsrc) /* {{{ */ {
 	yar_persistent_le_t *le = (yar_persistent_le_t *)rsrc->ptr;
-	le->dtor(le->ptr TSRMLS_CC);
+	le->dtor(le->ptr);
 	free(le);
 }
 /* }}} */
 
-static void php_yar_calldata_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ */ {
+static void php_yar_calldata_dtor(zend_resource *rsrc) /* {{{ */ {
 	yar_call_data_t *entry = (yar_call_data_t *)rsrc->ptr;
 	
 	if (entry->uri) {
@@ -58,23 +58,19 @@ static void php_yar_calldata_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{ *
 		efree(entry->method);
 	}
 
-	if (entry->callback) {
-		zval_ptr_dtor(&entry->callback);
-	}
-
 	if (entry->parameters) {
-		zval_ptr_dtor(&entry->parameters);
+		zval_ptr_dtor(entry->parameters);
 	}
 
 	if (entry->options) {
-		zval_ptr_dtor(&entry->options);
+		zval_ptr_dtor(entry->options);
 	}
 
 	efree(entry);
 }
 /* }}} */
 
-PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen TSRMLS_DC) /* {{{ */ {
+PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen) /* {{{ */ {
     int i = 0;
 	for (;i<yar_transports_list.num;i++) {
 		if (strncmp(yar_transports_list.transports[i]->name, name, nlen) == 0) {
@@ -85,7 +81,7 @@ PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen TSRMLS_
 	return NULL;
 } /* }}} */
 
-PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport TSRMLS_DC) /* {{{ */ {
+PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport) /* {{{ */ {
 
 	if (!yar_transports_list.size) {
 	   yar_transports_list.size = 5;
@@ -100,8 +96,8 @@ PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport TSRMLS_DC)
 } /* }}} */
 
 YAR_STARTUP_FUNCTION(transport) /* {{{ */ {
-	php_yar_transport_register(&yar_transport_curl TSRMLS_CC);
-	php_yar_transport_register(&yar_transport_socket TSRMLS_CC);
+	php_yar_transport_register(&yar_transport_curl);
+	php_yar_transport_register(&yar_transport_socket);
 	le_calldata = zend_register_list_destructors_ex(php_yar_calldata_dtor, NULL, "Yar Call Data", module_number);
 	le_plink = zend_register_list_destructors_ex(NULL, php_yar_plink_dtor, "Yar Persistent Link", module_number);
 

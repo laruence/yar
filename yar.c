@@ -60,18 +60,18 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 /* }}} */
 
-/* {{{ void php_yar_debug(int server_side TSRMLS_DC, const char *format, ...) 
+/* {{{ void php_yar_debug(int server_side, const char *format, ...) 
  */
-void php_yar_debug(int server_side TSRMLS_DC, const char *format, ...) {
+void php_yar_debug(int server_side, const char *format, ...) {
 	va_list args;
 	if (!YAR_G(debug)) {
 		return;
 	}
 	va_start(args, format);
 	if (server_side) {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Server]: %s", args TSRMLS_CC);
+		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Server]: %s", args);
 	} else {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Client]: %s", args TSRMLS_CC);
+		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Client]: %s", args);
 	}
 	va_end(args);
 }

@@ -29,19 +29,19 @@
 #include "php_yar.h"
 #include "yar_packager.h"
 
-extern void php_msgpack_serialize(smart_str *buf, zval *val TSRMLS_DC);
-extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len TSRMLS_DC);
+extern void php_msgpack_serialize(smart_str *buf, zval *val);
+extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len);
 
-int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg TSRMLS_DC) /* {{{ */ {
-	php_msgpack_serialize(buf, pzval TSRMLS_CC);
+int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
+	php_msgpack_serialize(buf, pzval);
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg TSRMLS_DC) /* {{{ */ {
+zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
-	MAKE_STD_ZVAL(return_value);
-	ZVAL_NULL(return_value);
-	php_msgpack_unserialize(return_value, content, len TSRMLS_CC);
+	ZVAL_NULL(rret);
+	php_msgpack_unserialize(rret, content, len);
+	return_value = rret;
 	return return_value;
 } /* }}} */
 
