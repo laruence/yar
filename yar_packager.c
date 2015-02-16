@@ -59,10 +59,10 @@ PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager) /* {{{ */ {
 } /* }}} */
 
 size_t php_yar_packager_pack(char *packager_name, zval *pzval, zend_string **payload, char **msg) /* {{{ */ {
-	smart_str buf = {0};
 	char header[8];
-	size_t newlen;
-	yar_packager_t *packager = packager_name? php_yar_packager_get(packager_name, strlen(packager_name)) : YAR_G(packager);
+	smart_str buf = {0};
+	yar_packager_t *packager = packager_name ?
+		php_yar_packager_get(packager_name, strlen(packager_name)) : YAR_G(packager);
 
 	if (!packager) {
 		php_error_docref(NULL, E_ERROR, "unsupported packager %s", packager_name);

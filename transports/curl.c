@@ -463,15 +463,14 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 } /* }}} */
 
 yar_transport_interface_t * php_yar_curl_init() /* {{{ */ {
-	size_t newlen;
-	//char content_type[512];
+	/* char content_type[512]; */
 	yar_curl_data_t *data;
 	yar_transport_interface_t *self;
 
 	self = ecalloc(1, sizeof(yar_transport_interface_t));
 	self->data = data = ecalloc(1, sizeof(yar_curl_data_t));
 
-	//snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type));
+	/* snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type)); */
 	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" PHP_YAR_VERSION);
 	data->headers = curl_slist_append(data->headers, "Expect:");
 

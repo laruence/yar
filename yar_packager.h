@@ -22,7 +22,7 @@
 #ifndef PHP_YAR_PACKAGER_H
 #define PHP_YAR_PACKAGER_H
 
-#include "zend_smart_str.h"
+#include "Zend/zend_smart_str.h"
 
 #define	YAR_PACKAGER_PHP      "PHP"
 #define	YAR_PACKAGER_JSON     "JSON"

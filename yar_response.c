@@ -17,8 +17,6 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id$ */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -52,7 +50,7 @@ void php_yar_response_set_error(yar_response_t *response, int type, char *messag
 } /* }}} */
 
 void php_yar_response_set_exception(yar_response_t *response, zend_object *ex, zval *zerr) /* {{{ */ {
-	zval *msg, *code, *file, *line, ret;
+	zval *msg, *code, *file, *line;
 	zend_class_entry *ce;
 	zval zv, rv;
 
