@@ -59,7 +59,7 @@ typedef struct _yar_curl_data_t {
 	struct curl_slist *headers;
 	yar_transport_interface_t *next;
 #if LIBCURL_VERSION_NUM < 0x071100
-	const char *address;
+	zend_string *address;
 #endif
 } yar_curl_data_t;
 
@@ -135,7 +135,7 @@ size_t php_yar_curl_buf_writer(char *ptr, size_t size, size_t nmemb, void *ctx) 
 	return len;
 } /* }}} */
 
-int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, long options, char **msg) /* {{{ */ {
+int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, long options, char **msg) /* {{{ */ {
 	CURL *cp = NULL;
 	php_url *url;
 	char buf[1024];
@@ -145,7 +145,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, char *address, uint len, 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		zend_resource *le;
 
-		uint key_len = snprintf(buf, sizeof(buf), "yar_%s", address);
+		uint key_len = snprintf(buf, sizeof(buf), "yar_%s", address->val);
 
 		data->persistent = 1;
 		if ((le = zend_hash_str_find_ptr(&EG(persistent_list), buf, key_len)) == NULL) {
@@ -228,7 +228,7 @@ regular_link:
 		}
 	}
 
-	if (!(url = php_url_parse(address))) {
+	if (!(url = php_url_parse(address->val))) {
 		spprintf(msg, 0, "malformed uri: '%s'", address);
 		return 0;
 	}
@@ -288,10 +288,10 @@ regular_link:
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071100
-	error = curl_easy_setopt(data->cp, CURLOPT_URL, address);
+	error = curl_easy_setopt(data->cp, CURLOPT_URL, address->val);
 #else
-	data->address = estrndup(address, len);
-	error = curl_easy_setopt(data->cp, CURLOPT_URL, data->address);
+	data->address = zend_string_copy(address);
+	error = curl_easy_setopt(data->cp, CURLOPT_URL, data->address->val);
 #endif
 
 	if (error != CURLE_OK) {
@@ -345,7 +345,7 @@ static void php_yar_curl_prepare(yar_transport_interface_t* self) /* {{{ */ {
 
 } /* }}} */
 
-yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t *request, zval *zerr) /* {{{ */ {
+yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t *request) /* {{{ */ {
 	char *msg;
 	uint len;
 	CURLcode ret;
@@ -354,9 +354,9 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 
 	php_yar_curl_prepare(self);
 
-	if (request->options && IS_ARRAY == Z_TYPE_P(request->options)) {
+	if (IS_ARRAY == Z_TYPE(request->options)) {
 		zval *pzval;
-		if ((pzval = zend_hash_index_find(Z_ARRVAL_P(request->options), YAR_OPT_TIMEOUT)) != NULL) {
+		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_TIMEOUT))) {
 			convert_to_long_ex(pzval);
 			self->setopt(self, YAR_OPT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
 		}
@@ -367,7 +367,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 	ret = curl_easy_perform(data->cp);
 	if (ret != CURLE_OK) {
 		len = spprintf(&msg, 0, "curl exec failed '%s'", curl_easy_strerror(ret));
-		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len, zerr);
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len);
 		efree(msg);
 		return response;
 	} else {
@@ -376,7 +376,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 		if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK 
 				&& http_code != 200) {
 			len = spprintf(&msg, 0, "server responsed non-200 code '%ld'", http_code);
-			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len, zerr);
+			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len);
 			efree(msg);
 			return response;
 		}
@@ -394,7 +394,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 		payload_len = data->buf.s->len;
 
 		if (!(header = php_yar_protocol_parse(payload))) {
-			php_yar_error(response, YAR_ERR_PROTOCOL, zerr, "malformed response header '%.32s'", payload);
+			php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 			return response;
 		}
 
@@ -403,7 +403,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 		payload_len -= sizeof(yar_header_t);
 
 		if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &rret))) {
-			php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg), zerr);
+			php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 			efree(msg);
 			return response;
 		}
@@ -415,29 +415,29 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 
 		zval_ptr_dtor(retval);
 	} else {
-		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"), zerr);
+		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 	}	
 
 	return response;
 } /* }}} */
 
 int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, char **msg) /* {{{ */ {
-	zval *payload, rret;
 	yar_header_t header = {0};
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
+	zend_string *payload;
 
-	if (!(payload = php_yar_request_pack(request, msg, &rret))) {
+	if (!(payload = php_yar_request_pack(request, msg))) {
 		return 0;
 	}
 
 	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
-			request->id, 7, Z_STRVAL_P(payload), Z_STRLEN_P(payload), Z_STRVAL_P(payload) + 8);
+			request->id, 7, payload->val, payload->len, payload->val + 8);
 
-	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, Z_STRLEN_P(payload), 0);
+	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, payload->len, 0);
 
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
-	smart_str_appendl(&data->postfield, Z_STRVAL_P(payload), Z_STRLEN_P(payload));
-	zval_ptr_dtor(payload);
+	smart_str_appendl(&data->postfield, payload->val, payload->len);
+	zend_string_release(payload);
 
 	return 1;
 } /* }}} */
@@ -462,7 +462,7 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 	return 1;
 } /* }}} */
 
-yar_transport_interface_t * php_yar_curl_init() /* {{{ */ {
+yar_transport_interface_t *php_yar_curl_init() /* {{{ */ {
 	/* char content_type[512]; */
 	yar_curl_data_t *data;
 	yar_transport_interface_t *self;
@@ -512,7 +512,6 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 
 static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *f) /* {{{ */ {
 	int msg_in_sequence;
-	zval zerr;
 	CURLMsg *msg;
 
 	do {
@@ -549,7 +548,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 						char buf[128];
 						uint len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
 
-						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len, &zerr);
+						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 
 						if (!f(data->calldata, YAR_ERR_TRANSPORT, response)) {
 							/* if f return zero, means user call exit/die explicitly */
@@ -580,13 +579,13 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 							payload_len = data->buf.s->len;
 
 							if (!(header = php_yar_protocol_parse(payload))) {
-								php_yar_error(response, YAR_ERR_PROTOCOL, &zerr, "malformed response header '%.32s'", payload);
+								php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 							} else {
 								/* skip over the leading header */
 								payload += sizeof(yar_header_t);
 								payload_len -= sizeof(yar_header_t);
 								if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &rret))) {
-									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg), &zerr);
+									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 								} else {
 									php_yar_response_map_retval(response, retval);
 									DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
@@ -598,7 +597,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 								}
 							}
 						} else {
-							php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"), &zerr);
+							php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 						}
 
 						if (!f(data->calldata, response->status, response)) {
@@ -614,7 +613,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 					}
 				} else {
 					char *err = (char *)curl_easy_strerror(msg->data.result);
-					php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err), &zerr);
+					php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err));
 					if (!f(data->calldata, YAR_ERR_TRANSPORT, response)) {
 						handle->close(handle);
 						php_yar_response_destroy(response);

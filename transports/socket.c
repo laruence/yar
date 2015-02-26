@@ -53,7 +53,7 @@ typedef struct _yar_socket_data_t {
 	php_stream *stream;
 } yar_socket_data_t;
 
-int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len, long options, char **err_msg) /* {{{ */ {
+int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, long options, char **err_msg) /* {{{ */ {
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	struct timeval tv;
 	php_stream *stream = NULL;
@@ -66,19 +66,19 @@ int php_yar_socket_open(yar_transport_interface_t *self, char *address, uint len
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
-		spprintf(&persistent_key, 0, "yar_%s", address);
+		spprintf(&persistent_key, 0, "yar_%s", address->val);
 	} else {
 		data->persistent = 0;
 	}
 
-	stream = php_stream_xport_create(address, len, 0, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
+	stream = php_stream_xport_create(address->val, address->len, 0, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
 
 	if (persistent_key) {
 		efree(persistent_key);
 	}
 
 	if (stream == NULL) {
-		spprintf(err_msg, 0, "Unable to connect to %s (%s)", address, strerror(errno));
+		spprintf(err_msg, 0, "Unable to connect to %s (%s)", address->val, strerror(errno));
 		efree(errstr);
 		return 0;
 	}
@@ -112,7 +112,7 @@ void php_yar_socket_close(yar_transport_interface_t* self) /* {{{ */ {
 }
 /* }}} */
 
-yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_request_t *request, zval *zerr) /* {{{ */ {
+yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_request_t *request) /* {{{ */ {
 	fd_set rfds;
 	struct timeval tv;
 	yar_header_t *header;
@@ -129,7 +129,7 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		PHP_SAFE_FD_SET(fd, &rfds);
 	} else {
 		len = snprintf(buf, sizeof(buf), "Unable cast socket fd form stream (%s)", strerror(errno));
-		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len, zerr);
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 		return response;
 	}
 
@@ -141,11 +141,11 @@ wait_io:
 
 	if (retval == -1) {
 		len = snprintf(buf, sizeof(buf), "Unable to select %d '%s'", fd, strerror(errno));
-		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len, zerr);
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 		return response;
 	} else if (retval == 0) {
 		len = snprintf(buf, sizeof(buf), "select timeout %ldms reached", YAR_G(timeout));
-		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len, zerr);
+		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 		return response;
 	}
 
@@ -154,7 +154,7 @@ wait_io:
 		if (!payload) {
 			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL)) > 0) {
 				if (!(header = php_yar_protocol_parse(buf))) {
-					php_yar_error(response, YAR_ERR_PROTOCOL, zerr, "malformed response header '%.32s'", payload);
+					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 					return response;
 				}
 
@@ -183,7 +183,7 @@ wait_io:
 
 		if (len) {
 			if (!(retval = php_yar_packager_unpack(payload, len, &msg, &rret))) {
-				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg), zerr);
+				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 				efree(msg);
 				return response;
 			}
@@ -196,7 +196,7 @@ wait_io:
 			efree(payload);
 			zval_ptr_dtor(retval);
 		} else {
-			php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"), zerr);
+			php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 		}
 		return response;
 	} else {
@@ -206,7 +206,7 @@ wait_io:
 
 int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request, char **msg) /* {{{ */ {
 	fd_set rfds;
-	zval *payload, rret;
+	zend_string *payload;
 	struct timeval tv;
 	int ret = -1, fd, retval;
 	char buf[SEND_BUF_SIZE];
@@ -221,15 +221,15 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 		return 0;
 	}
 
-	if (!(payload = php_yar_request_pack(request, msg, &rret))) {
+	if (!(payload = php_yar_request_pack(request, msg))) {
 		return 0;
 	}
 
 	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
-			request->id, 7, Z_STRVAL_P(payload), Z_STRLEN_P(payload), Z_STRVAL_P(payload) + 8);
+			request->id, 7, payload->val, payload->len, payload->val + 8);
 
 	/* for tcp/unix RPC, we need another way to supports auth */
-	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, Z_STRLEN_P(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
+	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, payload->len, data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
@@ -239,52 +239,51 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
 	if (retval == -1) {
-		zval_ptr_dtor(payload);
+		zend_string_release(payload);
 		spprintf(msg, 0, "select error '%s'", strerror(errno));
 		return 0;
 	} else if (retval == 0) {
-		zval_ptr_dtor(payload);
+		zend_string_release(payload);
 		spprintf(msg, 0, "select timeout '%ld' seconds reached", YAR_G(timeout));
 		return 0;
 	}
 
-
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		size_t bytes_left = 0, bytes_sent = 0;
 
-		if (Z_STRLEN_P(payload) > (sizeof(buf) - sizeof(yar_header_t))) {
-			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), sizeof(buf) - sizeof(yar_header_t));
+		if (payload->len > (sizeof(buf) - sizeof(yar_header_t))) {
+			memcpy(buf + sizeof(yar_header_t), payload->val, sizeof(buf) - sizeof(yar_header_t));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0)) < 0) {
-				zval_ptr_dtor(payload);
+				zend_string_release(payload);
 				return 0;
 			}
 		} else {
-			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), Z_STRLEN_P(payload));
-			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0)) < 0) {
-				zval_ptr_dtor(payload);
+			memcpy(buf + sizeof(yar_header_t), payload->val, payload->len);
+			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + payload->len, 0, NULL, 0)) < 0) {
+				zend_string_release(payload);
 				return 0;
 			}
 		}
 
 		bytes_sent = ret - sizeof(yar_header_t);
-		bytes_left = Z_STRLEN_P(payload) - bytes_sent;
+		bytes_left = payload->len - bytes_sent;
 
 wait_io:
 		if (bytes_left) {
 			retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
 			if (retval == -1) {
-				zval_ptr_dtor(payload);
+				zend_string_release(payload);
 				spprintf(msg, 0, "select error '%s'", strerror(errno));
 				return 0;
 			} else if (retval == 0) {
-				zval_ptr_dtor(payload);
+				zend_string_release(payload);
 				spprintf(msg, 0, "select timeout %ldms reached", YAR_G(timeout));
 				return 0;
 			}
 
 			if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
-				if ((ret = php_stream_xport_sendto(data->stream, Z_STRVAL_P(payload) + bytes_sent, bytes_left, 0, NULL, 0)) > 0) {
+				if ((ret = php_stream_xport_sendto(data->stream, payload->val + bytes_sent, bytes_left, 0, NULL, 0)) > 0) {
 					bytes_left -= ret;
 					bytes_sent += ret;
 				}
@@ -293,7 +292,7 @@ wait_io:
 		}
 	}
 
-	zval_ptr_dtor(payload);
+	zend_string_release(payload);
 
 	return ret < 0? 0 : 1;
 } /* }}} */

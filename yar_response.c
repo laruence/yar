@@ -44,16 +44,15 @@ void php_yar_response_alter_body(yar_response_t *response, zend_string *body, in
 	response->out = body;
 } /* }}} */
 
-void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len, zval *zerr) /* {{{ */ {
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len) /* {{{ */ {
 	ZVAL_STRINGL(&response->err, message, len);
 	response->status = type;
 } /* }}} */
 
-void php_yar_response_set_exception(yar_response_t *response, zend_object *ex, zval *zerr) /* {{{ */ {
+void php_yar_response_set_exception(yar_response_t *response, zend_object *ex) /* {{{ */ {
 	zval *msg, *code, *file, *line;
 	zend_class_entry *ce;
 	zval zv, rv;
-
 
 	ZVAL_OBJ(&zv, ex);
 	ce = Z_OBJCE(zv);
@@ -63,22 +62,21 @@ void php_yar_response_set_exception(yar_response_t *response, zend_object *ex, z
 	file = zend_read_property(ce, &zv, ZEND_STRL("file"), 0, &rv);
 	line = zend_read_property(ce, &zv, ZEND_STRL("line"), 0, &rv);
 
-	array_init(zerr);
+	array_init(&response->err);
 
 	Z_TRY_ADDREF_P(msg);
 	Z_TRY_ADDREF_P(code);
 	Z_TRY_ADDREF_P(file);
 	Z_TRY_ADDREF_P(line);
 
-	add_assoc_zval_ex(zerr, ZEND_STRL("message"), msg);
-	add_assoc_zval_ex(zerr, ZEND_STRL("code"), code);
-	add_assoc_zval_ex(zerr, ZEND_STRL("file"), file);
-	add_assoc_zval_ex(zerr, ZEND_STRL("line"), line);
+	add_assoc_zval_ex(&response->err, ZEND_STRL("message"), msg);
+	add_assoc_zval_ex(&response->err, ZEND_STRL("code"), code);
+	add_assoc_zval_ex(&response->err, ZEND_STRL("file"), file);
+	add_assoc_zval_ex(&response->err, ZEND_STRL("line"), line);
 
-	add_assoc_str_ex(zerr, ZEND_STRL("_type"), ce->name);
+	add_assoc_str_ex(&response->err, ZEND_STRL("_type"), ce->name);
 
 	response->status = YAR_ERR_EXCEPTION;
-	ZVAL_COPY(&response->err, zerr);
 } /* }}} */
 
 void php_yar_response_set_retval(yar_response_t *response, zval *retval) /* {{{ */ {

@@ -17,8 +17,6 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id$ */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -33,7 +31,7 @@
 #include "yar_request.h"
 #include "yar_packager.h"
 
-yar_request_t * php_yar_request_instance(char *method, long mlen, zval *params, zval *options) /* {{{ */ {
+yar_request_t * php_yar_request_instance(zend_string *method, zval *params, zval *options) /* {{{ */ {
 	yar_request_t *request = ecalloc(1, sizeof(yar_request_t));
 
 	if (!BG(mt_rand_is_seeded)) {
@@ -42,15 +40,12 @@ yar_request_t * php_yar_request_instance(char *method, long mlen, zval *params, 
 
 	request->id = (long)php_mt_rand();
 
-	request->method = estrndup(method, mlen);
-	request->mlen   = mlen;
+	request->method = zend_string_copy(method);
 	if (params) {
-		Z_ADDREF_P(params);
-		request->parameters = params;
+		ZVAL_COPY(&request->parameters, params);
 	}
 	if (options) {
-		Z_ADDREF_P(options);
-		request->options = options;
+		ZVAL_COPY(&request->options, options);
 	}
 
 	return request;
@@ -70,56 +65,45 @@ yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
 
 	ht = Z_ARRVAL_P(body);
 	if ((pzval = zend_hash_str_find(ht, "i", sizeof("i") - 1)) != NULL) {
-		if (IS_LONG != Z_TYPE_P(pzval)) {
-			convert_to_long(pzval);
-		}
-		req->id = Z_LVAL_P(pzval);
+		req->id = zval_get_long(pzval);
 	}
 
 	if ((pzval = zend_hash_str_find(ht, "m", sizeof("m") - 1)) != NULL) {
-		if (IS_STRING != Z_TYPE_P(pzval)) {
-			convert_to_string(pzval);
-		}
-		req->method = Z_STRVAL_P(pzval);
-		req->mlen = Z_STRLEN_P(pzval);
-		ZVAL_NULL(pzval);
+		req->method = zval_get_string(pzval);
 	}
 
 	if ((pzval = zend_hash_str_find(ht, "p", sizeof("p") - 1)) != NULL) {
 		if (IS_ARRAY != Z_TYPE_P(pzval)) {
 			convert_to_array(pzval);
 		}
-		Z_TRY_ADDREF_P(pzval);
-		req->parameters = pzval;
+		ZVAL_COPY(&req->parameters, pzval);
 	}
 
 	return req;
 } /* }}} */
 
-zval * php_yar_request_pack(yar_request_t *request, char **msg, zval *rret) /* {{{ */ {
-	zval zreq, *ret;
+zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ {
+	zval zreq;
 	zend_string *payload;
 	char *packager_name = NULL;
 	size_t payload_len;
 
 	/* @TODO: this is ugly, which needs options stash in request */
-	if (request->options && IS_ARRAY == Z_TYPE_P(request->options)) {
+	if (IS_ARRAY == Z_TYPE(request->options)) {
 		zval *pzval;
-		if ((pzval = zend_hash_index_find(Z_ARRVAL_P(request->options), YAR_OPT_PACKAGER)) != NULL
-				&& IS_STRING == Z_TYPE_P(pzval)) {
+		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_PACKAGER)) && IS_STRING == Z_TYPE_P(pzval)) {
 			packager_name = Z_STRVAL_P(pzval);
 		}
 	}
 
-	ZVAL_UNDEF(&zreq);
 	array_init(&zreq);
 
 	add_assoc_long_ex(&zreq, ZEND_STRL("i"), request->id);
-	add_assoc_stringl_ex(&zreq, ZEND_STRL("m"), request->method, request->mlen);
+	add_assoc_str_ex(&zreq, ZEND_STRL("m"), zend_string_copy(request->method));
 
-	if (request->parameters) {
-		Z_TRY_ADDREF_P(request->parameters);
-		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), request->parameters);
+	if (IS_ARRAY == Z_TYPE(request->parameters)) {
+		Z_ADDREF(request->parameters);
+		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), &request->parameters);
 	} else {
 		zval tmp;
 		array_init(&tmp);
@@ -127,31 +111,24 @@ zval * php_yar_request_pack(yar_request_t *request, char **msg, zval *rret) /* {
 	}
 
 	if (!(payload_len = php_yar_packager_pack(packager_name, &zreq, &payload, msg))) {
-		zval_dtor(&zreq);
+		zval_ptr_dtor(&zreq);
 		return NULL;
 	}
 
-	zval_dtor(&zreq);
+	zval_ptr_dtor(&zreq);
 
-	ZVAL_STR(rret, payload);
-	ret = rret;
-
-	return ret;
+	return payload;
 }
 /* }}} */
 
 void php_yar_request_destroy(yar_request_t *request) /* {{{ */ {
 	if (request->method) {
-		efree(request->method);
+		zend_string_release(request->method);
 	}
 
-	if (request->parameters) {
-		zval_ptr_dtor(request->parameters);
-	}
+	zval_ptr_dtor(&request->parameters);
 
-	if (request->options) {
-		zval_ptr_dtor(request->options);
-	}
+	zval_ptr_dtor(&request->options);
 
 	efree(request);
 }
@@ -165,7 +142,7 @@ int php_yar_request_valid(yar_request_t *req, yar_response_t *response, char **m
 		return 0;
 	}
 
-	if (!req->parameters) {
+	if (Z_ISUNDEF(req->parameters)) {
 		spprintf(msg, 0, "%s", "need specifical request parameters");
 		return 0;
 	}

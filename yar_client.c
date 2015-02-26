@@ -216,10 +216,10 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 	return 1;
 } /* }}} */
 
-static zval * php_yar_client_handle(int protocol, zval *client, char *method, long mlen, zval *params, zval *rret) /* {{{ */ {
+static zval *php_yar_client_handle(int protocol, zval *client, zend_string *method, zval *params, zval *rret) /* {{{ */ {
 	char *msg;
 	zval *uri, *options, *retval;
-	zval zerr, rv;
+	zval rv;
 	yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_request_t *request;
@@ -244,7 +244,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		options = NULL;
 	}
 
-	if (!(request = php_yar_request_instance(method, mlen, params, options))) {
+	if (!(request = php_yar_request_instance(method, params, options))) {
 		transport->close(transport);
 		factory->destroy(transport);
 		return NULL;
@@ -259,7 +259,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		}
 	}
 
-	if (!transport->open(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), flags, &msg)) {
+	if (!transport->open(transport, Z_STR_P(uri), flags, &msg)) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
 		efree(msg);
@@ -267,8 +267,8 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 	}
 
 	DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
-			request->id, request->method, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
-			zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
+			request->id, request->method->val, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
+			zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
 	if (!transport->send(transport, request, &msg)) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
@@ -277,7 +277,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		return NULL;
 	}
 
-	response = transport->exec(transport, request, &zerr);
+	response = transport->exec(transport, request);
 
 	if (response->status != YAR_ERR_OKEY) {
 		php_yar_client_handle_error(1, response);
@@ -308,22 +308,22 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 	if (calldata) {
 		/* data callback */
 		if (status == YAR_ERR_OKEY) {
-			if (calldata->callback) {
-				callback = calldata->callback;
+			if (!Z_ISUNDEF(calldata->callback)) {
+				callback = &calldata->callback;
 			} else {
 				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0);
 			}
 			params_count = 2;
 		} else {
-			if (calldata->ecallback) {
-				callback = calldata->ecallback;
+			if (!Z_ISUNDEF(calldata->ecallback)) {
+				callback = &calldata->ecallback;
 			} else {
 				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), 0);
 			}
 			params_count = 3;
 		}
 
-		if (ZVAL_IS_NULL(callback)) {
+		if (Z_ISNULL_P(callback)) {
 			if (status != YAR_ERR_OKEY) {
 				if (!Z_ISUNDEF(response->err)) {
 					php_yar_client_handle_error(0, response);
@@ -349,12 +349,12 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 
 		array_init(&callinfo);
 
-		add_assoc_long_ex(&callinfo, "sequence", sizeof("sequence"), calldata->sequence);
-		add_assoc_stringl_ex(&callinfo, "uri", sizeof("uri"), calldata->uri, calldata->ulen);
-		add_assoc_stringl_ex(&callinfo, "method", sizeof("method"), calldata->method, calldata->mlen);
+		add_assoc_long_ex(&callinfo, "sequence", sizeof("sequence") - 1, calldata->sequence);
+		add_assoc_str_ex(&callinfo, "uri", sizeof("uri") - 1, zend_string_copy(calldata->uri));
+		add_assoc_str_ex(&callinfo, "method", sizeof("method") - 1, zend_string_copy(calldata->method));
 	} else {
 		callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0);
-		if (ZVAL_IS_NULL(callback)) {
+		if (Z_ISNULL_P(callback)) {
 			return 1;
 		}
 		params_count = 2;
@@ -441,30 +441,29 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 			continue;
 		}
 
-		if (!entry->parameters) {
-			zval tmp;
-			array_init(&tmp);
-			entry->parameters = &tmp;
+		if (Z_ISUNDEF(entry->parameters)) {
+			array_init(&entry->parameters);
 		} 
 
 		transport = factory->init();
 
 		if (YAR_G(allow_persistent)) {
-			if (entry->options) {
-				zval *flag = php_yar_client_get_opt(entry->options, YAR_OPT_PERSISTENT);
+			if (!Z_ISUNDEF(entry->options)) {
+				zval *flag = php_yar_client_get_opt(&entry->options, YAR_OPT_PERSISTENT);
 				if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
 					flags |= YAR_PROTOCOL_PERSISTENT;
 				}
 			}
 		}
 
-		if (!(request = php_yar_request_instance(entry->method, entry->mlen, entry->parameters, entry->options))) {
+		if (!(request = php_yar_request_instance(entry->method,
+						&entry->parameters, Z_ISUNDEF(entry->options)? NULL: & entry->options))) {
 			transport->close(transport);
 			factory->destroy(transport);
 			return 0;
 		}
 
-		if (!transport->open(transport, entry->uri, entry->ulen, flags, &msg)) {
+		if (!transport->open(transport, entry->uri, flags, &msg)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 			transport->close(transport);
 			factory->destroy(transport);
@@ -473,8 +472,8 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		}
 
 		DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
-				request->id, request->method, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
-			   	zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
+				request->id, request->method->val, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
+			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
 		if (!transport->send(transport, request, &msg)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
@@ -528,11 +527,10 @@ PHP_METHOD(yar_client, __construct) {
 
 /* {{{ proto Yar_Client::__call($method, $parameters = NULL) */
 PHP_METHOD(yar_client, __call) {
-	zval *params, *protocol, *ret, rret, rv;
-	char *method;
-	size_t mlen;
+	zval *params, *protocol, rv;
+	zend_string *method;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "sa", &method, &mlen, &params) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "Sa", &method, &params) == FAILURE) {
 		return;
 	}
 
@@ -542,9 +540,7 @@ PHP_METHOD(yar_client, __call) {
 		case YAR_CLIENT_PROTOCOL_TCP:
 		case YAR_CLIENT_PROTOCOL_UNIX:
 		case YAR_CLIENT_PROTOCOL_HTTP:
-			ZVAL_UNDEF(&rret);
-			if ((ret = php_yar_client_handle(Z_LVAL_P(protocol), getThis(), method, mlen, params, &rret))) {
-				RETVAL_ZVAL(ret, 0, 1);
+			if ((php_yar_client_handle(Z_LVAL_P(protocol), getThis(), method, params, return_value))) {
 				return;
 			}
 			break;
@@ -600,7 +596,7 @@ PHP_METHOD(yar_client, setOpt) {
 
 /* {{{ proto Yar_Concurrent_Client::call($uri, $method, $parameters = NULL, $callback = NULL, $error_callback = NULL, $options = array()) */
 PHP_METHOD(yar_concurrent_client, call) {
-	char *uri, *method;
+	zend_string *uri, *method;
     zend_string *name = NULL;
 	long sequence;
 	size_t ulen = 0, mlen = 0;
@@ -608,28 +604,28 @@ PHP_METHOD(yar_concurrent_client, call) {
 	zval *error_callback = NULL, *callback = NULL, *parameters = NULL, *options = NULL;
 	yar_call_data_t *entry;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "ss|a!z!za",
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "SS|a!z!za",
 				&uri, &ulen, &method, &mlen, &parameters, &callback, &error_callback, &options) == FAILURE) {
 		return;
 	}
 
-	if (!ulen) {
+	if (!uri->len) {
 		php_error_docref(NULL, E_WARNING, "first parameter is expected to be a valid rpc server uri");
 		return;
 	}
 
-	if (strncasecmp(uri, "http://", sizeof("http://") - 1) 
-			&& strncasecmp(uri, "https://", sizeof("https://") - 1)) {
+	if (strncasecmp(uri->val, "http://", sizeof("http://") - 1) 
+			&& strncasecmp(uri->val, "https://", sizeof("https://") - 1)) {
 		php_error_docref(NULL, E_WARNING, "only http protocol is supported in concurrent client for now");
 		return;
 	}
 
-	if (!mlen) {
+	if (!method->len) {
 		php_error_docref(NULL, E_WARNING, "second parameter is expected to be a valid rpc api name");
 		return;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) &&
+    if (callback && !Z_ISNULL_P(callback) &&
 			!zend_is_callable(callback, 0, &name)) {
         php_error_docref1(NULL, name->val, E_ERROR, "fourth parameter is expected to be a valid callback");
         zend_string_release(name);
@@ -641,12 +637,13 @@ PHP_METHOD(yar_concurrent_client, call) {
 		name = NULL;
 	}
 
-    if (error_callback && !ZVAL_IS_NULL(error_callback) &&
+    if (error_callback && !Z_ISNULL_P(error_callback) &&
 			!zend_is_callable(error_callback, 0, &name)) {
         php_error_docref1(NULL, name->val, E_ERROR, "fifth parameter is expected to be a valid error callback");
         zend_string_release(name);
         RETURN_FALSE;
     }
+
 	if (name) {
         zend_string_release(name);
 	}
@@ -657,33 +654,25 @@ PHP_METHOD(yar_concurrent_client, call) {
 		RETURN_FALSE;
 	}
 
-
 	entry = ecalloc(1, sizeof(yar_call_data_t));
 
-	entry->uri = estrndup(uri, ulen);
-	entry->ulen = ulen;
-	entry->method = estrndup(method, mlen);
-	entry->mlen = mlen;
+	entry->uri = zend_string_copy(uri);
 
-	if (callback && !ZVAL_IS_NULL(callback)) {
-		Z_TRY_ADDREF_P(callback);
-		entry->callback = callback;
+	if (callback && !Z_ISNULL_P(callback)) {
+		ZVAL_COPY(&entry->callback, callback);
 	}
-	if (error_callback && !ZVAL_IS_NULL(error_callback)) {
-		Z_TRY_ADDREF_P(error_callback);
-		entry->ecallback = error_callback;
+	if (error_callback && !Z_ISNULL_P(error_callback)) {
+		ZVAL_COPY(&entry->ecallback, error_callback);
 	}
 	if (parameters && IS_ARRAY == Z_TYPE_P(parameters)) {
-		Z_TRY_ADDREF_P(parameters);
-		entry->parameters = parameters;
+		ZVAL_COPY(&entry->parameters, parameters);
 	}
 	if (options && IS_ARRAY == Z_TYPE_P(options)) {
-		Z_TRY_ADDREF_P(options);
-		entry->options = options;
+		ZVAL_COPY(&entry->options, options);
 	}
 
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (ZVAL_IS_NULL(callstack)) {
+	if (Z_ISNULL_P(callstack)) {
 	    zval tmp;
 		array_init(&tmp);
 		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), &tmp);
@@ -707,7 +696,7 @@ PHP_METHOD(yar_concurrent_client, reset) {
 
 
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (ZVAL_IS_NULL(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
+	if (Z_ISNULL_P(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
 		RETURN_TRUE;
 	}
 	zend_hash_clean(Z_ARRVAL_P(callstack));
@@ -733,7 +722,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		RETURN_FALSE;
 	}
 
-    if (callback && !ZVAL_IS_NULL(callback) &&
+    if (callback && !Z_ISNULL_P(callback) &&
 			!zend_is_callable(callback, 0, &name)) {
         php_error_docref1(NULL, name->val, E_ERROR, "first argument is expected to be a valid callback");
         zend_string_release(name);
@@ -745,7 +734,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		name = NULL;
 	}
 
-    if (error_callback && !ZVAL_IS_NULL(error_callback) &&
+    if (error_callback && !Z_ISNULL_P(error_callback) &&
 			!zend_is_callable(error_callback, 0, &name)) {
         php_error_docref1(NULL, name->val, E_ERROR, "second argument is expected to be a valid error callback");
         zend_string_release(name);
@@ -756,15 +745,15 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	}
 
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (ZVAL_IS_NULL(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
+	if (Z_ISNULL_P(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
 		RETURN_TRUE;
 	}
 
-	if (callback && !ZVAL_IS_NULL(callback)) {
+	if (callback && !Z_ISNULL_P(callback)) {
 		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), callback);
 	}
 
-	if (error_callback && !ZVAL_IS_NULL(error_callback)) {
+	if (error_callback && !Z_ISNULL_P(error_callback)) {
 		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), error_callback);
 	}
 

@@ -324,7 +324,7 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 } /* }}} */
 
 static void php_yar_server_response(yar_request_t *request, yar_response_t *response, char *pkg_name) /* {{{ */ {
-	zval ret, zerr;
+	zval ret;
 	char *err_msg;
 	zend_string *payload;
 	size_t payload_len;
@@ -348,7 +348,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
     if (!(payload_len = php_yar_packager_pack(pkg_name, &ret, &payload, &err_msg))) {
 		zval_dtor(&ret);
-		php_yar_error(response, YAR_ERR_PACKAGER, &zerr, "%s", err_msg);
+		php_yar_error(response, YAR_ERR_PACKAGER, "%s", err_msg);
 		efree(err_msg);
 		return;
 	}
@@ -370,11 +370,11 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 } /* }}} */
 
 static void php_yar_server_handle(zval *obj) /* {{{ */ {
-	char *payload, *err_msg, method[256];
+	char *payload, *err_msg;
 	char *pkg_name = NULL;
 	size_t payload_len;
 	zend_bool bailout = 0;
-	zval zerr;
+	zend_string *method;
 	zval *post_data = NULL, output, func, rret;
 	zend_class_entry *ce;
 	yar_response_t *response;
@@ -386,11 +386,11 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	response = php_yar_response_instance();
 	s = SG(request_info).request_body;
 	if (!s || FAILURE == php_stream_rewind(s)) {
-		php_yar_error(response, YAR_ERR_PACKAGER, &zerr, "empty request");
+		php_yar_error(response, YAR_ERR_PACKAGER, "empty request");
 		DEBUG_S("0: empty request");
 		goto response_no_output;
 	}
-	memset(&raw_data, 0, sizeof(raw_data));
+
 	while (!php_stream_eof(s)) {
 		char buf[512];
 		size_t len = php_stream_read(s, buf, sizeof(buf));
@@ -409,7 +409,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		if (raw_data.s) {
 			smart_str_free(&raw_data);
 		}
-		php_yar_error(response, YAR_ERR_PACKAGER, &zerr, "malformed request header '%.10s'", payload);
+		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
 	}
@@ -423,7 +423,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 
 	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg, &rret))) {
 		smart_str_free(&raw_data);
-        php_yar_error(response, YAR_ERR_PACKAGER, &zerr, err_msg);
+        php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
 		efree(err_msg);
 		goto response_no_output;
 	}
@@ -435,24 +435,26 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 
 	if (!php_yar_request_valid(request, response, &err_msg)) {
 		smart_str_free(&raw_data);
-		php_yar_error(response, YAR_ERR_REQUEST, &zerr, "%s", err_msg);
+		php_yar_error(response, YAR_ERR_REQUEST, "%s", err_msg);
 		efree(err_msg);
 		goto response_no_output;
 	}
 
 	if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE) {
 		smart_str_free(&raw_data);
-		php_yar_error(response, YAR_ERR_OUTPUT, &zerr, "start output buffer failed");
+		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
 		goto response_no_output;
 	}
 
 	ce = Z_OBJCE_P(obj);
-	zend_str_tolower_copy(method, request->method, request->mlen);
-	if (!zend_hash_str_exists(&ce->function_table, method, strlen(method))) {
+	method = zend_string_tolower(request->method);
+	if (!zend_hash_exists(&ce->function_table, method)) {
+		zend_string_release(method);
 		smart_str_free(&raw_data);
-		php_yar_error(response, YAR_ERR_REQUEST, &zerr, "call to undefined api %s::%s()", ce->name, request->method);
+		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ce->name, request->method->val);
 		goto response;
 	}
+	zend_string_release(method);
 
 	zend_try {
 		uint count;
@@ -461,9 +463,8 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		zval retval;
 		HashTable *func_params_ht;
 
-		func_params_ht = Z_ARRVAL_P(request->parameters);
+		func_params_ht = Z_ARRVAL(request->parameters);
 		count = zend_hash_num_elements(func_params_ht);
-		ZVAL_UNDEF(&retval);
 
 		if (count) {
 			func_params = safe_emalloc(sizeof(zval), count, 0);
@@ -477,8 +478,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 			func_params = NULL;
 		}
 
-		ZVAL_STRINGL(&func, request->method, request->mlen);
-		efree(request->method);
+		ZVAL_STR(&func, request->method);
 		if (FAILURE == call_user_function_ex(NULL, obj, &func, &retval, count, func_params, 0, NULL)) {
 			if (count) {
 				int i = 0;
@@ -487,7 +487,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 				}
 			}
 			zval_dtor(&func);
-		    php_yar_error(response, YAR_ERR_REQUEST, &zerr, "call to api %s::%s() failed", ce->name, request->method);
+		    php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, request->method);
 			goto response;
 		}
 
@@ -508,7 +508,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	} zend_end_try();
 
 	if (EG(exception)) {
-		php_yar_response_set_exception(response, EG(exception), &zerr);
+		php_yar_response_set_exception(response, EG(exception));
 		EG(exception) = NULL;
 	}
 
@@ -517,7 +517,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 response:
 	if (php_output_get_contents(&output) == FAILURE) {
 		php_output_end();
-		php_yar_error(response, YAR_ERR_OUTPUT, &zerr, "unable to get ob content");
+		php_yar_error(response, YAR_ERR_OUTPUT, "unable to get ob content");
 		goto response_no_output;
 	}
 

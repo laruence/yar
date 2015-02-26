@@ -60,22 +60,22 @@ zend_class_entry * php_yar_get_exception_base(int root) /* {{{ */ {
 }
 /* }}} */
 
-void php_yar_error_ex(yar_response_t *response, int type, zval *zerr, const char *format, va_list args) /* {{{ */ {
+void php_yar_error_ex(yar_response_t *response, int type, const char *format, va_list args) /* {{{ */ {
 	char *msg;
 	uint len;
 
 	len = vspprintf(&msg, 0, format, args);
-	php_yar_response_set_error(response, type, msg, len, zerr);
+	php_yar_response_set_error(response, type, msg, len);
 	efree(msg);
 
 	return;
 } /* }}} */
 
-void php_yar_error(yar_response_t *response, int type, zval *zerr, const char *format, ...) /* {{{ */ {
+void php_yar_error(yar_response_t *response, int type, const char *format, ...) /* {{{ */ {
 	va_list ap;
 
 	va_start(ap, format);
-	php_yar_error_ex(response, type, zerr, format, ap);
+	php_yar_error_ex(response, type, format, ap);
 	va_end(ap);
 
 	return;

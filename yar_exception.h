@@ -45,17 +45,10 @@ extern zend_class_entry *yar_client_protocol_exception_ce;
 
 extern void (*zend_orig_error_cb)(int, const char *, const uint, const char *, va_list);
  
-void php_yar_error_ex(struct _yar_response *response, int type, zval *zerr, const char *format, va_list args);
-void php_yar_error(struct _yar_response *response, int type, zval *zerr, const char *format, ...);
-YAR_STARTUP_FUNCTION(exception);
+void php_yar_error_ex(struct _yar_response *response, int type, const char *format, va_list args);
+void php_yar_error(struct _yar_response *response, int type, const char *format, ...);
 
-#ifndef EXPECTED
-# if (defined (__GNUC__) && __GNUC__ > 2 ) && !defined(DARWIN) && !defined(__hpux) && !defined(_AIX)
-#  define UNEXPECTED(condition)   __builtin_expect(condition, 0)
-# else
-#  define UNEXPECTED(condition)   (condition)
-# endif
-#endif
+YAR_STARTUP_FUNCTION(exception);
 
 #define DEBUG_S(fmt, ...) \
 	do { \
