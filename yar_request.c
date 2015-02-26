@@ -31,7 +31,7 @@
 #include "yar_request.h"
 #include "yar_packager.h"
 
-yar_request_t * php_yar_request_instance(zend_string *method, zval *params, zval *options) /* {{{ */ {
+yar_request_t *php_yar_request_instance(zend_string *method, zval *params, zval *options) /* {{{ */ {
 	yar_request_t *request = ecalloc(1, sizeof(yar_request_t));
 
 	if (!BG(mt_rand_is_seeded)) {
@@ -86,7 +86,6 @@ zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ 
 	zval zreq;
 	zend_string *payload;
 	char *packager_name = NULL;
-	size_t payload_len;
 
 	/* @TODO: this is ugly, which needs options stash in request */
 	if (IS_ARRAY == Z_TYPE(request->options)) {
@@ -102,7 +101,7 @@ zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ 
 	add_assoc_str_ex(&zreq, ZEND_STRL("m"), zend_string_copy(request->method));
 
 	if (IS_ARRAY == Z_TYPE(request->parameters)) {
-		Z_ADDREF(request->parameters);
+		Z_TRY_ADDREF(request->parameters);
 		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), &request->parameters);
 	} else {
 		zval tmp;
@@ -110,7 +109,7 @@ zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ 
 		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), &tmp);
 	}
 
-	if (!(payload_len = php_yar_packager_pack(packager_name, &zreq, &payload, msg))) {
+	if (!(payload = php_yar_packager_pack(packager_name, &zreq, msg))) {
 		zval_ptr_dtor(&zreq);
 		return NULL;
 	}

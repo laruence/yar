@@ -58,7 +58,7 @@ PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager) /* {{{ */ {
 	return yar_packagers_list.num++;
 } /* }}} */
 
-size_t php_yar_packager_pack(char *packager_name, zval *pzval, zend_string **payload, char **msg) /* {{{ */ {
+zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg) /* {{{ */ {
 	char header[8];
 	smart_str buf = {0};
 	yar_packager_t *packager = packager_name ?
@@ -74,14 +74,13 @@ size_t php_yar_packager_pack(char *packager_name, zval *pzval, zend_string **pay
     packager->pack(packager, pzval, &buf, msg); 
 
 	if (buf.s) {
-		*payload = buf.s;
 		smart_str_0(&buf);
-		return buf.s->len;
+		return buf.s;
 	}
 
 	smart_str_free(&buf);
 
-	return 0;
+	return NULL;
 } /* }}} */
 
 zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret) /* {{{ */ {

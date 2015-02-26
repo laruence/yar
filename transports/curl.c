@@ -319,7 +319,7 @@ void php_yar_curl_close(yar_transport_interface_t* self) /* {{{ */ {
 
 #if LIBCURL_VERSION_NUM < 0x071100
 	if (data->address) {
-		efree((char *)(data->address));
+		zend_string_release((data->address));
 	}
 #endif
 

@@ -346,23 +346,23 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 		add_assoc_zval_ex(&ret, ZEND_STRL("e"), &response->err);
 	}
 
-    if (!(payload_len = php_yar_packager_pack(pkg_name, &ret, &payload, &err_msg))) {
-		zval_dtor(&ret);
+    if (!(payload = php_yar_packager_pack(pkg_name, &ret, &err_msg))) {
+		zval_ptr_dtor(&ret);
 		php_yar_error(response, YAR_ERR_PACKAGER, "%s", err_msg);
 		efree(err_msg);
 		return;
 	}
-	zval_dtor(&ret);
+	zval_ptr_dtor(&ret);
 
-	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, payload_len, 0);
+	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, payload->len, 0);
 
 	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
-			request? request->id : 0, payload->val, payload_len - 8, payload + 8);
+			request? request->id : 0, payload->val, payload->len - 8, payload->val + 8);
 
 	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, payload->val);
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
-	if (payload_len) {
-		PHPWRITE(payload->val, payload_len);
+	if (payload->len) {
+		PHPWRITE(payload->val, payload->len);
 		return;
 	}
 
