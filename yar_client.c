@@ -290,7 +290,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		if (response->out && response->out->len) {
 			PHPWRITE(response->out->val, response->out->len);
 		}
-		ZVAL_COPY_VALUE(retval, &response->retval);
+		ZVAL_COPY(retval, &response->retval);
 		php_yar_request_destroy(request);
 		php_yar_response_destroy(response);
 		transport->close(transport);
@@ -362,30 +362,22 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 
 	if (calldata && (status != YAR_ERR_OKEY)) {
 		func_params = safe_emalloc(sizeof(zval), 3, 0);
-	    ZVAL_COPY(&func_params[0], &code);
-	    ZVAL_COPY(&func_params[1], &retval);
-	    ZVAL_COPY(&func_params[2], &callinfo);
+	    ZVAL_COPY_VALUE(&func_params[0], &code);
+	    ZVAL_COPY_VALUE(&func_params[1], &retval);
+	    ZVAL_COPY_VALUE(&func_params[2], &callinfo);
 	} else if (calldata) {
 		func_params = safe_emalloc(sizeof(zval), 2, 0);
-	    ZVAL_COPY(&func_params[0], &retval);
-	    ZVAL_COPY(&func_params[1], &callinfo);
+	    ZVAL_COPY_VALUE(&func_params[0], &retval);
+	    ZVAL_COPY_VALUE(&func_params[1], &callinfo);
 	} else {
 		func_params = safe_emalloc(sizeof(zval), 2, 0);
-		ZVAL_NULL(&retval);
-		ZVAL_NULL(&callinfo);
-	    ZVAL_COPY(&func_params[0], &retval);
-	    ZVAL_COPY(&func_params[1], &callinfo);
+	    ZVAL_NULL(&func_params[0]);
+	    ZVAL_NULL(&func_params[1]);
 	}
 
-	ZVAL_UNDEF(&retval_ptr);
 	zend_try {
 		if (call_user_function_ex(EG(function_table), NULL, callback,
 					&retval_ptr, params_count, func_params, 0, NULL) != SUCCESS) {
-			if (status) {
-				zval_ptr_dtor(&code);
-			}
-			zval_ptr_dtor(&retval);
-			zval_ptr_dtor(&callinfo);
 			for (i = 0; i < params_count; i++) {
 				zval_ptr_dtor(&func_params[i]);	
 			}
@@ -401,13 +393,7 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 		bailout = 1;
 	} zend_end_try();
 
-	zval_ptr_dtor(&retval);
-	zval_ptr_dtor(&callinfo);
-	if (status) {
-		zval_ptr_dtor(&code);
-	}
-
-	if (Z_TYPE(retval_ptr) != IS_UNDEF) {
+	if (!Z_ISUNDEF(retval_ptr)) {
 		zval_ptr_dtor(&retval_ptr);
 	}
 

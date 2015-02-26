@@ -590,7 +590,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 									php_yar_response_map_retval(response, retval);
 									DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
 											7, payload, header->body_len, payload + 8);
-									//zval_ptr_dtor(retval);
+									zval_ptr_dtor(retval);
 								}
 								if (msg) {
 									efree(msg);

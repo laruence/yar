@@ -29,9 +29,6 @@
 
 yar_response_t * php_yar_response_instance() /* {{{ */ {
 	yar_response_t *response = ecalloc(1, sizeof(yar_response_t));
-	ZVAL_UNDEF(&response->err);
-	ZVAL_UNDEF(&response->retval);
-
 	return response;
 } /* }}} */
 
@@ -120,9 +117,8 @@ void php_yar_response_destroy(yar_response_t *response) /* {{{ */ {
 		zend_string_release(response->out);
 	}
 
-	if (!Z_ISUNDEF(response->err)) {
-		zval_ptr_dtor(&response->err);
-	}
+	zval_ptr_dtor(&response->retval);
+	zval_ptr_dtor(&response->err);
 
 	efree(response);
 } /* }}} */
