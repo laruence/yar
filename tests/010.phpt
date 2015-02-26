@@ -23,4 +23,4 @@ Warning: [Debug Yar_Client %s]: %d: call api 'normal' at (r)'%s' with '1' parame
 
 Warning: [Debug Yar_Client %s]: %d: pack request by 'PHP', result len '%d', content: 'a:3:{s:1:"i";i:%s' in %s010.php on line %d
 
-Warning: [Debug Yar_Client %s]: %d: server response content packaged by 'PHP', len '%d', content 'a:4:{s:1:"i";i%s' in %s010.php on line %d
+Warning: [Debug Yar_Client %s]: %d: server response content packaged by 'PHP', len '%d', content 'a:3:{s:1:"i";i%s' in %s010.php on line %d

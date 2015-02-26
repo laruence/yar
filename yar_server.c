@@ -335,7 +335,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	add_assoc_long_ex(&ret, ZEND_STRL("i"), response->id);
 	add_assoc_long_ex(&ret, ZEND_STRL("s"), response->status);
 	if (response->out && response->out->len) {
-		add_assoc_str_ex(&ret, ZEND_STRL("o"), response->out);
+		add_assoc_str_ex(&ret, ZEND_STRL("o"), zend_string_copy(response->out));
 	}
 	if (!Z_ISUNDEF(response->retval)) {
 		Z_TRY_ADDREF(response->retval);
