@@ -5,7 +5,6 @@ Check for yar debug
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --INI--
 yar.debug=1
@@ -13,6 +12,8 @@ yar.packager=php
 --FILE--
 <?php 
 include "yar.inc";
+
+yar_server_start();
 
 $client = new Yar_Client(YAR_API_ADDRESS);
 

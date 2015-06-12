@@ -1,9 +1,0 @@
-if you want to run tests of yar, please follow these steps:
-1. cp htdocs folders to your DocumentRoot
-2. config yar.inc, change the defination of API_HOST to the URL, which is point to the htdocs folder under DocumentRoot, please becareful, if you miss the last slash, Webserver will response 302 redirect
-3. then make test
-
-Simple example:
-1. set: YAR_API_URI to / in tests/yar.inc
-2. run: php -d extension=modules/yar.so -S localhost:8090 -t tests/htdocs
-3. then run: make test

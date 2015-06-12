@@ -5,13 +5,15 @@ Check for yar server info
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
 
-list($host, $port) = explode(':', YAR_API_HOST);
+yar_server_start();
+
+$host = YAR_API_HOSTNAME;
+$port = YAR_API_PORT;
 
 if (!$port) {
     $port = 80;

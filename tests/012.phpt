@@ -6,11 +6,12 @@ if (!extension_loaded("yar")) {
     print "skip";
 }
 if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
+
+yar_server_start();
 
 $sequence = array();
 

@@ -5,11 +5,12 @@ Check for yar concurrent client with tcp rpc
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
+
+yar_server_start();
 
 function callback($return, $callinfo) {
     global $sequence;

@@ -5,11 +5,12 @@ Check for yar client with 302 response
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
+
+yar_server_start();
 
 $client = new Yar_Client(YAR_API_ADDRESS . '302.php');
 

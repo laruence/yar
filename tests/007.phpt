@@ -5,15 +5,16 @@ Check for yar client with output by server
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
 
+yar_server_start();
+
 $client = new Yar_Client(YAR_API_ADDRESS);
 
 var_dump($client->output());
-
+?>
 --EXPECT--
 outputstring(7) "success"

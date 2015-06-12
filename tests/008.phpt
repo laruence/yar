@@ -5,11 +5,12 @@ Check for yar client with non yar server
 if (!extension_loaded("yar")) {
     print "skip";
 }
-include "skip.inc";
 ?>
 --FILE--
 <?php 
 include "yar.inc";
+
+yar_server_start();
 
 $client = new Yar_Client(YAR_API_ADDRESS . 'rest.php');
 
