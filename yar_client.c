@@ -488,7 +488,7 @@ PHP_METHOD(yar_client, __construct) {
 	zend_string *url;
 	zval *options = NULL;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "S|a!", &url, &options) == FAILURE) {
+    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "S|a!", &url, &options) == FAILURE) {
         return;
     }
 

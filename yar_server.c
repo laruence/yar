@@ -562,7 +562,7 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 PHP_METHOD(yar_server, __construct) {
     zval *obj;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "o", &obj) == FAILURE) {
+    if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "o", &obj) == FAILURE) {
         return;
     }
 
