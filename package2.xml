@@ -85,7 +85,7 @@
     <file name="016.phpt" role="test" />
     <file name="017.phpt" role="test" />
     <file name="yar.inc" role="test" />
-    <file name="README" role="doc" />
+    <file name="README" role="test" />
     <dir name="htdocs">
      <file name="index.php" role="test"/>
      <file name="auth.php" role="test"/>
