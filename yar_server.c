@@ -457,7 +457,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	zend_string_release(method);
 
 	zend_try {
-		uint count;
+		int count;
 		zval *func_params;
 		zval *tmp_zval;
 		zval retval;
@@ -467,12 +467,11 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		count = zend_hash_num_elements(func_params_ht);
 
 		if (count) {
-			func_params = safe_emalloc(sizeof(zval), count, 0);
 			int i = 0;
+			func_params = safe_emalloc(sizeof(zval), count, 0);
 
 			ZEND_HASH_FOREACH_VAL(func_params_ht, tmp_zval) {
-                ZVAL_COPY(&func_params[i], tmp_zval);
-				i++;
+				ZVAL_COPY(&func_params[i++], tmp_zval);
 			} ZEND_HASH_FOREACH_END();
 		} else {
 			func_params = NULL;
@@ -486,13 +485,13 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 					zval_ptr_dtor(&func_params[i]);
 				}
 			}
-			zval_dtor(&func);
-		    php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, request->method);
+			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, request->method);
 			goto response;
 		}
 
 		if (!Z_ISUNDEF(retval)) {
 			php_yar_response_set_retval(response, &retval);
+			zval_ptr_dtor(&retval);
 		}
 
 		if (count) {
@@ -501,8 +500,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 				zval_ptr_dtor(&func_params[i]);
 			}
 		}
-		zval_dtor(&func);
-		zval_dtor(&retval);
 	} zend_catch {
 		bailout = 1;
 	} zend_end_try();
@@ -579,10 +576,10 @@ PHP_METHOD(yar_server, handle)
         RETURN_FALSE;
     } else {
 		const char *method;
-        zval *executor = NULL, rv;
+        zval *executor, rv;
 
 		executor = zend_read_property(yar_server_ce, getThis(), ZEND_STRL("_executor"), 0, &rv);
-		if (!executor || IS_OBJECT != Z_TYPE_P(executor)) {
+		if (IS_OBJECT != Z_TYPE_P(executor)) {
 			php_error_docref(NULL, E_WARNING, "executor is not a valid object");
 			RETURN_FALSE;
 		}
