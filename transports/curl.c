@@ -715,7 +715,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
 			if (max_fd == -1) {
-#if defined(PHP_WIN32) || defined(__DARWIN__) || defined(__APPLE__)
 				/*	When  max_fd  returns  with  -1,  you  need  to  wait  a  while  and then proceed and call
 					curl_multi_perform anyway, How long to wait? I would suggest 100 milliseconds at least */
 				tv.tv_sec = 0;
@@ -723,11 +722,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				select(1, &readfds, &writefds, &exceptfds, &tv);
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 				continue;
-#else
-				/* should not reach here*/
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "can not get fd from curl instance"); 
-				goto onerror;
-#endif
 			} 
 
 
