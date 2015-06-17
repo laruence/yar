@@ -3,14 +3,18 @@
 define("YAR_API_USER", "dummy");
 define("YAR_API_PASS", "foo");
 
-define("YAR_API_HOSTNAME", "localhost");
-define("YAR_API_PORT", "8964");
+define("YAR_API_HOSTNAME", (getenv('YAR_API_HOSTNAME') ?: "localhost"));
+define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: "8964"));
 define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 
 function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so") {
-	$php_executable = getenv('TEST_PHP_EXECUTABLE');
+	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
+	$tmp = getenv('TEST_PHP_ARGS');
+	if ($tmp) {
+		$cmd_args = $tmp;
+	}
 
 	$descriptorspec = array(
 		0 => STDIN,
