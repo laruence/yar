@@ -144,8 +144,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		zend_resource *le;
-
-		uint key_len = snprintf(buf, sizeof(buf), "yar_%s", address->val);
+		size_t key_len = snprintf(buf, sizeof(buf), "yar_%s", ZSTR_VAL(address));
 
 		data->persistent = 1;
 		if ((le = zend_hash_str_find_ptr(&EG(persistent_list), buf, key_len)) == NULL) {
@@ -228,7 +227,7 @@ regular_link:
 		}
 	}
 
-	if (!(url = php_url_parse(address->val))) {
+	if (!(url = php_url_parse(ZSTR_VAL(address)))) {
 		spprintf(msg, 0, "malformed uri: '%s'", address);
 		return 0;
 	}
@@ -288,10 +287,10 @@ regular_link:
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071100
-	error = curl_easy_setopt(data->cp, CURLOPT_URL, address->val);
+	error = curl_easy_setopt(data->cp, CURLOPT_URL, ZSTR_VAL(address));
 #else
 	data->address = zend_string_copy(address);
-	error = curl_easy_setopt(data->cp, CURLOPT_URL, data->address->val);
+	error = curl_easy_setopt(data->cp, CURLOPT_URL, ZSTR_VAL(data->address));
 #endif
 
 	if (error != CURLE_OK) {
@@ -340,8 +339,8 @@ void php_yar_curl_close(yar_transport_interface_t* self) /* {{{ */ {
 
 static void php_yar_curl_prepare(yar_transport_interface_t* self) /* {{{ */ {
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
-	curl_easy_setopt(data->cp, CURLOPT_POSTFIELDS, data->postfield.s->val);
-	curl_easy_setopt(data->cp, CURLOPT_POSTFIELDSIZE, data->postfield.s->len);
+	curl_easy_setopt(data->cp, CURLOPT_POSTFIELDS, ZSTR_VAL(data->postfield.s));
+	curl_easy_setopt(data->cp, CURLOPT_POSTFIELDSIZE, ZSTR_LEN(data->postfield.s));
 
 } /* }}} */
 
@@ -390,8 +389,8 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 
 		smart_str_0(&data->buf);
 
-		payload = data->buf.s->val;
-		payload_len = data->buf.s->len;
+		payload = ZSTR_VAL(data->buf.s);
+		payload_len = ZSTR_LEN(data->buf.s);
 
 		if (!(header = php_yar_protocol_parse(payload))) {
 			php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
@@ -431,12 +430,12 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	}
 
 	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
-			request->id, 7, payload->val, payload->len, payload->val + 8);
+			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
-	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, payload->len, 0);
+	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0);
 
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
-	smart_str_appendl(&data->postfield, payload->val, payload->len);
+	smart_str_appendl(&data->postfield, ZSTR_VAL(payload), ZSTR_LEN(payload));
 	zend_string_release(payload);
 
 	return 1;
@@ -575,8 +574,8 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 							smart_str_0(&data->buf);
 
-							payload = data->buf.s->val;
-							payload_len = data->buf.s->len;
+							payload = ZSTR_VAL(data->buf.s);
+							payload_len = ZSTR_LEN(data->buf.s);
 
 							if (!(header = php_yar_protocol_parse(payload))) {
 								php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);

@@ -66,19 +66,19 @@ int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, l
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
-		spprintf(&persistent_key, 0, "yar_%s", address->val);
+		spprintf(&persistent_key, 0, "yar_%s", ZSTR_VAL(address));
 	} else {
 		data->persistent = 0;
 	}
 
-	stream = php_stream_xport_create(address->val, address->len, 0, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
+	stream = php_stream_xport_create(ZSTR_VAL(address), ZSTR_LEN(address), 0, STREAM_XPORT_CLIENT|STREAM_XPORT_CONNECT, persistent_key, &tv, NULL, &errstr, &err);
 
 	if (persistent_key) {
 		efree(persistent_key);
 	}
 
 	if (stream == NULL) {
-		spprintf(err_msg, 0, "Unable to connect to %s (%s)", address->val, strerror(errno));
+		spprintf(err_msg, 0, "Unable to connect to %s (%s)", ZSTR_VAL(address), strerror(errno));
 		efree(errstr);
 		return 0;
 	}
@@ -226,10 +226,10 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	}
 
 	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
-			request->id, 7, payload->val, payload->len, payload->val + 8);
+			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
 	/* for tcp/unix RPC, we need another way to supports auth */
-	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, payload->len, data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
+	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, ZSTR_LEN(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
@@ -251,22 +251,22 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		size_t bytes_left = 0, bytes_sent = 0;
 
-		if (payload->len > (sizeof(buf) - sizeof(yar_header_t))) {
-			memcpy(buf + sizeof(yar_header_t), payload->val, sizeof(buf) - sizeof(yar_header_t));
+		if (ZSTR_LEN(payload) > (sizeof(buf) - sizeof(yar_header_t))) {
+			memcpy(buf + sizeof(yar_header_t), ZSTR_VAL(payload), sizeof(buf) - sizeof(yar_header_t));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0)) < 0) {
 				zend_string_release(payload);
 				return 0;
 			}
 		} else {
-			memcpy(buf + sizeof(yar_header_t), payload->val, payload->len);
-			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + payload->len, 0, NULL, 0)) < 0) {
+			memcpy(buf + sizeof(yar_header_t), ZSTR_VAL(payload), ZSTR_LEN(payload));
+			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + ZSTR_LEN(payload), 0, NULL, 0)) < 0) {
 				zend_string_release(payload);
 				return 0;
 			}
 		}
 
 		bytes_sent = ret - sizeof(yar_header_t);
-		bytes_left = payload->len - bytes_sent;
+		bytes_left = ZSTR_LEN(payload) - bytes_sent;
 
 wait_io:
 		if (bytes_left) {
@@ -283,7 +283,7 @@ wait_io:
 			}
 
 			if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
-				if ((ret = php_stream_xport_sendto(data->stream, payload->val + bytes_sent, bytes_left, 0, NULL, 0)) > 0) {
+				if ((ret = php_stream_xport_sendto(data->stream, ZSTR_VAL(payload) + bytes_sent, bytes_left, 0, NULL, 0)) > 0) {
 					bytes_left -= ret;
 					bytes_sent += ret;
 				}

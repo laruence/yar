@@ -267,7 +267,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 	}
 
 	DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
-			request->id, request->method->val, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
+			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
 			zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
 	if (!transport->send(transport, request, &msg)) {
@@ -287,8 +287,8 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		factory->destroy(transport);
 		return 0;
 	} else {
-		if (response->out && response->out->len) {
-			PHPWRITE(response->out->val, response->out->len);
+		if (response->out && ZSTR_LEN(response->out)) {
+			PHPWRITE(ZSTR_VAL(response->out), ZSTR_LEN(response->out));
 		}
 		ZVAL_COPY(retval, &response->retval);
 		php_yar_request_destroy(request);
@@ -458,7 +458,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		}
 
 		DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
-				request->id, request->method->val, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
+				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
 			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
 		if (!transport->send(transport, request, &msg)) {
@@ -494,14 +494,14 @@ PHP_METHOD(yar_client, __construct) {
 
     zend_update_property_str(yar_client_ce, getThis(), ZEND_STRL("_uri"), url);
 
-	if (strncasecmp(url->val, "http://", sizeof("http://") - 1) == 0
-			|| strncasecmp(url->val, "https://", sizeof("https://") - 1) == 0) {
-	} else if (strncasecmp(url->val, "tcp://", sizeof("tcp://") - 1) == 0) {
+	if (strncasecmp(ZSTR_VAL(url), "http://", sizeof("http://") - 1) == 0
+			|| strncasecmp(ZSTR_VAL(url), "https://", sizeof("https://") - 1) == 0) {
+	} else if (strncasecmp(ZSTR_VAL(url), "tcp://", sizeof("tcp://") - 1) == 0) {
 		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP);
-	} else if (strncasecmp(url->val, "unix://", sizeof("unix://") - 1) == 0) {
+	} else if (strncasecmp(ZSTR_VAL(url), "unix://", sizeof("unix://") - 1) == 0) {
 		zend_update_property_long(yar_client_ce, getThis(), ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX);
 	} else {
-		php_yar_client_trigger_error(1, YAR_ERR_PROTOCOL, "unsupported protocol address %s", url->val);
+		php_yar_client_trigger_error(1, YAR_ERR_PROTOCOL, "unsupported protocol address %s", ZSTR_VAL(url));
 		return;
 	}
 
@@ -594,13 +594,13 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-	if (!uri->len) {
+	if (!ZSTR_LEN(uri)) {
 		php_error_docref(NULL, E_WARNING, "first parameter is expected to be a valid rpc server uri");
 		return;
 	}
 
-	if (strncasecmp(uri->val, "http://", sizeof("http://") - 1) 
-			&& strncasecmp(uri->val, "https://", sizeof("https://") - 1)) {
+	if (strncasecmp(ZSTR_VAL(uri), "http://", sizeof("http://") - 1) 
+			&& strncasecmp(ZSTR_VAL(uri), "https://", sizeof("https://") - 1)) {
 		php_error_docref(NULL, E_WARNING, "only http protocol is supported in concurrent client for now");
 		return;
 	}
@@ -612,7 +612,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 
     if (callback && !Z_ISNULL_P(callback) &&
 			!zend_is_callable(callback, 0, &name)) {
-        php_error_docref1(NULL, name->val, E_ERROR, "fourth parameter is expected to be a valid callback");
+        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fourth parameter is expected to be a valid callback");
         zend_string_release(name);
         RETURN_FALSE;
     }
@@ -624,7 +624,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 
     if (error_callback && !Z_ISNULL_P(error_callback) &&
 			!zend_is_callable(error_callback, 0, &name)) {
-        php_error_docref1(NULL, name->val, E_ERROR, "fifth parameter is expected to be a valid error callback");
+        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fifth parameter is expected to be a valid error callback");
         zend_string_release(name);
         RETURN_FALSE;
     }
@@ -710,7 +710,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
     if (callback && !Z_ISNULL_P(callback) &&
 			!zend_is_callable(callback, 0, &name)) {
-        php_error_docref1(NULL, name->val, E_ERROR, "first argument is expected to be a valid callback");
+        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "first argument is expected to be a valid callback");
         zend_string_release(name);
         RETURN_FALSE;
     }
@@ -722,7 +722,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
     if (error_callback && !Z_ISNULL_P(error_callback) &&
 			!zend_is_callable(error_callback, 0, &name)) {
-        php_error_docref1(NULL, name->val, E_ERROR, "second argument is expected to be a valid error callback");
+        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "second argument is expected to be a valid error callback");
         zend_string_release(name);
         RETURN_FALSE;
     }

@@ -127,16 +127,16 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 	}
 
 	if (fptr->common.scope) {
-		memcpy(offset, fptr->common.scope->name->val, fptr->common.scope->name->len);
-		offset += fptr->common.scope->name->len;
+		memcpy(offset, ZSTR_VAL(fptr->common.scope->name), ZSTR_LEN(fptr->common.scope->name));
+		offset += ZSTR_LEN(fptr->common.scope->name);
 		*(offset++) = ':';
 		*(offset++) = ':';
 	}
 
 	{
-		size_t name_len = fptr->common.function_name->len;
+		size_t name_len = ZSTR_LEN(fptr->common.function_name);
 		REALLOC_BUF_IF_EXCEED(buf, offset, length, name_len);
-		memcpy(offset, fptr->common.function_name->val, name_len);
+		memcpy(offset, ZSTR_VAL(fptr->common.function_name), name_len);
 		offset += name_len;
 	}
 
@@ -150,15 +150,15 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 			if (arg_info->class_name) {
 				const char *class_name;
 				uint32_t class_name_len;
-				if (!strcasecmp(arg_info->class_name->val, "self") && fptr->common.scope ) {
-					class_name = fptr->common.scope->name->val;
-					class_name_len = fptr->common.scope->name->len;
-				} else if (!strcasecmp(arg_info->class_name->val, "parent") && fptr->common.scope->parent) {
-					class_name = fptr->common.scope->parent->name->val;
-					class_name_len = fptr->common.scope->parent->name->len;
+				if (zend_string_equals_literal_ci(arg_info->class_name, "self") && fptr->common.scope ) {
+					class_name = ZSTR_VAL(fptr->common.scope->name);
+					class_name_len = ZSTR_LEN(fptr->common.scope->name);
+				} else if (zend_string_equals_literal_ci(arg_info->class_name, "parent") && fptr->common.scope->parent) {
+					class_name = ZSTR_VAL(fptr->common.scope->parent->name);
+					class_name_len = ZSTR_LEN(fptr->common.scope->parent->name);
 				} else {
-					class_name = arg_info->class_name->val;
-					class_name_len = arg_info->class_name->len;
+					class_name = ZSTR_VAL(arg_info->class_name);
+					class_name_len = ZSTR_LEN(arg_info->class_name);
 				}
 				REALLOC_BUF_IF_EXCEED(buf, offset, length, class_name_len);
 				memcpy(offset, class_name, class_name_len);
@@ -180,9 +180,9 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 			*(offset++) = '$';
 
 			if (arg_info->name) {
-				REALLOC_BUF_IF_EXCEED(buf, offset, length, arg_info->name->len);
-				memcpy(offset, arg_info->name->val, arg_info->name->len);
-				offset += arg_info->name->len;
+				REALLOC_BUF_IF_EXCEED(buf, offset, length, ZSTR_LEN(arg_info->name));
+				memcpy(offset, ZSTR_VAL(arg_info->name), ZSTR_LEN(arg_info->name));
+				offset += ZSTR_LEN(arg_info->name);
 			} else {
 				uint32_t idx = i;
 				memcpy(offset, "param", 5);
@@ -279,7 +279,7 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
     zend_function *f = Z_FUNC_P(ptr);
 
     if (f->common.fn_flags & ZEND_ACC_PUBLIC 
-			&& f->common.function_name && *(f->common.function_name->val) != '_') {
+			&& f->common.function_name && *(ZSTR_VAL(f->common.function_name)) != '_') {
         char *prototype = NULL;
 		if ((prototype = php_yar_get_function_declaration(f))) {
 			char *buf, *doc_comment = NULL;
@@ -334,7 +334,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
 	add_assoc_long_ex(&ret, ZEND_STRL("i"), response->id);
 	add_assoc_long_ex(&ret, ZEND_STRL("s"), response->status);
-	if (response->out && response->out->len) {
+	if (response->out && ZSTR_LEN(response->out)) {
 		add_assoc_str_ex(&ret, ZEND_STRL("o"), zend_string_copy(response->out));
 	}
 	if (!Z_ISUNDEF(response->retval)) {
@@ -354,15 +354,15 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	}
 	zval_ptr_dtor(&ret);
 
-	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, payload->len, 0);
+	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, ZSTR_LEN(payload), 0);
 
 	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
-			request? request->id : 0, payload->val, payload->len - 8, payload->val + 8);
+			request? request->id : 0, ZSTR_VAL(payload), ZSTR_LEN(payload) - 8, ZSTR_VAL(payload) + 8);
 
-	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, payload->val);
+	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, ZSTR_VAL(payload));
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
-	if (payload->len) {
-		PHPWRITE(payload->val, payload->len);
+	if (ZSTR_LEN(payload)) {
+		PHPWRITE(ZSTR_VAL(payload), ZSTR_LEN(payload));
 		return;
 	}
 
@@ -401,8 +401,8 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	if (raw_data.s) {
-		payload = raw_data.s->val;
-		payload_len = raw_data.s->len;
+		payload = ZSTR_VAL(raw_data.s);
+		payload_len = ZSTR_LEN(raw_data.s);
 	}
 
 	if (!(header = php_yar_protocol_parse(payload))) {
@@ -451,7 +451,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	if (!zend_hash_exists(&ce->function_table, method)) {
 		zend_string_release(method);
 		smart_str_free(&raw_data);
-		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ce->name, request->method->val);
+		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ce->name, ZSTR_VAL(request->method));
 		goto response;
 	}
 	zend_string_release(method);
@@ -539,13 +539,13 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 	char buf[1024];
 	zend_class_entry *ce = Z_OBJCE_P(obj);
 
-	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ce->name->val);
+	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
 	PHPWRITE(buf, strlen(buf));
 
 	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
 	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
 
-	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ce->name->val);
+	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
 	PHPWRITE(buf, strlen(buf));
 
     zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(ce));
