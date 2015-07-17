@@ -327,7 +327,6 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	zval ret;
 	char *err_msg;
 	zend_string *payload;
-	size_t payload_len;
 	yar_header_t header = {0};
 
 	array_init(&ret);
@@ -359,7 +358,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
 			request? request->id : 0, ZSTR_VAL(payload), ZSTR_LEN(payload) - 8, ZSTR_VAL(payload) + 8);
 
-	php_yar_server_response_header(sizeof(yar_header_t) + payload_len, ZSTR_VAL(payload));
+	php_yar_server_response_header(sizeof(yar_header_t) + ZSTR_LEN(payload), ZSTR_VAL(payload));
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
 	if (ZSTR_LEN(payload)) {
 		PHPWRITE(ZSTR_VAL(payload), ZSTR_LEN(payload));
