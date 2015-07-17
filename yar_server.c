@@ -107,7 +107,7 @@ ZEND_END_ARG_INFO()
 
 static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /* {{{ */ {
 	char *offset, *buf;
-	zend_uint length = 1024;
+	uint32_t length = 1024;
 
 #define REALLOC_BUF_IF_EXCEED(buf, offset, length, size) \
 	if (offset - buf + size >= length) { 	\
@@ -129,14 +129,15 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 #endif
 
 	if (fptr->common.scope) {
-		memcpy(offset, fptr->common.scope->name, fptr->common.scope->name_length);
-		offset += fptr->common.scope->name_length;
+		size_t scope_len = fptr->common.scope->name->len;
+		memcpy(offset, fptr->common.scope->name, scope_len);
+		offset += scope_len;
 		*(offset++) = ':';
 		*(offset++) = ':';
 	}
 
 	{
-		size_t name_len = strlen(fptr->common.function_name);
+		size_t name_len = fptr->common.function_name->len;
 		REALLOC_BUF_IF_EXCEED(buf, offset, length, name_len);
 		memcpy(offset, fptr->common.function_name, name_len);
 		offset += name_len;
@@ -144,23 +145,23 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 
 	*(offset++) = '(';
 	if (fptr->common.arg_info) {
-		zend_uint i, required;
+		uint32_t i, required;
 		zend_arg_info *arg_info = fptr->common.arg_info;
 
 		required = fptr->common.required_num_args;
 		for (i = 0; i < fptr->common.num_args;) {
 			if (arg_info->class_name) {
-				const char *class_name;
-				zend_uint class_name_len;
-				if (!strcasecmp(arg_info->class_name, "self") && fptr->common.scope ) {
+				const zend_string *class_name;
+				size_t class_name_len;
+				if (!strcasecmp(arg_info->class_name->val, "self") && fptr->common.scope ) {
 					class_name = fptr->common.scope->name;
-					class_name_len = fptr->common.scope->name_length;
-				} else if (!strcasecmp(arg_info->class_name, "parent") && fptr->common.scope->parent) {
+					class_name_len = fptr->common.scope->name->len;
+				} else if (!strcasecmp(arg_info->class_name->val, "parent") && fptr->common.scope->parent) {
 					class_name = fptr->common.scope->parent->name;
-					class_name_len = fptr->common.scope->parent->name_length;
+					class_name_len = fptr->common.scope->parent->name->len;
 				} else {
 					class_name = arg_info->class_name;
-					class_name_len = arg_info->class_name_len;
+					class_name_len = arg_info->class_name->len;
 				}
 				REALLOC_BUF_IF_EXCEED(buf, offset, length, class_name_len);
 				memcpy(offset, class_name, class_name_len);
@@ -168,7 +169,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 				*(offset++) = ' ';
 #if PHP_API_VERSION > 20090626
 			} else if (arg_info->type_hint) {
-				zend_uint type_name_len;
+				uint32_t type_name_len;
 				char *type_name = zend_get_type_by_const(arg_info->type_hint);
 				type_name_len = strlen(type_name);
 				REALLOC_BUF_IF_EXCEED(buf, offset, length, type_name_len);
@@ -189,12 +190,12 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 			}
 			*(offset++) = '$';
 
-			if (arg_info->name) {
-				REALLOC_BUF_IF_EXCEED(buf, offset, length, arg_info->name_len);
-				memcpy(offset, arg_info->name, arg_info->name_len);
-				offset += arg_info->name_len;
+			if (arg_info->name->val) {
+				REALLOC_BUF_IF_EXCEED(buf, offset, length, arg_info->name->len);
+				memcpy(offset, arg_info->name, arg_info->name->len);
+				offset += arg_info->name->len;
 			} else {
-				zend_uint idx = i;
+				uint32_t idx = i;
 				memcpy(offset, "param", 5);
 				offset += 5;
 				do {
@@ -209,7 +210,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 				if (fptr->type == ZEND_USER_FUNCTION) {
 					zend_op *precv = NULL;
 					{
-						zend_uint idx  = i;
+						uint32_t idx  = i;
 						zend_op *op = ((zend_op_array *)fptr)->opcodes;
 						zend_op *end = op + ((zend_op_array *)fptr)->last;
 
@@ -244,15 +245,13 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 #endif
 						zval_copy_ctor(zv);
 						INIT_PZVAL(zv);
-						zval_update_constant_ex(&zv, (void*)1, fptr->common.scope TSRMLS_CC);
-						if (Z_TYPE_P(zv) == IS_BOOL) {
-							if (Z_LVAL_P(zv)) {
-								memcpy(offset, "true", 4);
-								offset += 4;
-							} else {
-								memcpy(offset, "false", 5);
-								offset += 5;
-							}
+						zval_update_constant_ex(zv, (zend_bool)1, fptr->common.scope TSRMLS_CC);
+						if (Z_TYPE_P(zv) == IS_TRUE) {
+							memcpy(offset, "true", 4);
+							offset += 4;
+						} else if (Z_TYPE_P(zv) == IS_FALSE) {
+							memcpy(offset, "false", 5);
+							offset += 5;
 						} else if (Z_TYPE_P(zv) == IS_NULL) {
 							memcpy(offset, "NULL", 4);
 							offset += 4;
@@ -271,7 +270,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 							memcpy(offset, "Array", 5);
 							offset += 5;
 						} else {
-							zend_make_printable_zval(zv, &zv_copy, &use_copy);
+							zend_make_printable_zval(zv, &zv_copy);
 							REALLOC_BUF_IF_EXCEED(buf, offset, length, Z_STRLEN(zv_copy));
 							memcpy(offset, Z_STRVAL(zv_copy), Z_STRLEN(zv_copy));
 							offset += Z_STRLEN(zv_copy);
@@ -279,7 +278,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr TSRMLS_DC) /*
 								zval_dtor(&zv_copy);
 							}
 						}
-						zval_ptr_dtor(&zv);
+						zval_ptr_dtor(zv);
 					}
 				} else {
 					memcpy(offset, "NULL", 4);
@@ -306,7 +305,7 @@ static int php_yar_print_info(void *ptr, void *argument TSRMLS_DC) /* {{{ */ {
     zend_function *f = ptr;
 
     if (f->common.fn_flags & ZEND_ACC_PUBLIC 
-			&& f->common.function_name && *(f->common.function_name) != '_') {
+			&& f->common.function_name && *(f->common.function_name->val) != '_') {
         char *prototype = NULL;
 		if ((prototype = php_yar_get_function_declaration(f TSRMLS_CC))) {
 			char *buf, *doc_comment = NULL;
@@ -362,7 +361,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	add_assoc_long_ex(&ret, ZEND_STRS("i"), response->id);
 	add_assoc_long_ex(&ret, ZEND_STRS("s"), response->status);
 	if (response->out) {
-		add_assoc_string_ex(&ret, ZEND_STRS("o"), response->out, 1);
+		add_assoc_string_ex(&ret, ZEND_STRS("o"), response->out);
 	}
 	if (response->retval) {
 		Z_ADDREF_P(response->retval);
@@ -398,7 +397,8 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 } /* }}} */
 
 static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
-	char *payload, *err_msg, method[256];
+	char *payload, *err_msg;
+	zend_string *method;
 	char *pkg_name = NULL;
 	size_t payload_len;
 	zend_bool bailout = 0;
@@ -407,13 +407,13 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	yar_response_t *response;
 	yar_request_t  *request = NULL;
 	yar_header_t *header;
-#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+#if PHP_MAJOR_VERSION > 5 || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5)
 	php_stream *s;
 	smart_str raw_data = {0};
 #endif
 
 	response = php_yar_response_instance(TSRMLS_C);
-#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+#if PHP_MAJOR_VERSION > 5 || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5)
 	s = SG(request_info).request_body;
 	if (!s || FAILURE == php_stream_rewind(s)) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
@@ -429,8 +429,8 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 			smart_str_appendl(&raw_data, buf, len);
 		}
 	}
-	payload = raw_data.c;
-	payload_len = raw_data.len;
+	payload = raw_data.s->val;
+	payload_len = raw_data.s->len;
 #else
 	if (!SG(request_info).raw_post_data) {
 		php_yar_error(response, YAR_ERR_PACKAGER TSRMLS_CC, "empty request");
@@ -470,7 +470,7 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	pkg_name = payload;
 
 	request = php_yar_request_unpack(post_data TSRMLS_CC);
-	zval_ptr_dtor(&post_data);
+	zval_ptr_dtor(post_data);
 	ce = Z_OBJCE_P(obj);
 
 	if (!php_yar_request_valid(request, response, &err_msg TSRMLS_CC)) {
@@ -495,8 +495,9 @@ static void php_yar_server_handle(zval *obj TSRMLS_DC) /* {{{ */ {
 	}
 
 	ce = Z_OBJCE_P(obj);
-	zend_str_tolower_copy(method, request->method, request->mlen);
-	if (!zend_hash_exists(&ce->function_table, method, strlen(method) + 1)) {
+	//zend_str_tolower_copy(method, request->method, request->mlen);
+	method = zend_string_init(request->method, request->mlen, 0);
+	if (!zend_hash_exists(&ce->function_table, method)) {
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
 		smart_str_free(&raw_data);
 #endif
