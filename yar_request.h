@@ -23,7 +23,7 @@
 #define PHP_YAR_REQUEST_H
 
 typedef struct _yar_request {
-	long id;
+	zend_ulong id;
 	zend_string *method;
 	zval parameters;
 	/* following fileds don't going to packager */

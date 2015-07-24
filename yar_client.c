@@ -266,7 +266,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		return 0;
 	}
 
-	DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
+	DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
 			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
 			zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
@@ -456,7 +456,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 			return 0;
 		}
 
-		DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
+		DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
 				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
 			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 

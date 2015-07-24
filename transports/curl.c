@@ -409,8 +409,8 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 
 		php_yar_response_map_retval(response, retval);
 
-		DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
-				7, payload, header->body_len, payload + 8);
+		DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'",
+				response->id, 7, payload, header->body_len, payload + 8);
 
 		zval_ptr_dtor(retval);
 	} else {
@@ -429,7 +429,7 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 		return 0;
 	}
 
-	DEBUG_C("%ld: pack request by '%.*s', result len '%ld', content: '%.32s'", 
+	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
 	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0);
@@ -587,8 +587,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 								} else {
 									php_yar_response_map_retval(response, retval);
-									DEBUG_C("%ld: server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 
-											7, payload, header->body_len, payload + 8);
+									DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 7, payload, header->body_len, payload + 8);
 									zval_ptr_dtor(retval);
 								}
 								if (msg) {
