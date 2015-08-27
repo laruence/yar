@@ -228,7 +228,7 @@ regular_link:
 	}
 
 	if (!(url = php_url_parse(ZSTR_VAL(address)))) {
-		spprintf(msg, 0, "malformed uri: '%s'", address);
+		spprintf(msg, 0, "malformed uri: '%s'", ZSTR_VAL(address));
 		return 0;
 	}
 

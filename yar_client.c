@@ -383,7 +383,7 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 			}
 			efree(func_params);
 			if (calldata) {
-				php_error_docref(NULL, E_WARNING, "call to callback failed for request: '%s'", calldata->method);
+				php_error_docref(NULL, E_WARNING, "call to callback failed for request: '%s'", ZSTR_VAL(calldata->method));
 			} else {
 				php_error_docref(NULL, E_WARNING, "call to initial callback failed");
 			}
