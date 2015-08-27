@@ -400,14 +400,17 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	if (raw_data.s) {
+		smart_str_0(&raw_data);
 		payload = ZSTR_VAL(raw_data.s);
 		payload_len = ZSTR_LEN(raw_data.s);
+	} else {
+		php_yar_error(response, YAR_ERR_PACKAGER, "empty request body");
+		DEBUG_S("0: empty request '%s'");
+		goto response_no_output;
 	}
 
 	if (!(header = php_yar_protocol_parse(payload))) {
-		if (raw_data.s) {
-			smart_str_free(&raw_data);
-		}
+		smart_str_free(&raw_data);
 		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
