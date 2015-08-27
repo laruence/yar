@@ -511,7 +511,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		EG(exception) = NULL;
 	}
 
-	smart_str_free(&raw_data);
 
 response:
 	if (php_output_get_contents(&output) == FAILURE) {
@@ -528,6 +527,9 @@ response_no_output:
 	if (request) {
 		php_yar_request_destroy(request);
 	}
+
+	smart_str_free(&raw_data);
+
 	php_yar_response_destroy(response);
 
 	if (bailout) {
