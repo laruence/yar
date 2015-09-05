@@ -68,7 +68,7 @@ typedef struct _yar_transport_multi {
 
 typedef struct _yar_transport {
 	const char *name;
-	struct _yar_transport_interface * (*init)(TSRMLS_D);
+	struct _yar_transport_interface * (*init)(zval * options TSRMLS_DC);
 	void (*destroy)(yar_transport_interface_t *self TSRMLS_DC);
 	yar_transport_multi_t *multi;
 } yar_transport_t;

@@ -53,11 +53,13 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
     struct _yar_request *request;
     struct _yar_response *response;
 	char *content_type;
+	char *user_agent;
 	zend_bool debug;
 	zend_bool expose_info;
 	zend_bool allow_persistent;
 	ulong timeout;
 	ulong connect_timeout;
+	ulong slow_request_time;
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS
@@ -91,6 +93,8 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define YAR_OPT_PERSISTENT 			0x02
 #define YAR_OPT_TIMEOUT  			0x04
 #define YAR_OPT_CONNECT_TIMEOUT 	0x08
+#define YAR_OPT_USERAGENT           0x10
+#define YAR_OPT_HEADERS             0x20
 
 #define YAR_STASH_VARIABLES()  \
 		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \

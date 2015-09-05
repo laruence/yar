@@ -80,6 +80,7 @@ typedef struct _yar_curl_multi_sockinfo {
 	CURL *cp;
 } yar_curl_multi_sockinfo;
 
+
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
 	struct epoll_event ev = {0};
 	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
@@ -116,6 +117,8 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 	return 0;
 } /* }}} */
 #endif
+
+static void php_yar_record_slow_request(CURL *curl);
 
 void php_yar_curl_plink_dtor(void *ptr TSRMLS_DC) /* {{{ */ {
 	yar_curl_plink_t *p, *q;
@@ -361,12 +364,17 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 			convert_to_long_ex(ppzval);
 			self->setopt(self, YAR_OPT_TIMEOUT, (long *)&Z_LVAL_PP(ppzval), NULL TSRMLS_CC);
 		}
+		if (zend_hash_index_find(Z_ARRVAL_P(request->options), YAR_OPT_CONNECT_TIMEOUT, (void **)&ppzval) == SUCCESS) {
+			convert_to_long_ex(ppzval);
+			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&Z_LVAL_PP(ppzval), NULL TSRMLS_CC);
+		}
 	}
 
 	response = php_yar_response_instance(TSRMLS_C);
 
 	ret = curl_easy_perform(data->cp);
 	if (ret != CURLE_OK) {
+		php_yar_record_slow_request(data->cp);
 		len = spprintf(&msg, 0, "curl exec failed '%s'", curl_easy_strerror(ret));
 		php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len TSRMLS_CC);
 		efree(msg);
@@ -374,6 +382,7 @@ yar_response_t * php_yar_curl_exec(yar_transport_interface_t* self, yar_request_
 	} else {
 		long http_code;
 
+		php_yar_record_slow_request(data->cp);
 		if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK 
 				&& http_code != 200) {
 			len = spprintf(&msg, 0, "server responsed non-200 code '%ld'", http_code);
@@ -456,16 +465,23 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
     switch (type) {
 		case YAR_OPT_TIMEOUT: 
 			curl_easy_setopt(cp, CURLOPT_TIMEOUT, *(long *)value);
-		break;
+			break;
+		case YAR_OPT_CONNECT_TIMEOUT:
+			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, *(long *)value);
+			break;
+			
 		default:
 		    return 0;
 	}
 	return 1;
 } /* }}} */
 
-yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
+yar_transport_interface_t * php_yar_curl_init(zval * options TSRMLS_DC) /* {{{ */ {
 	size_t newlen;
 	char content_type[512];
+	char user_agent[512] = {0};
+	HashTable *ht;
+	zval ** z, **zv;
 	yar_curl_data_t *data;
 	yar_transport_interface_t *self;
 
@@ -473,7 +489,32 @@ yar_transport_interface_t * php_yar_curl_init(TSRMLS_D) /* {{{ */ {
 	self->data = data = ecalloc(1, sizeof(yar_curl_data_t));
 
 	snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type));
-	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" PHP_YAR_VERSION);
+	data->headers = curl_slist_append(data->headers, content_type);
+
+	if(Z_TYPE_P(options) == IS_ARRAY) { 
+		if(zend_hash_index_find(Z_ARRVAL_P(options), YAR_OPT_HEADERS, (void **) &z) == SUCCESS && Z_TYPE_PP(z) == IS_ARRAY) {
+			ht = Z_ARRVAL_PP(z);
+			zend_hash_internal_pointer_reset(ht);
+			while(zend_hash_has_more_elements(ht) == SUCCESS) {
+				if(zend_hash_get_current_data(ht, (void **) &zv) == FAILURE) {
+					break;
+				}
+				if(Z_TYPE_PP(zv) == IS_STRING) {
+					data->headers = curl_slist_append(data->headers, Z_STRVAL_PP(zv));
+				}
+				zend_hash_move_forward(ht);
+			} 
+		}
+		if(zend_hash_index_find(Z_ARRVAL_P(options), YAR_OPT_USERAGENT, (void**)&z) == SUCCESS && Z_STRLEN_PP(z) > 0) {
+			snprintf(user_agent, sizeof(user_agent), "User-Agent: %s", Z_STRVAL_PP(z));
+		}
+	} 
+	if(*user_agent == '\0') {
+		snprintf(user_agent, sizeof(user_agent), "User-Agent: %s", YAR_G(user_agent));
+	}
+	data->headers = curl_slist_append(data->headers, user_agent);
+
+	data->headers = curl_slist_append(data->headers, "X-From-Yar: 1");
 	data->headers = curl_slist_append(data->headers, "Expect:");
 
 	self->open   	= php_yar_curl_open;
@@ -814,6 +855,29 @@ yar_transport_multi_interface_t * php_yar_curl_multi_init(TSRMLS_D) /* {{{ */ {
 
 	return multi;
 } /* }}} */
+
+static void php_yar_record_slow_request(CURL *curl) {
+	char * uri;
+	long code = 0;
+	double lookup_time, conn_time, appconn_time, pretransfer_time, starttransfer_time, total_time, redirect_time;
+	if(curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total_time) != CURLE_OK) {
+		return;	
+	}
+	if(total_time <= YAR_G(slow_request_time)) {
+		return;
+	}
+	curl_easy_getinfo(curl, CURLINFO_NAMELOOKUP_TIME, &lookup_time);
+	curl_easy_getinfo(curl, CURLINFO_CONNECT_TIME, &conn_time);
+	curl_easy_getinfo(curl, CURLINFO_APPCONNECT_TIME, &appconn_time);
+	curl_easy_getinfo(curl, CURLINFO_PRETRANSFER_TIME, &pretransfer_time);
+	curl_easy_getinfo(curl, CURLINFO_STARTTRANSFER_TIME, &starttransfer_time);
+	curl_easy_getinfo(curl, CURLINFO_REDIRECT_TIME, &redirect_time);
+	curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &uri);
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "YAR-SLOW: %s n=%f c=%f a=%f p=%f s=%f t=%f r=%f code=%ld", 
+		uri, lookup_time, conn_time, appconn_time, pretransfer_time, starttransfer_time, total_time, redirect_time, code);
+}
 
 /* {{{ yar_transport_multi_t yar_transport_curl_multi
  */

@@ -302,7 +302,7 @@ int php_yar_socket_setopt(yar_transport_interface_t* self, long type, void *valu
 	return 1;
 } /* }}} */
 
-yar_transport_interface_t * php_yar_socket_init(TSRMLS_D) /* {{{ */ {
+yar_transport_interface_t * php_yar_socket_init(zval * options TSRMLS_DC) /* {{{ */ {
 	yar_socket_data_t *data;
 	yar_transport_interface_t *self;
 

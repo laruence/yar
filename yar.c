@@ -56,6 +56,8 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("yar.connect_timeout",  "1000", PHP_INI_ALL, OnUpdateLong, connect_timeout, zend_yar_globals, yar_globals)
     STD_PHP_INI_ENTRY("yar.timeout",  "5000", PHP_INI_ALL, OnUpdateLong, timeout, zend_yar_globals, yar_globals)
 	STD_PHP_INI_ENTRY("yar.content_type", "application/octet-stream", PHP_INI_ALL, OnUpdateString, content_type, zend_yar_globals, yar_globals) 
+	STD_PHP_INI_ENTRY("yar.slow_request_time", "1000", PHP_INI_ALL, OnUpdateLong, slow_request_time, zend_yar_globals, yar_globals) 
+	STD_PHP_INI_ENTRY("yar.user_agent", "PHP Yar Rpc-" PHP_YAR_VERSION, PHP_INI_ALL, OnUpdateString, user_agent, zend_yar_globals, yar_globals) 
     STD_PHP_INI_ENTRY("yar.allow_persistent",  "0", PHP_INI_ALL, OnUpdateBool, allow_persistent, zend_yar_globals, yar_globals)
 PHP_INI_END()
 /* }}} */
@@ -94,7 +96,8 @@ PHP_MINIT_FUNCTION(yar)
 	REGISTER_LONG_CONSTANT("YAR_OPT_PERSISTENT", YAR_OPT_PERSISTENT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_TIMEOUT", YAR_OPT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_CONNECT_TIMEOUT", YAR_OPT_CONNECT_TIMEOUT, CONST_CS|CONST_PERSISTENT);
-
+	REGISTER_LONG_CONSTANT("YAR_OPT_USERAGENT", YAR_OPT_USERAGENT, CONST_CS|CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("YAR_OPT_HEADERS", YAR_OPT_HEADERS, CONST_CS|CONST_PERSISTENT);
 	
 	YAR_STARTUP(service);
 	YAR_STARTUP(client);

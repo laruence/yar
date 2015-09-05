@@ -206,6 +206,23 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_DC
 			zend_hash_index_update(Z_ARRVAL_P(options), type, (void **)&value, sizeof(zval *), NULL);
 			break;
 		}
+		case YAR_OPT_USERAGENT:
+		case YAR_OPT_HEADERS:
+		{
+			zval *options;
+
+			options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0 TSRMLS_CC);
+			if (IS_ARRAY != Z_TYPE_P(options)) {
+				MAKE_STD_ZVAL(options);
+				array_init(options);
+				zend_update_property(yar_client_ce, client, ZEND_STRL("_options"), options TSRMLS_CC);
+				zval_ptr_dtor(&options);
+			}
+
+			Z_ADDREF_P(value);
+			zend_hash_index_update(Z_ARRVAL_P(options), type, (void **)&value, sizeof(zval *), NULL);
+			break;
+		}
 		default:
 			return 0;
 	}
@@ -214,7 +231,9 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value TSRMLS_DC
 } /* }}} */
 
 static zval * php_yar_client_handle(int protocol, zval *client, char *method, long mlen, zval *params TSRMLS_DC) /* {{{ */ {
+	int fullurilen;
 	char *msg;
+	char *fulluri;
 	zval *uri, *options, *retval;
 	yar_transport_t *factory;
 	yar_transport_interface_t *transport;
@@ -232,9 +251,8 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		return NULL;
 	}
 
-	transport = factory->init(TSRMLS_C);
-
 	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 1 TSRMLS_CC);
+	transport = factory->init(options TSRMLS_C);
 
 	if (IS_ARRAY != Z_TYPE_P(options)) {
 		options = NULL;
@@ -255,12 +273,17 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		}
 	}
 
-	if (!transport->open(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), flags, &msg TSRMLS_CC)) {
+	fullurilen = Z_STRLEN_P(uri) + strlen(method) + 1;
+	fulluri = emalloc(fullurilen + 1);
+	snprintf(fulluri, fullurilen + 1, "%s/%s", Z_STRVAL_P(uri), method);
+	if (!transport->open(transport, fulluri, fullurilen, flags, &msg TSRMLS_CC)) {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 		php_yar_request_destroy(request TSRMLS_CC);
 		efree(msg);
+		efree(fulluri);
 		return NULL;
 	}
+	efree(fulluri);
 
 	DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
 			request->id, request->method, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
@@ -447,7 +470,7 @@ int php_yar_concurrent_client_handle(zval *callstack TSRMLS_DC) /* {{{ */ {
 			entry->parameters = tmp;
 		} 
 
-		transport = factory->init(TSRMLS_C);
+		transport = factory->init(entry->options TSRMLS_C);
 
 		if (YAR_G(allow_persistent)) {
 			if (entry->options) {
