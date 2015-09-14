@@ -115,6 +115,7 @@ PHP_MSHUTDOWN_FUNCTION(yar)
 	YAR_SHUTDOWN(service);
 	YAR_SHUTDOWN(packager);
 
+	YAR_SHUTDOWN(transport);
 	return SUCCESS;
 }
 /* }}} */
