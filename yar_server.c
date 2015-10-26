@@ -604,6 +604,9 @@ response:
 
 response_no_output:
 	php_yar_server_response(request, response, pkg_name TSRMLS_CC);
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION > 5
+	smart_str_free(&raw_data);
+#endif
 	if (request) {
 		php_yar_request_destroy(request TSRMLS_CC);
 	}
