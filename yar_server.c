@@ -224,8 +224,8 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
                             memcpy(offset, "true", 4);
                             offset += 4;
                         } else if (Z_TYPE(zv) == IS_FALSE) {
-								memcpy(offset, "false", 5);
-								offset += 5;
+							memcpy(offset, "false", 5);
+							offset += 5;
 						} else if (Z_TYPE(zv) == IS_NULL) {
 							memcpy(offset, "NULL", 4);
 							offset += 4;
@@ -410,7 +410,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	if (!(header = php_yar_protocol_parse(payload))) {
-		smart_str_free(&raw_data);
 		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
@@ -424,7 +423,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	payload_len -= sizeof(yar_header_t);
 
 	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg, &rret))) {
-		smart_str_free(&raw_data);
         php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
 		efree(err_msg);
 		goto response_no_output;
@@ -436,14 +434,12 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	zval_ptr_dtor(post_data);
 
 	if (!php_yar_request_valid(request, response, &err_msg)) {
-		smart_str_free(&raw_data);
 		php_yar_error(response, YAR_ERR_REQUEST, "%s", err_msg);
 		efree(err_msg);
 		goto response_no_output;
 	}
 
 	if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE) {
-		smart_str_free(&raw_data);
 		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
 		goto response_no_output;
 	}
@@ -452,7 +448,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	method = zend_string_tolower(request->method);
 	if (!zend_hash_exists(&ce->function_table, method)) {
 		zend_string_release(method);
-		smart_str_free(&raw_data);
 		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ce->name, ZSTR_VAL(request->method));
 		goto response;
 	}
@@ -510,7 +505,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		php_yar_response_set_exception(response, EG(exception));
 		EG(exception) = NULL;
 	}
-
 
 response:
 	if (php_output_get_contents(&output) == FAILURE) {
