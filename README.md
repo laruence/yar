@@ -102,7 +102,7 @@ It's very easy for a PHP client to call remote RPC:
 <?php
 $client = new Yar_Client("http://host/api/");
 /* the following setopt is optinal */
-$client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1);
+$client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1000);
 
 /* call remote service */
 $result = $client->some_method("parameter");
