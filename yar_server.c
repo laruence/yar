@@ -284,7 +284,9 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
 		if ((prototype = php_yar_get_function_declaration(f))) {
 			char *buf, *doc_comment = NULL;
 			if (f->type == ZEND_USER_FUNCTION) {
-				doc_comment = (char *)f->op_array.doc_comment->val;
+				if(f->op_array.doc_comment!=NULL) {
+					doc_comment = (char *)f->op_array.doc_comment->val;
+				}
 			}
 			spprintf(&buf, 0, HTML_MARKUP_ENTRY, prototype, doc_comment? doc_comment : "");
 			efree(prototype);
