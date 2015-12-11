@@ -34,11 +34,6 @@
 
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
 
-	FILE* fstream;
-	fstream=fopen("/tmp/log","at+");
-	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
-	fclose(fstream);
-
 	header->magic_num = htonl(strtol(YAR_G(magic_num), NULL, 16));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
