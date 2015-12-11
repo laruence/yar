@@ -31,7 +31,7 @@
 #endif
 
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
-	header->magic_num = htonl(YAR_PROTOCOL_MAGIC_NUM);
+	header->magic_num = htonl(YAR_G(magic_num));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
@@ -48,11 +48,6 @@ yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 	yar_header_t *header = (yar_header_t *)payload;
 
 	header->magic_num = ntohl(header->magic_num);
-
-	if (header->magic_num != YAR_PROTOCOL_MAGIC_NUM) {
-		header->magic_num = htonl(header->magic_num);
-		return NULL;
-	}
 
 	header->id = ntohl(header->id);
 	header->body_len = ntohl(header->body_len);

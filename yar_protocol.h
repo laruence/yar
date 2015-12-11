@@ -26,8 +26,6 @@
 #define YAR_PROTOCOL_PING		0x2
 #define YAR_PROTOCOL_LIST		0x4
 
-#define YAR_PROTOCOL_MAGIC_NUM  0x80DFEC60
-
 #ifdef PHP_WIN32
 #pragma pack(push)
 #pragma pack(1)
