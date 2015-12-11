@@ -56,8 +56,6 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	header->magic_num = htonl(atoi(YAR_G(magic_num)));
 
 
-	write_int(fstream, header->magic_num);
-
 	fclose(fstream);
 
 
