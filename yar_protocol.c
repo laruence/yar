@@ -39,15 +39,9 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 
 	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
 
-	fclose(fstream);
-
 
 	header->magic_num = htonl(atoi(YAR_G(magic_num)));
 
-
-	FILE* fstream;
-
-	fstream=fopen("/tmp/log","at+");
 
 	write_int(fstream, header->magic_num);
 
