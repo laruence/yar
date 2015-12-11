@@ -58,6 +58,7 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
 	zend_bool allow_persistent;
 	ulong timeout;
 	ulong connect_timeout;
+	char *magic_num;
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS
