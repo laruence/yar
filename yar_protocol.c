@@ -52,7 +52,7 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 
 	fstream=fopen("/tmp/log","at+");
 
-	write_int($fstream, header->magic_num);
+	write_int(fstream, header->magic_num);
 
 	fclose(fstream);
 	
