@@ -47,19 +47,8 @@ void write_int(FILE * out, int num) {
 
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
 
-	FILE* fstream;
-	fstream=fopen("/tmp/log","at+");
-
-	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
-
 
 	header->magic_num = htonl(atoi(YAR_G(magic_num)));
-
-
-	fclose(fstream);
-
-
-	
 
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
@@ -77,9 +66,10 @@ yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 	yar_header_t *header = (yar_header_t *)payload;
 
 	FILE* fstream;
-	fstream=fopen("/tmp/log","at+");
 
 	header->magic_num = ntohl(header->magic_num);
+
+	header->magic_num = htonl(header->magic_num);
 
 	write_int(fstream, header->magic_num);
 
