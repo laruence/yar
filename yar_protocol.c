@@ -32,17 +32,32 @@
 
 #include <stdio.h>
 
+void write_int(FILE * out, int num) {
+   if (NULL==out) {
+       fprintf(stderr, "I bet you saw THAT coming.\n");
+       exit(EXIT_FAILURE);
+   }
+   fwrite(&num,sizeof(int),1, out);
+   if(ferror(out)){
+      perror(__func__);
+      exit(EXIT_FAILURE);
+   }
+}
+
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
 
+	header->magic_num = htonl(atoi(YAR_G(magic_num)));
+
 	FILE* fstream;
+
 	fstream=fopen("/tmp/log","at+");
 
-	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
+	write_int($fstream, header->magic_num);
 
 	fclose(fstream);
+	
 
 
-	header->magic_num = htonl(atoi(YAR_G(magic_num)));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
