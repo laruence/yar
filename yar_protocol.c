@@ -78,7 +78,14 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 	yar_header_t *header = (yar_header_t *)payload;
 
+	FILE* fstream;
+	fstream=fopen("/tmp/log","at+");
+
 	header->magic_num = ntohl(header->magic_num);
+
+	write_int(fstream, header->magic_num);
+
+	fclose(fstream);
 
 	header->id = ntohl(header->id);
 	header->body_len = ntohl(header->body_len);
