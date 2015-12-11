@@ -30,6 +30,9 @@
 #include <arpa/inet.h>
 #endif
 
+
+#define YAR_PROTOCOL_MAGIC_NUM  0x80DFEC60
+
 #include <stdio.h>
 
 void write_int(FILE * out, int num) {
@@ -52,7 +55,9 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
 
 
-	header->magic_num = htonl(atoi(YAR_G(magic_num)));
+	//header->magic_num = htonl(atoi(YAR_G(magic_num)));
+	//
+	header->magic_num = htonl(YAR_PROTOCOL_MAGIC_NUM);
 
 
 	write_int(fstream, header->magic_num);
