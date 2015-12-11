@@ -30,8 +30,6 @@
 #include <arpa/inet.h>
 #endif
 
-#include <stdio.h>
-
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
 
 	header->magic_num = htonl(strtol(YAR_G(magic_num), NULL, 16));
