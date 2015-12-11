@@ -39,7 +39,7 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	fwrite(YAR_G(magic_num), 1, strlen(YAR_G(magic_num)), fstream);
 	fclose(fstream);
 
-	header->magic_num = htonl(atoi(YAR_G(magic_num)));
+	header->magic_num = htonl(strtol(YAR_G(magic_num), NULL, 16));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
