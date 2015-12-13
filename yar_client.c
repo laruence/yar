@@ -431,6 +431,8 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 	yar_transport_interface_t *transport;
 	yar_transport_multi_interface_t *multi;
 
+	char *magic_num_tmp = YAR_G(magic_num);
+
 	factory = php_yar_transport_get(ZEND_STRL("curl"));
 	multi = factory->multi->init();
 
@@ -477,8 +479,6 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
 				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
 			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
-
-		char *magic_num_tmp = YAR_G(magic_num);
 
 		zval *magic_num_zval = php_yar_client_get_opt(&entry->options, YAR_OPT_MAGIC_NUM);
 		if (magic_num_zval && Z_TYPE_P(magic_num_zval) == IS_STRING) {
