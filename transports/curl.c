@@ -509,7 +509,7 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 	return 1;
 } /* }}} */
 
-static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *f) /* {{{ */ {
+static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *f, char *magic_num) /* {{{ */ {
 	int msg_in_sequence;
 	CURLMsg *msg;
 
@@ -752,7 +752,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 #endif
 
 			if (rest_count > running_count) {
-				int ret = php_yar_curl_multi_parse_response(multi, f);
+				int ret = php_yar_curl_multi_parse_response(multi, f, magic_num);
 				if (ret == -1) {
 					goto bailout;
 				} else if (ret == 0) {
@@ -762,7 +762,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			}
 		} while (running_count);
 	} else {
-		int ret = php_yar_curl_multi_parse_response(multi, f);
+		int ret = php_yar_curl_multi_parse_response(multi, f, magic_num);
 		if (ret == -1) {
 			goto bailout;
 		} else if (ret == 0) {
