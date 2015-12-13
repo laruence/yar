@@ -355,7 +355,7 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	}
 	zval_ptr_dtor(&ret);
 
-	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, ZSTR_LEN(payload), 0);
+	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, ZSTR_LEN(payload), 0, YAR_G(magic_num));
 
 	DEBUG_S("%ld: server response: packager '%s', len '%ld', content '%.32s'",
 			request? request->id : 0, ZSTR_VAL(payload), ZSTR_LEN(payload) - 8, ZSTR_VAL(payload) + 8);

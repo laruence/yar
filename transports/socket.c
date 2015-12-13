@@ -204,7 +204,7 @@ wait_io:
 	}
 } /* }}} */
 
-int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request, char **msg) /* {{{ */ {
+int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request, char **msg, char *magic_num) /* {{{ */ {
 	fd_set rfds;
 	zend_string *payload;
 	struct timeval tv;
@@ -229,7 +229,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
 	/* for tcp/unix RPC, we need another way to supports auth */
-	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, ZSTR_LEN(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
+	php_yar_protocol_render(&header, request->id, "Yar PHP Client", NULL, ZSTR_LEN(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0, magic_num);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 

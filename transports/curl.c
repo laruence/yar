@@ -420,7 +420,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 	return response;
 } /* }}} */
 
-int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, char **msg) /* {{{ */ {
+int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, char **msg, char *magic_num) /* {{{ */ {
 	yar_header_t header = {0};
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 	zend_string *payload;
@@ -432,7 +432,7 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
-	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0);
+	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0, magic_num);
 
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
 	smart_str_appendl(&data->postfield, ZSTR_VAL(payload), ZSTR_LEN(payload));

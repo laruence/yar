@@ -30,21 +30,12 @@
 #include <arpa/inet.h>
 #endif
 
-void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved) /* {{{ */ {
+zend_class_entry *yar_client_ce;
+zend_class_entry *yar_concurrent_client_ce;
 
-	char *magic_num_tmp = YAR_G(magic_num);
+void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved, char *magic_num) /* {{{ */ {
 
-	zval *options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 1, &rv);
-
-	if (options) {
-		zval *flag = php_yar_client_get_opt(options, YAR_OPT_MAGIC_NUM);
-		if (flag && Z_TYPE_P(flag) == IS_STRING) {
-
-			magic_num_tmp = Z_STRVAL(*flag);
-		}
-	}
-
-	header->magic_num = htonl(strtol(YAR_G(magic_num), NULL, 16));
+	header->magic_num = htonl(strtol(magic_num, NULL, 16));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
