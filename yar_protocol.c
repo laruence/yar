@@ -50,6 +50,13 @@ yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 
 	header->magic_num = ntohl(header->magic_num);
 
+	int local_magic_num = strtol(YAR_G(magic_num), NULL, 16);
+
+	if (local_magic_num != header->magic_num) {
+		header->magic_num = htonl(header->magic_num);
+		return NULL;
+	}
+
 	header->id = ntohl(header->id);
 	header->body_len = ntohl(header->body_len);
 	header->reserved = ntohl(header->reserved);
