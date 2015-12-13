@@ -64,7 +64,7 @@ yar_header_t * php_yar_protocol_parse(char *payload, char *magic_num) /* {{{ */ 
 
 	header->magic_num = ntohl(header->magic_num);
 
-	int local_magic_num = strtol(YAR_G(magic_num), NULL, 16);
+	int local_magic_num = strtol(magic_num, NULL, 16);
 
 	if (local_magic_num != header->magic_num) {
 		header->magic_num = htonl(header->magic_num);
