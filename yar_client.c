@@ -174,6 +174,16 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 				 return 0;
 			 }
 		}
+		case YAR_OPT_MAGIC_NUM:
+		{
+			if (!verified) {
+				verified = 1;
+				if (IS_STRING != Z_TYPE_P(value)) {
+					php_error_docref(NULL, E_WARNING, "expects a string magic_num name");
+					return 0;
+				}
+			}
+		}
 		case YAR_OPT_PERSISTENT:
 		{
 			if (!verified) {

@@ -92,6 +92,7 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define YAR_OPT_PERSISTENT 			0x02
 #define YAR_OPT_TIMEOUT  			0x04
 #define YAR_OPT_CONNECT_TIMEOUT 	0x08
+#define YAR_OPT_MAGIC_NUM			0x10
 
 #define YAR_STASH_VARIABLES()  \
 		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \
