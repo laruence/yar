@@ -344,7 +344,7 @@ static void php_yar_curl_prepare(yar_transport_interface_t* self) /* {{{ */ {
 
 } /* }}} */
 
-yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t *request) /* {{{ */ {
+yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t *request, char *magic_num) /* {{{ */ {
 	char *msg;
 	uint len;
 	CURLcode ret;
@@ -392,7 +392,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 		payload = ZSTR_VAL(data->buf.s);
 		payload_len = ZSTR_LEN(data->buf.s);
 
-		if (!(header = php_yar_protocol_parse(payload))) {
+		if (!(header = php_yar_protocol_parse(payload, magic_num))) {
 			php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 			return response;
 		}
@@ -577,7 +577,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 							payload = ZSTR_VAL(data->buf.s);
 							payload_len = ZSTR_LEN(data->buf.s);
 
-							if (!(header = php_yar_protocol_parse(payload))) {
+							if (!(header = php_yar_protocol_parse(payload, magic_num))) {
 								php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 							} else {
 								/* skip over the leading header */
@@ -635,7 +635,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 }
 /* }}} */
 
-int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f) /* {{{ */ {
+int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f, char *magic_num) /* {{{ */ {
 	int running_count, rest_count;
 	yar_curl_multi_data_t *multi;
 #ifdef ENABLE_EPOLL

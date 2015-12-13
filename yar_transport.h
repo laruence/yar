@@ -47,7 +47,7 @@ typedef struct _yar_transport_interface {
 	void *data;
 	int  (*open)(struct _yar_transport_interface *self, zend_string *address, long options, char **msg);
 	int  (*send)(struct _yar_transport_interface *self, struct _yar_request *request, char **msg, char *magic_num);
-	struct _yar_response * (*exec)(struct _yar_transport_interface *self, struct _yar_request *request);
+	struct _yar_response * (*exec)(struct _yar_transport_interface *self, struct _yar_request *request, char *magic_num);
 	int  (*setopt)(struct _yar_transport_interface *self, long type, void *value, void *addition);
 	int  (*calldata)(struct _yar_transport_interface *self, yar_call_data_t *calldata);
 	void (*close)(struct _yar_transport_interface *self);
@@ -56,7 +56,7 @@ typedef struct _yar_transport_interface {
 typedef struct _yar_transport_multi_interface {
     void *data;
 	int (*add)(struct _yar_transport_multi_interface *self, yar_transport_interface_t *cp);
-    int (*exec)(struct _yar_transport_multi_interface *self, yar_concurrent_client_callback *callback);
+    int (*exec)(struct _yar_transport_multi_interface *self, yar_concurrent_client_callback *callback, char *magic_num);
 	void (*close)(struct _yar_transport_multi_interface *self);
 } yar_transport_multi_interface_t;
 

@@ -53,7 +53,13 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 	return;
 } /* }}} */
 
-yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
+yar_header_t * php_yar_protocol_parse(char *payload, char *magic_num) /* {{{ */ {
+
+	FILE* fstream;
+	fstream=fopen("/tmp/log2","at+");
+	fwrite(magic_num, 1, strlen(magic_num), fstream);
+	fclose(fstream);
+
 	yar_header_t *header = (yar_header_t *)payload;
 
 	header->magic_num = ntohl(header->magic_num);

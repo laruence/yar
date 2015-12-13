@@ -112,7 +112,7 @@ void php_yar_socket_close(yar_transport_interface_t* self) /* {{{ */ {
 }
 /* }}} */
 
-yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_request_t *request) /* {{{ */ {
+yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_request_t *request, char *magic_num) /* {{{ */ {
 	fd_set rfds;
 	struct timeval tv;
 	yar_header_t *header;
@@ -153,7 +153,7 @@ wait_io:
 		zval *retval, rret;
 		if (!payload) {
 			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL)) > 0) {
-				if (!(header = php_yar_protocol_parse(buf))) {
+				if (!(header = php_yar_protocol_parse(buf, magic_num))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 					return response;
 				}

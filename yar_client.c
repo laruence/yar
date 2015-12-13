@@ -295,7 +295,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		return 0;
 	}
 
-	response = transport->exec(transport, request);
+	response = transport->exec(transport, request, magic_num_tmp);
 
 	if (response->status != YAR_ERR_OKEY) {
 		php_yar_client_handle_error(1, response);
@@ -499,7 +499,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		php_yar_request_destroy(request);
 	} ZEND_HASH_FOREACH_END();
 
-	if (!multi->exec(multi, php_yar_concurrent_client_callback)) {
+	if (!multi->exec(multi, php_yar_concurrent_client_callback, magic_num_tmp)) {
 		multi->close(multi);
 		return 0;
 	}

@@ -411,7 +411,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		goto response_no_output;
 	}
 
-	if (!(header = php_yar_protocol_parse(payload))) {
+	if (!(header = php_yar_protocol_parse(payload, YAR_G(magic_num)))) {
 		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
