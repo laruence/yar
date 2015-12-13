@@ -478,7 +478,15 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
 			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
-		if (!transport->send(transport, request, &msg)) {
+		char *magic_num_tmp = YAR_G(magic_num);
+
+		zval *magic_num_zval = php_yar_client_get_opt(&entry->options, YAR_OPT_MAGIC_NUM);
+		if (magic_num_zval && Z_TYPE_P(magic_num_zval) == IS_STRING) {
+
+			magic_num_tmp = Z_STRVAL(*magic_num_zval);
+		}
+
+		if (!transport->send(transport, request, &msg, magic_num_tmp)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 			transport->close(transport);
 			factory->destroy(transport);
