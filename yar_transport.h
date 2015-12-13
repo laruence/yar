@@ -46,7 +46,7 @@ typedef int yar_concurrent_client_callback(yar_call_data_t *calldata, int status
 typedef struct _yar_transport_interface {
 	void *data;
 	int  (*open)(struct _yar_transport_interface *self, zend_string *address, long options, char **msg);
-	int  (*send)(struct _yar_transport_interface *self, struct _yar_request *request, char **msg);
+	int  (*send)(struct _yar_transport_interface *self, struct _yar_request *request, char **msg, char *magic_num);
 	struct _yar_response * (*exec)(struct _yar_transport_interface *self, struct _yar_request *request);
 	int  (*setopt)(struct _yar_transport_interface *self, long type, void *value, void *addition);
 	int  (*calldata)(struct _yar_transport_interface *self, yar_call_data_t *calldata);
