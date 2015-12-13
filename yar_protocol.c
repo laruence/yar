@@ -34,7 +34,7 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 
 	char *magic_num_tmp = YAR_G(magic_num);
 
-	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 1, &rv);
+	zval *options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 1, &rv);
 
 	if (options) {
 		zval *flag = php_yar_client_get_opt(options, YAR_OPT_MAGIC_NUM);
