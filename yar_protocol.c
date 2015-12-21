@@ -35,11 +35,6 @@ zend_class_entry *yar_concurrent_client_ce;
 
 void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char *token, uint body_len, uint reserved, char *magic_num) /* {{{ */ {
 
-	FILE* fstream;
-	fstream=fopen("/tmp/log","at+");
-	fwrite(magic_num, 1, strlen(magic_num), fstream);
-	fclose(fstream);
-
 	header->magic_num = htonl(strtol(magic_num, NULL, 16));
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
@@ -54,11 +49,6 @@ void php_yar_protocol_render(yar_header_t *header, uint id, char *provider, char
 } /* }}} */
 
 yar_header_t * php_yar_protocol_parse(char *payload, char *magic_num) /* {{{ */ {
-
-	FILE* fstream;
-	fstream=fopen("/tmp/log2","at+");
-	fwrite(magic_num, 1, strlen(magic_num), fstream);
-	fclose(fstream);
 
 	yar_header_t *header = (yar_header_t *)payload;
 
