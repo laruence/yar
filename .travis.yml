@@ -5,6 +5,7 @@ php:
 
 notifications:
   email: false
+  irc: "irc.efnet.org#php.yaf"
 
 env:
   - REPORT_EXIT_STATUS=1 NO_INTERACTION=1
