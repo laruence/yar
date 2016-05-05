@@ -81,6 +81,7 @@
     <file name="015.phpt" role="test" />
     <file name="016.phpt" role="test" />
     <file name="017.phpt" role="test" />
+    <file name="018.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <dir name="htdocs">
      <file name="index.php" role="test"/>
