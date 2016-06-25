@@ -219,7 +219,11 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 						zval zv, zv_copy;
 						int use_copy;
 						ZVAL_DUP(&zv, RT_CONSTANT(&fptr->op_array, precv->op2));
+#if PHP_VERSION_ID < 70100
 						zval_update_constant_ex(&zv, 1, fptr->common.scope);
+#else
+						zval_update_constant_ex(&zv, fptr->common.scope);
+#endif
 						if (Z_TYPE(zv) == IS_TRUE) {
                             memcpy(offset, "true", 4);
                             offset += 4;
