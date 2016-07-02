@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2015-10-27</date>
- <time>10:30:00</time>
+ <date>2016-07-02</date>
+ <time>14:30:00</time>
  <version>
-  <release>2.0.0</release>
-  <api>2.0.0</api>
+  <release>2.0.1</release>
+  <api>2.0.1</api>
  </version>
  <stability>
   <release>beta</release>
@@ -28,7 +28,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Release Yar for PHP7
+  - Fixed bug in doc comment displaying
+  - PHP-7.1 compatible fixs
  </notes>
  <contents> 
   <dir name="/"> 
@@ -118,6 +119,23 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2016-07-02</date> 
+   <version> 
+    <release>2.0.1</release> 
+    <api>2.0.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed bug in doc comment displaying
+    - PHP-7.1 compatible fixs
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2015-10-27</date> 
    <version> 
     <release>2.0.0</release> 
@@ -132,7 +150,21 @@
     - Release Yar for PHP7
    </notes> 
   </release> 
-
+  <release> 
+   <date>2015-10-27</date> 
+   <version> 
+    <release>2.0.0</release> 
+    <api>2.0.0</api> 
+   </version> 
+   <stability> 
+    <release>beta</release> 
+    <api>beta</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Release Yar for PHP7
+   </notes> 
+  </release> 
   <release> 
    <date>2014-10-22</date> 
    <version> 
