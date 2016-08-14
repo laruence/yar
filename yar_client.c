@@ -49,7 +49,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_client___call, 0, 0, 2)
 	ZEND_ARG_INFO(0, method)
 	ZEND_ARG_INFO(0, parameters)
 ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_getopt, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_client_getopt, 0, 0, 1)
 	ZEND_ARG_INFO(0, type)
 ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_client_setopt, 0, 0, 2)
@@ -549,7 +549,7 @@ PHP_METHOD(yar_client, getOpt) {
 	long type;
 	zval *value, rv;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "lz", &type, &value) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &type) == FAILURE) {
 		return;
 	} else {
 		zval * options = zend_read_property(yar_client_ce, getThis(), ZEND_STRL("_options"), 0, &rv);
