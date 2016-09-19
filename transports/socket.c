@@ -319,6 +319,8 @@ yar_transport_interface_t * php_yar_socket_init() /* {{{ */ {
 } /* }}} */
 
 void php_yar_socket_destroy(yar_transport_interface_t *self) /* {{{ */ {
+	efree(self->data);
+	efree(self);
 } /* }}} */
 
 /* {{{ yar_transport_t yar_transport_socket
