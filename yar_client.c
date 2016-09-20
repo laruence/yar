@@ -263,6 +263,8 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
 		efree(msg);
+		transport->close(transport);
+		factory->destroy(transport);
 		return 0;
 	}
 
@@ -274,6 +276,8 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
 		efree(msg);
+		transport->close(transport);
+		factory->destroy(transport);
 		return 0;
 	}
 
