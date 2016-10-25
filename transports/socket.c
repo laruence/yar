@@ -256,12 +256,14 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), sizeof(buf) - sizeof(yar_header_t));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0 TSRMLS_CC)) < 0) {
 				zval_ptr_dtor(&payload);
+				spprintf(msg, 0, "unable to send data");
 				return 0;
 			}
 		} else {
 			memcpy(buf + sizeof(yar_header_t), Z_STRVAL_P(payload), Z_STRLEN_P(payload));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + Z_STRLEN_P(payload), 0, NULL, 0 TSRMLS_CC)) < 0) {
 				zval_ptr_dtor(&payload);
+				spprintf(msg, 0, "unable to send data");
 				return 0;
 			}
 		}
