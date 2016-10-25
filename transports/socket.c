@@ -255,12 +255,14 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 			memcpy(buf + sizeof(yar_header_t), ZSTR_VAL(payload), sizeof(buf) - sizeof(yar_header_t));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0)) < 0) {
 				zend_string_release(payload);
+				spprintf(msg, 0, "unable to send data");
 				return 0;
 			}
 		} else {
 			memcpy(buf + sizeof(yar_header_t), ZSTR_VAL(payload), ZSTR_LEN(payload));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(yar_header_t) + ZSTR_LEN(payload), 0, NULL, 0)) < 0) {
 				zend_string_release(payload);
+				spprintf(msg, 0, "unable to send data");
 				return 0;
 			}
 		}
