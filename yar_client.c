@@ -220,7 +220,7 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 	yar_transport_interface_t *transport;
 	yar_request_t *request;
 	yar_response_t *response;
-	int flags = 0;
+	int flags = 0, retry_cnt = 0;
 
 	uri = zend_read_property(yar_client_ce, client, ZEND_STRL("_uri"), 0 TSRMLS_CC);
 
@@ -255,13 +255,15 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 		}
 	}
 
+retry:
+	
 	if (!transport->open(transport, Z_STRVAL_P(uri), Z_STRLEN_P(uri), flags, &msg TSRMLS_CC)) {
 		php_yar_client_trigger_error(1 TSRMLS_CC, YAR_ERR_TRANSPORT, msg TSRMLS_CC);
 		php_yar_request_destroy(request TSRMLS_CC);
 		efree(msg);
 		return NULL;
 	}
-
+	
 	DEBUG_C("%ld: call api '%s' at (%c)'%s' with '%d' parameters",
 			request->id, request->method, (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), zend_hash_num_elements(Z_ARRVAL_P(request->parameters)));
 
@@ -273,8 +275,13 @@ static zval * php_yar_client_handle(int protocol, zval *client, char *method, lo
 	}
 
 	response = transport->exec(transport, request TSRMLS_CC);
-
+	
 	if (response->status != YAR_ERR_OKEY) {
+		if (response->status == YAR_ERR_EMPTY_RESPONSE && retry_cnt < 1) {
+			retry_cnt++;
+			php_yar_response_destroy(response TSRMLS_CC);	
+			goto retry;
+		}
 		php_yar_client_handle_error(1, response TSRMLS_CC);
 		retval = NULL;
 	} else {
