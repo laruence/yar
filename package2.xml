@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2016-07-02</date>
+ <date>2017-03-09</date>
  <time>14:30:00</time>
  <version>
-  <release>2.0.1</release>
-  <api>2.0.1</api>
+  <release>2.0.2</release>
+  <api>2.0.2</api>
  </version>
  <stability>
   <release>beta</release>
@@ -28,8 +28,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed bug in doc comment displaying
-  - PHP-7.1 compatible fixs
+  - Fixed issue #98 (Memeory exhuasted while using with Yaf)
  </notes>
  <contents> 
   <dir name="/"> 
