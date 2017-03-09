@@ -150,15 +150,19 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 			if (arg_info->class_name) {
 				const char *class_name;
 				uint32_t class_name_len;
-				if (zend_string_equals_literal_ci(arg_info->class_name, "self") && fptr->common.scope ) {
-					class_name = ZSTR_VAL(fptr->common.scope->name);
-					class_name_len = ZSTR_LEN(fptr->common.scope->name);
-				} else if (zend_string_equals_literal_ci(arg_info->class_name, "parent") && fptr->common.scope->parent) {
-					class_name = ZSTR_VAL(fptr->common.scope->parent->name);
-					class_name_len = ZSTR_LEN(fptr->common.scope->parent->name);
+				if (fptr->type == ZEND_INTERNAL_FUNCTION) {
+					class_name = ((zend_internal_arg_info*)arg_info)->class_name;
+					class_name_len = strlen(class_name);
 				} else {
 					class_name = ZSTR_VAL(arg_info->class_name);
 					class_name_len = ZSTR_LEN(arg_info->class_name);
+				}
+				if (strncasecmp(class_name, "self", sizeof("self")) && fptr->common.scope ) {
+					class_name = ZSTR_VAL(fptr->common.scope->name);
+					class_name_len = ZSTR_LEN(fptr->common.scope->name);
+				} else if (strncasecmp(class_name, "parent", sizeof("parent")) && fptr->common.scope->parent) {
+					class_name = ZSTR_VAL(fptr->common.scope->parent->name);
+					class_name_len = ZSTR_LEN(fptr->common.scope->parent->name);
 				}
 				REALLOC_BUF_IF_EXCEED(buf, offset, length, class_name_len);
 				memcpy(offset, class_name, class_name_len);
@@ -180,9 +184,18 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 			*(offset++) = '$';
 
 			if (arg_info->name) {
-				REALLOC_BUF_IF_EXCEED(buf, offset, length, ZSTR_LEN(arg_info->name));
-				memcpy(offset, ZSTR_VAL(arg_info->name), ZSTR_LEN(arg_info->name));
-				offset += ZSTR_LEN(arg_info->name);
+				const char *name;
+				uint32_t name_len;
+				if (fptr->type == ZEND_INTERNAL_FUNCTION) {
+					name = ((zend_internal_arg_info*)arg_info)->name;
+					name_len = strlen(name);
+				} else {
+					name = ZSTR_VAL(arg_info->name);
+					name_len = ZSTR_LEN(arg_info->name);
+				}
+				REALLOC_BUF_IF_EXCEED(buf, offset, length, name_len);
+				memcpy(offset, name, name_len);
+				offset += name_len;
 			} else {
 				uint32_t idx = i;
 				memcpy(offset, "param", 5);
@@ -283,7 +296,7 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
     zend_function *f = Z_FUNC_P(ptr);
 
     if (f->common.fn_flags & ZEND_ACC_PUBLIC 
-			&& f->common.function_name && *(ZSTR_VAL(f->common.function_name)) != '_') {
+		&& f->common.function_name && *(ZSTR_VAL(f->common.function_name)) != '_') {
         char *prototype = NULL;
 		if ((prototype = php_yar_get_function_declaration(f))) {
 			char *buf, *doc_comment = NULL;
