@@ -43,10 +43,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_service___construct, 0, 0, 1)
 	ZEND_ARG_INFO(0, protocol)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_service_set_packager, 0, 0, 1)
-	ZEND_ARG_INFO(0, protocol)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_service_void, 0, 0, 1)
 ZEND_END_ARG_INFO()
 /* }}} */
@@ -147,6 +143,14 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 
 		required = fptr->common.required_num_args;
 		for (i = 0; i < fptr->common.num_args;) {
+#if PHP_VERSION_ID >= 70200
+			if (ZEND_TYPE_IS_CLASS(arg_info->type)) {
+				const char *class_name;
+				uint32_t class_name_len;
+				zend_string *class_str = ZEND_TYPE_NAME(arg_info->type);
+				class_name = ZSTR_VAL(class_str);
+				class_name_len = ZSTR_LEN(class_str);
+#else
 			if (arg_info->class_name) {
 				const char *class_name;
 				uint32_t class_name_len;
@@ -157,6 +161,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 					class_name = ZSTR_VAL(arg_info->class_name);
 					class_name_len = ZSTR_LEN(arg_info->class_name);
 				}
+#endif
 				if (strncasecmp(class_name, "self", sizeof("self")) && fptr->common.scope ) {
 					class_name = ZSTR_VAL(fptr->common.scope->name);
 					class_name_len = ZSTR_LEN(fptr->common.scope->name);
@@ -168,9 +173,16 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 				memcpy(offset, class_name, class_name_len);
 				offset += class_name_len;
 				*(offset++) = ' ';
+
+#if PHP_VERSION_ID >= 70200
+			} else if (ZEND_TYPE_IS_CODE(arg_info->type)) {
+				uint32_t type_name_len;
+				char *type_name = zend_get_type_by_const(ZEND_TYPE_CODE(arg_info->type));
+#else
 			} else if (arg_info->type_hint) {
 				uint32_t type_name_len;
 				char *type_name = zend_get_type_by_const(arg_info->type_hint);
+#endif
 				type_name_len = strlen(type_name);
 				REALLOC_BUF_IF_EXCEED(buf, offset, length, type_name_len);
 				memcpy(offset, type_name, type_name_len);
