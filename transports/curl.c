@@ -179,7 +179,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 			new_le.type = le_plink;
 			new_le.ptr = con;
 
-			if (zend_hash_str_update_ptr(&EG(persistent_list), buf, key_len, (void *)&new_le) != NULL) {
+			if (zend_hash_str_update_mem(&EG(persistent_list), buf, key_len, (void *)&new_le, sizeof(new_le)) != NULL) {
 				data->plink = plink;
 			} else {
 				data->persistent = 0;

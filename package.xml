@@ -16,19 +16,20 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2017-03-15</date>
- <time>14:30:00</time>
+ <date>2017-07-27</date>
+ <time>18:30:00</time>
  <version>
-  <release>2.0.2</release>
-  <api>2.0.2</api>
+  <release>2.0.3</release>
+  <api>2.0.3</api>
  </version>
  <stability>
-  <release>beta</release>
-  <api>beta</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed issue #98 (Memeory exhuasted while using with Yaf)
+  - Fixed bug #74867 (segment fault when use yar persistent call twice remote function)
+  - Fixed PHP-7.2 Compatibility
  </notes>
  <contents> 
   <dir name="/"> 
@@ -82,6 +83,7 @@
     <file name="016.phpt" role="test" />
     <file name="017.phpt" role="test" />
     <file name="018.phpt" role="test" />
+    <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <dir name="htdocs">
      <file name="index.php" role="test"/>
@@ -120,6 +122,23 @@
   <release> 
    <date>2017-03-15</date> 
    <version> 
+    <release>2.0.3</release> 
+    <api>2.0.3</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed bug #74867 (segment fault when use yar persistent call twice remote function)
+    - Fixed PHP-7.2 Compatibility
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2017-03-15</date> 
+   <version> 
     <release>2.0.2</release> 
     <api>2.0.2</api> 
    </version> 
@@ -132,7 +151,6 @@
     - Fixed issue #98 (Memeory exhuasted while using with Yaf)
    </notes> 
   </release> 
-
   <release> 
    <date>2016-07-02</date> 
    <version> 
