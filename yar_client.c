@@ -185,6 +185,21 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 
 			}
 		}
+		case YAR_OPT_HEADER: {
+			if (!verified) {
+				zval *protocol = zend_read_property(yar_client_ce, client, ZEND_STRL("_protocol"), 0, &rv);
+				verified = 1;
+				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
+					php_error_docref(NULL, E_WARNING, "header only works with HTTP protocol");
+					return 0;
+				}
+				if (IS_ARRAY != Z_TYPE_P(value)) {
+					php_error_docref(NULL, E_WARNING, "expects an array as header value");
+					return 0;
+				}
+
+			}
+		}
 		case YAR_OPT_TIMEOUT:
 		case YAR_OPT_CONNECT_TIMEOUT:
 		{
@@ -259,6 +274,8 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		}
 	}
 
+	/* This is tricky to pass options in, for custom headers*/
+	msg = (char*)options;
 	if (!transport->open(transport, Z_STR_P(uri), flags, &msg)) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
@@ -452,6 +469,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 			return 0;
 		}
 
+		msg = (char*)&entry->options;
 		if (!transport->open(transport, entry->uri, flags, &msg)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 			transport->close(transport);

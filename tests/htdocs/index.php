@@ -19,6 +19,11 @@ class Service_Provider {
         return "success";
     }
 
+	public function header($name) {
+		$key = "HTTP_" . strtoupper($name);
+		return isset($_SERVER[$key])? $_SERVER[$key] : NULL;
+	}
+
     protected function invisible() {
     }
 }

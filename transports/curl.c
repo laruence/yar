@@ -141,6 +141,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 	char buf[1024];
 	CURLcode error = CURLE_OK;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
+	zval *configs = (zval *)*msg;
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		zend_resource *le;
@@ -245,6 +246,18 @@ regular_link:
 	snprintf(buf, sizeof(buf), "Hostname: %s", url->host);
 	buf[sizeof(buf) - 1] = '\0';
 	data->headers = curl_slist_append(data->headers, buf);
+
+	if (configs && IS_ARRAY == Z_TYPE_P(configs)) {
+		zval *headers = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_HEADER);
+		if (headers) {
+			zval *val;
+			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(headers), val) {
+				if (Z_TYPE_P(val) != IS_STRING) continue;
+				data->headers = curl_slist_append(data->headers, Z_STRVAL_P(val));
+			}ZEND_HASH_FOREACH_END();
+		}
+	}
+
 	curl_easy_setopt(data->cp, CURLOPT_HTTPHEADER, data->headers);
 
 	curl_easy_setopt(cp, CURLOPT_WRITEFUNCTION, php_yar_curl_buf_writer);
