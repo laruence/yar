@@ -32,20 +32,20 @@
 
 typedef struct _yar_packager {
 	const char *name;
-	int  (*pack) (struct _yar_packager *self, zval *pzval, smart_str *buf, char **msg);
-	zval * (*unpack) (struct _yar_packager *self, char *content, size_t len, char **msg, zval *rret);
+	int  (*pack) (const struct _yar_packager *self, zval *pzval, smart_str *buf, char **msg);
+	zval * (*unpack) (const struct _yar_packager *self, char *content, size_t len, char **msg, zval *rret);
 } yar_packager_t;
 
-PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager);
-PHP_YAR_API yar_packager_t * php_yar_packager_get(char *name, int nlen);
+PHP_YAR_API int php_yar_packager_register(const yar_packager_t *packager);
+PHP_YAR_API const yar_packager_t * php_yar_packager_get(char *name, int nlen);
 
 YAR_STARTUP_FUNCTION(packager);
 YAR_ACTIVATE_FUNCTION(packager);
 
-extern yar_packager_t yar_packager_php;
-extern yar_packager_t yar_packager_json;
+extern const yar_packager_t yar_packager_php;
+extern const yar_packager_t yar_packager_json;
 #ifdef ENABLE_MSGPACK
-extern yar_packager_t yar_packager_msgpack;
+extern const yar_packager_t yar_packager_msgpack;
 #endif
 
 zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg);

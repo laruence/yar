@@ -35,11 +35,11 @@ int le_plink;
 struct _yar_transports_list {
 	unsigned int size;
 	unsigned int num;
-	yar_transport_t **transports;
+	const yar_transport_t **transports;
 } yar_transports_list;
 
-extern yar_transport_t yar_transport_curl;
-extern yar_transport_t yar_transport_socket;
+extern const yar_transport_t yar_transport_curl;
+extern const yar_transport_t yar_transport_socket;
 
 static void php_yar_plink_dtor(zend_resource *rsrc) /* {{{ */ {
 	yar_persistent_le_t *le = (yar_persistent_le_t *)rsrc->ptr;
@@ -66,7 +66,7 @@ static void php_yar_calldata_dtor(zend_resource *rsrc) /* {{{ */ {
 }
 /* }}} */
 
-PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen) /* {{{ */ {
+PHP_YAR_API const yar_transport_t * php_yar_transport_get(char *name, int nlen) /* {{{ */ {
     int i = 0;
 	for (;i<yar_transports_list.num;i++) {
 		if (strncmp(yar_transports_list.transports[i]->name, name, nlen) == 0) {
@@ -77,14 +77,14 @@ PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen) /* {{{
 	return NULL;
 } /* }}} */
 
-PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport) /* {{{ */ {
+PHP_YAR_API int php_yar_transport_register(const yar_transport_t *transport) /* {{{ */ {
 
 	if (!yar_transports_list.size) {
 	   yar_transports_list.size = 5;
-	   yar_transports_list.transports = (yar_transport_t **)malloc(sizeof(yar_transport_t *) * yar_transports_list.size);
+	   yar_transports_list.transports = (const yar_transport_t **)malloc(sizeof(yar_transport_t *) * yar_transports_list.size);
 	} else if (yar_transports_list.num == yar_transports_list.size) {
 	   yar_transports_list.size += 5;
-	   yar_transports_list.transports = (yar_transport_t **)realloc(yar_transports_list.transports, sizeof(yar_transport_t *) * yar_transports_list.size);
+	   yar_transports_list.transports = (const yar_transport_t **)realloc(yar_transports_list.transports, sizeof(yar_transport_t *) * yar_transports_list.size);
 	}
 	yar_transports_list.transports[yar_transports_list.num] = transport;
 

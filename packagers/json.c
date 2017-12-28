@@ -28,7 +28,7 @@
 #include "ext/json/php_json.h"
 #include "yar_packager.h"
 
-int php_yar_packager_json_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
+int php_yar_packager_json_pack(const yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 #if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3))
 	php_json_encode(buf, pzval);
 #else
@@ -38,7 +38,7 @@ int php_yar_packager_json_pack(yar_packager_t *self, zval *pzval, smart_str *buf
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_json_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
+zval * php_yar_packager_json_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
 
 	php_json_decode(rret, content, len, 1, 512);
@@ -47,7 +47,7 @@ zval * php_yar_packager_json_unpack(yar_packager_t *self, char *content, size_t 
 	return return_value;
 } /* }}} */
 
-yar_packager_t yar_packager_json = {
+const yar_packager_t yar_packager_json = {
 	"JSON",
 	php_yar_packager_json_pack,
     php_yar_packager_json_unpack

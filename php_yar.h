@@ -48,8 +48,8 @@ PHP_MINFO_FUNCTION(yar);
 ZEND_BEGIN_MODULE_GLOBALS(yar)
 	char *default_packager;
 	char *default_transport;
-    struct _yar_packager *packager;
-    struct _yar_transport *transport;
+    const struct _yar_packager *packager;
+    const struct _yar_transport *transport;
     struct _yar_request *request;
     struct _yar_response *response;
 	char *content_type;

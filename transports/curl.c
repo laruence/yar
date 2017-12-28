@@ -835,7 +835,7 @@ yar_transport_multi_t yar_transport_curl_multi = {
 
 /* {{{ yar_transport_t yar_transport_curl
  */
-yar_transport_t yar_transport_curl = {
+const yar_transport_t yar_transport_curl = {
 	"curl",
 	php_yar_curl_init,
 	php_yar_curl_destroy,

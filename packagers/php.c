@@ -28,7 +28,7 @@
 #include "yar_packager.h"
 #include "ext/standard/php_var.h" /* for serialize */
 
-int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
+int php_yar_packager_php_pack(const yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 	php_serialize_data_t var_hash;
 
 	PHP_VAR_SERIALIZE_INIT(var_hash);
@@ -38,7 +38,7 @@ int php_yar_packager_php_pack(yar_packager_t *self, zval *pzval, smart_str *buf,
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_php_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
+zval * php_yar_packager_php_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
@@ -57,7 +57,7 @@ zval * php_yar_packager_php_unpack(yar_packager_t *self, char *content, size_t l
 	return return_value;
 } /* }}} */
 
-yar_packager_t yar_packager_php = {
+const yar_packager_t yar_packager_php = {
 	"PHP",
 	php_yar_packager_php_pack,
     php_yar_packager_php_unpack

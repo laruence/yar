@@ -325,7 +325,7 @@ void php_yar_socket_destroy(yar_transport_interface_t *self) /* {{{ */ {
 
 /* {{{ yar_transport_t yar_transport_socket
  */
-yar_transport_t yar_transport_socket = {
+const yar_transport_t yar_transport_socket = {
 	"sock",
 	php_yar_socket_init,
 	php_yar_socket_destroy,

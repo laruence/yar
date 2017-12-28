@@ -74,8 +74,8 @@ typedef struct _yar_transport {
 extern int le_calldata;
 extern int le_plink;
 
-PHP_YAR_API yar_transport_t * php_yar_transport_get(char *name, int nlen);
-PHP_YAR_API int php_yar_transport_register(yar_transport_t *transport);
+PHP_YAR_API const yar_transport_t * php_yar_transport_get(char *name, int nlen);
+PHP_YAR_API int php_yar_transport_register(const yar_transport_t *transport);
 
 YAR_STARTUP_FUNCTION(transport);
 YAR_SHUTDOWN_FUNCTION(transport);

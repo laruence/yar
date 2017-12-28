@@ -32,12 +32,12 @@
 extern void php_msgpack_serialize(smart_str *buf, zval *val);
 extern void php_msgpack_unserialize(zval *return_value, char *str, size_t str_len);
 
-int php_yar_packager_msgpack_pack(yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
+int php_yar_packager_msgpack_pack(const yar_packager_t *self, zval *pzval, smart_str *buf, char **msg) /* {{{ */ {
 	php_msgpack_serialize(buf, pzval);
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
+zval * php_yar_packager_msgpack_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
 	zval *return_value;
 	ZVAL_NULL(rret);
 	php_msgpack_unserialize(rret, content, len);
@@ -45,7 +45,7 @@ zval * php_yar_packager_msgpack_unpack(yar_packager_t *self, char *content, size
 	return return_value;
 } /* }}} */
 
-yar_packager_t yar_packager_msgpack = {
+const yar_packager_t yar_packager_msgpack = {
 	"MSGPACK",
 	php_yar_packager_msgpack_pack,
     php_yar_packager_msgpack_unpack

@@ -235,7 +235,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 	char *msg;
 	zval *uri, *options;
 	zval rv;
-	yar_transport_t *factory;
+	const yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_request_t *request;
 	yar_response_t *response;
@@ -430,7 +430,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 	zval *calldata;
 	zend_ulong sequence;
 	yar_request_t *request;
-	yar_transport_t *factory;
+	const yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_transport_multi_interface_t *multi;
 

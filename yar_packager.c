@@ -30,10 +30,10 @@
 struct _yar_packagers_list {
 	unsigned int size;
 	unsigned int num;
-	yar_packager_t **packagers;
+	const yar_packager_t **packagers;
 } yar_packagers_list;
 
-PHP_YAR_API yar_packager_t * php_yar_packager_get(char *name, int nlen) /* {{{ */ {
+PHP_YAR_API const yar_packager_t * php_yar_packager_get(char *name, int nlen) /* {{{ */ {
     int i = 0;
 	for (;i<yar_packagers_list.num;i++) {
 		if (strncasecmp(yar_packagers_list.packagers[i]->name, name, nlen) == 0) {
@@ -44,14 +44,14 @@ PHP_YAR_API yar_packager_t * php_yar_packager_get(char *name, int nlen) /* {{{ *
 	return NULL;
 } /* }}} */
 
-PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager) /* {{{ */ {
+PHP_YAR_API int php_yar_packager_register(const yar_packager_t *packager) /* {{{ */ {
 
 	if (!yar_packagers_list.size) {
 	   yar_packagers_list.size = 5;
-	   yar_packagers_list.packagers = (yar_packager_t **)malloc(sizeof(yar_packager_t *) * yar_packagers_list.size);
+	   yar_packagers_list.packagers = (const yar_packager_t **)malloc(sizeof(yar_packager_t *) * yar_packagers_list.size);
 	} else if (yar_packagers_list.num == yar_packagers_list.size) {
 	   yar_packagers_list.size += 5;
-	   yar_packagers_list.packagers = (yar_packager_t **)realloc(yar_packagers_list.packagers, sizeof(yar_packager_t *) * yar_packagers_list.size);
+	   yar_packagers_list.packagers = (const yar_packager_t **)realloc(yar_packagers_list.packagers, sizeof(yar_packager_t *) * yar_packagers_list.size);
 	}
 	yar_packagers_list.packagers[yar_packagers_list.num] = packager;
 
@@ -61,7 +61,7 @@ PHP_YAR_API int php_yar_packager_register(yar_packager_t *packager) /* {{{ */ {
 zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg) /* {{{ */ {
 	char header[8];
 	smart_str buf = {0};
-	yar_packager_t *packager = packager_name ?
+	const yar_packager_t *packager = packager_name ?
 		php_yar_packager_get(packager_name, strlen(packager_name)) : YAR_G(packager);
 
 	if (!packager) {
@@ -85,7 +85,7 @@ zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg)
 
 zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
     char *pack_info = content; /* 4 bytes, last byte is version */
-	yar_packager_t *packager;
+	const yar_packager_t *packager;
 
 	content = content + 8;
     len -= 8;
@@ -118,7 +118,7 @@ YAR_STARTUP_FUNCTION(packager) /* {{{ */ {
 } /* }}} */
 
 YAR_ACTIVATE_FUNCTION(packager) /* {{{ */ {
-	yar_packager_t *packager = php_yar_packager_get(YAR_G(default_packager), strlen(YAR_G(default_packager)));
+	const yar_packager_t *packager = php_yar_packager_get(YAR_G(default_packager), strlen(YAR_G(default_packager)));
 
     if (packager) {
 		YAR_G(packager) = packager;
