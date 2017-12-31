@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2017-07-27</date>
- <time>18:30:00</time>
+ <date>2017-12-31</date>
+ <time>12:25:00</time>
  <version>
-  <release>2.0.3</release>
-  <api>2.0.3</api>
+  <release>2.0.4</release>
+  <api>2.0.4</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,8 +28,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed bug #74867 (segment fault when use yar persistent call twice remote function)
-  - Fixed PHP-7.2 Compatibility
+  - Implemented FR #108 (Allow setting custom headers)
+  - Clenup for 7.2
  </notes>
  <contents> 
   <dir name="/"> 
@@ -120,6 +120,23 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2017-12-31</date> 
+   <version> 
+    <release>2.0.4</release> 
+    <api>2.0.4</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Implemented FR #108 (Allow setting custom headers)
+    - Clenup for 7.2
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2017-03-15</date> 
    <version> 
     <release>2.0.3</release> 
@@ -135,7 +152,6 @@
     - Fixed PHP-7.2 Compatibility
    </notes> 
   </release> 
-
   <release> 
    <date>2017-03-15</date> 
    <version> 
