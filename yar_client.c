@@ -200,6 +200,20 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 
 			}
 		}
+		case YAR_OPT_RESOLVE:{
+			if (!verified) {
+				zval *protocol = zend_read_property(yar_client_ce, client, ZEND_STRL("_protocol"), 0, &rv);
+				verified = 1;
+				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
+					php_error_docref(NULL, E_WARNING, "resolve only works with HTTP protocol");
+					return 0;
+				}
+				if (IS_ARRAY != Z_TYPE_P(value)) {
+					php_error_docref(NULL, E_WARNING, "expects an array as resolve value");
+					return 0;
+				}
+			}
+		}
 		case YAR_OPT_TIMEOUT:
 		case YAR_OPT_CONNECT_TIMEOUT:
 		{

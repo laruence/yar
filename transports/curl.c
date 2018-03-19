@@ -256,6 +256,16 @@ regular_link:
 				data->headers = curl_slist_append(data->headers, Z_STRVAL_P(val));
 			}ZEND_HASH_FOREACH_END();
 		}
+		zval *resolve =zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_RESOLVE);
+		if (resolve){
+			zval *val;
+			struct curl_slist  *slist = NULL;
+			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(resolve), val) {
+				if (Z_TYPE_P(val) != IS_STRING) continue;
+				slist = curl_slist_append(slist, Z_STRVAL_P(val));
+			}ZEND_HASH_FOREACH_END();
+			curl_easy_setopt(data->cp, CURLOPT_RESOLVE, slist);
+		}
 	}
 
 	curl_easy_setopt(data->cp, CURLOPT_HTTPHEADER, data->headers);
