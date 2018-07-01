@@ -1,4 +1,3 @@
-dnl $Id$
 dnl config.m4 for extension yar
 
 PHP_ARG_ENABLE(yar, whether to enable yar support,

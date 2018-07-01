@@ -17,8 +17,6 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id$ */
-
 #ifndef PHP_YAR_EXCEPTION_H
 #define PHP_YAR_EXCEPTION_H
 
