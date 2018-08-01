@@ -62,7 +62,7 @@ int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, l
 	int err;
 
 	tv.tv_sec = (ulong)(YAR_G(connect_timeout) / 1000);
-	tv.tv_usec = (ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) & 1000) * 1000 : 0);
+	tv.tv_usec = (ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) % 1000) * 1000 : 0);
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
