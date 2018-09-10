@@ -50,7 +50,6 @@ yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {
 	header->magic_num = ntohl(header->magic_num);
 
 	if (header->magic_num != YAR_PROTOCOL_MAGIC_NUM) {
-		header->magic_num = htonl(header->magic_num);
 		return NULL;
 	}
 
