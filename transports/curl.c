@@ -448,7 +448,7 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 #if PHP_VERSION_ID < 70300
 	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0);
 #else
-	php_yar_protocol_render(&header, request->id, ZSTR_VAL(data->host->user), ZSTR_VAL(data->host->pass), ZSTR_LEN(payload), 0);
+	php_yar_protocol_render(&header, request->id, data->host->user? ZSTR_VAL(data->host->user) : NULL, data->host->pass? ZSTR_VAL(data->host->pass) : NULL, ZSTR_LEN(payload), 0);
 #endif
 
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
