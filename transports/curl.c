@@ -372,6 +372,10 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 			convert_to_long_ex(pzval);
 			self->setopt(self, YAR_OPT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
 		}
+		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_CONNECT_TIMEOUT))) {
+			convert_to_long_ex(pzval);
+			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
+		}
 	}
 
 	response = php_yar_response_instance();
@@ -469,8 +473,19 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 	CURL *cp = data->cp;
 	
     switch (type) {
-		case YAR_OPT_TIMEOUT: 
-			curl_easy_setopt(cp, CURLOPT_TIMEOUT, *(long *)value);
+		case YAR_OPT_TIMEOUT:
+#if LIBCURL_VERSION_NUM > 0x071002
+			curl_easy_setopt(cp, CURLOPT_TIMEOUT_MS, *(long *) value);
+#else
+			curl_easy_setopt(cp, CURLOPT_TIMEOUT, ((ulong)(*(long *)value) / 1000));
+#endif
+        break;
+        case YAR_OPT_CONNECT_TIMEOUT:
+#if LIBCURL_VERSION_NUM > 0x071002
+			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, *(long *) value);
+#else
+			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, ((ulong)(*(long *)value) / 1000));
+#endif
 		break;
 		default:
 		    return 0;
