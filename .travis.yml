@@ -4,6 +4,8 @@ php:
   - 7.0
   - 7.1
   - 7.2
+  - 7.3
+  - 7.4
 
 notifications:
   email: false
@@ -17,4 +19,4 @@ before_script:
     - ./travis/compile.sh
 
 # Run PHPs run-tests.php 
-script: make test
+script: TEST_PHP_ARGS="--show-diff" make test
