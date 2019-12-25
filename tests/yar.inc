@@ -13,7 +13,7 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$tmp = getenv('TEST_PHP_ARGS');
 	if ($tmp) {
-		$cmd_args .= $tmp;
+		//$cmd_args .= $tmp;
 	}
 
 	$descriptorspec = array(
