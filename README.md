@@ -4,7 +4,8 @@
 Light, concurrent RPC framework for PHP(c, java etc will be supported soon)
 
 ## Requirement
-- PHP 5.2+
+- PHP 7.0+  (master branch))
+- PHP 5.2+  ([php5 branch](https://github.com/laruence/yar/tree/php5))
 - Curl
 - Json
 - Msgpack (Optional)
