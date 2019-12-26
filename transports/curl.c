@@ -768,7 +768,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			 * }
 			 */
 			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) % 1000) * 1000 : 0);
 
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (return_code > 0) {
