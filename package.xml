@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2018-12-21</date>
- <time>11:00:00</time>
+ <date>2019-12-26</date>
+ <time>14:00:00</time>
  <version>
-  <release>2.0.5</release>
-  <api>2.0.5</api>
+  <release>2.0.6</release>
+  <api>2.0.6</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,8 +28,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed PHP-7.3 Compatibility
-  - Fixed crash in php_yar_curl_send
+  - Fixed PHP-7.4 compatiblity
  </notes>
  <contents> 
   <dir name="/"> 
@@ -120,6 +119,22 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2019-12-26</date> 
+   <version> 
+    <release>2.0.6</release> 
+    <api>2.0.6</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">PHP License</license> 
+   <notes>
+    - Fixed PHP-7.4 Compatibility
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2018-12-21</date> 
    <version> 
     <release>2.0.5</release> 
@@ -135,7 +150,6 @@
     - Fixed crash in php_yar_curl_send
    </notes> 
   </release> 
-
   <release> 
    <date>2017-12-31</date> 
    <version> 
