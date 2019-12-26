@@ -241,47 +241,54 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 					if (precv && precv->opcode == ZEND_RECV_INIT
 						   	&& precv->op2_type != IS_UNUSED
 							) {
-						zval zv, zv_copy;
-						int use_copy;
-						ZVAL_DUP(&zv, RT_CONSTANT(&fptr->op_array, precv->op2));
-#if PHP_VERSION_ID < 70100
-						zval_update_constant_ex(&zv, 1, fptr->common.scope);
+#if PHP_VERSION_ID < 70400
+						zval *zv = RT_CONSTANT(&fptr->op_array, precv->op2);
 #else
-						zval_update_constant_ex(&zv, fptr->common.scope);
+						zval *zv = RT_CONSTANT(precv, precv->op2);
 #endif
-						if (Z_TYPE(zv) == IS_TRUE) {
+
+						if (Z_TYPE_P(zv) == IS_TRUE) {
                             memcpy(offset, "true", 4);
                             offset += 4;
-                        } else if (Z_TYPE(zv) == IS_FALSE) {
+                        } else if (Z_TYPE_P(zv) == IS_FALSE) {
 							memcpy(offset, "false", 5);
 							offset += 5;
-						} else if (Z_TYPE(zv) == IS_NULL) {
+						} else if (Z_TYPE_P(zv) == IS_NULL) {
 							memcpy(offset, "NULL", 4);
 							offset += 4;
-						} else if (Z_TYPE(zv) == IS_STRING) {
+						} else if (Z_TYPE_P(zv) == IS_STRING) {
 							*(offset++) = '\'';
-							REALLOC_BUF_IF_EXCEED(buf, offset, length, MIN(Z_STRLEN(zv), 10));
-							memcpy(offset, Z_STRVAL(zv), MIN(Z_STRLEN(zv), 10));
-							offset += MIN(Z_STRLEN(zv), 10);
-							if (Z_STRLEN(zv) > 10) {
+							REALLOC_BUF_IF_EXCEED(buf, offset, length, MIN(Z_STRLEN_P(zv), 10));
+							memcpy(offset, Z_STRVAL_P(zv), MIN(Z_STRLEN_P(zv), 10));
+							offset += MIN(Z_STRLEN_P(zv), 10);
+							if (Z_STRLEN_P(zv) > 10) {
 								*(offset++) = '.';
 								*(offset++) = '.';
 								*(offset++) = '.';
 							}
 							*(offset++) = '\'';
-						} else if (Z_TYPE(zv) == IS_ARRAY) {
+						} else if (Z_TYPE_P(zv) == IS_ARRAY) {
 							memcpy(offset, "Array", 5);
 							offset += 5;
 						} else {
-							use_copy = zend_make_printable_zval(&zv, &zv_copy);
+#if PHP_VERSION_ID < 70400
+							int use_copy;
+							zval zv_copy;
+							use_copy = zend_make_printable_zval(zv, &zv_copy);
 							REALLOC_BUF_IF_EXCEED(buf, offset, length, Z_STRLEN(zv_copy));
 							memcpy(offset, Z_STRVAL(zv_copy), Z_STRLEN(zv_copy));
 							offset += Z_STRLEN(zv_copy);
 							if (use_copy) {
 								zval_dtor(&zv_copy);
 							}
+#else
+							zend_string *tmp_zv_str;
+							zend_string *zv_str = zval_get_tmp_string(zv, &tmp_zv_str);
+							REALLOC_BUF_IF_EXCEED(buf, offset, length, ZSTR_LEN(zv_str));
+							memcpy(offset, ZSTR_VAL(zv_str), ZSTR_LEN(zv_str));
+							zend_tmp_string_release(tmp_zv_str);
+#endif
 						}
-						zval_ptr_dtor(&zv);
 					}
 				} else {
 					memcpy(offset, "NULL", 4);
