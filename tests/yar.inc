@@ -13,7 +13,7 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$tmp = getenv('TEST_PHP_ARGS');
 	if ($tmp) {
-		$cmd_args .= $tmp;
+		/* $cmd_args .= $tmp; */
 	}
 
 	$descriptorspec = array(
@@ -29,9 +29,6 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 	} else {
 		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
 
-		if (getenv('TRAVIS')) {
-			var_dump($cmd);
-		}
 		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
 	}
 	
