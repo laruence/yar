@@ -61,8 +61,8 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
 	zend_bool debug;
 	zend_bool expose_info;
 	zend_bool allow_persistent;
-	ulong timeout;
-	ulong connect_timeout;
+	zend_ulong timeout;
+	zend_ulong connect_timeout;
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS

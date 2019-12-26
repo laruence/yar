@@ -27,7 +27,7 @@
 #endif
 
 typedef struct _yar_call_data {
-	ulong sequence;
+	zend_ulong sequence;
 	zend_string *uri;
 	zend_string *method;
 	zval callback;

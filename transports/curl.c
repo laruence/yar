@@ -291,12 +291,12 @@ regular_link:
 #if LIBCURL_VERSION_NUM > 0x071002
 	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout));
 #else
-	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, (ulong)(YAR_G(connect_timeout) / 1000));
+	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, (zend_ulong)(YAR_G(connect_timeout) / 1000));
 #endif
 #if LIBCURL_VERSION_NUM > 0x071002
 	curl_easy_setopt(cp, CURLOPT_TIMEOUT_MS, YAR_G(timeout));
 #else
-	curl_easy_setopt(cp, CURLOPT_TIMEOUT, (ulong)(YAR_G(timeout) / 1000));
+	curl_easy_setopt(cp, CURLOPT_TIMEOUT, (zend_ulong)(YAR_G(timeout) / 1000));
 #endif
 
 #if LIBCURL_VERSION_NUM >= 0x071100
@@ -477,14 +477,14 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 #if LIBCURL_VERSION_NUM > 0x071002
 			curl_easy_setopt(cp, CURLOPT_TIMEOUT_MS, *(long *) value);
 #else
-			curl_easy_setopt(cp, CURLOPT_TIMEOUT, ((ulong)(*(long *)value) / 1000));
+			curl_easy_setopt(cp, CURLOPT_TIMEOUT, ((zend_ulong)(*(long *)value) / 1000));
 #endif
         break;
         case YAR_OPT_CONNECT_TIMEOUT:
 #if LIBCURL_VERSION_NUM > 0x071002
 			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, *(long *) value);
 #else
-			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, ((ulong)(*(long *)value) / 1000));
+			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, ((zend_ulong)(*(long *)value) / 1000));
 #endif
 		break;
 		default:
@@ -760,15 +760,15 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			 * if (curl_timeout == 0) {
 			 * 	  continue;
 			 * } else if (curl_timeout == -1) {
-			 *	  tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
-			 *    tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+			 *	  tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+			 *    tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 			 * } else {
 			 *    tv.tv_sec  =  curl_timeout / 1000;
 			 * 	  tv.tv_usec = (curl_timeout % 1000) * 1000;
 			 * }
 			 */
-			tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
-			tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (return_code > 0) {

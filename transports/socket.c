@@ -61,8 +61,8 @@ int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, l
 	char *persistent_key = NULL;
 	int err;
 
-	tv.tv_sec = (ulong)(YAR_G(connect_timeout) / 1000);
-	tv.tv_usec = (ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) % 1000) * 1000 : 0);
+	tv.tv_sec = (zend_ulong)(YAR_G(connect_timeout) / 1000);
+	tv.tv_usec = (zend_ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) % 1000) * 1000 : 0);
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
@@ -133,8 +133,8 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		return response;
 	}
 
-	tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 wait_io:
 	retval = php_select(fd+1, &rfds, NULL, NULL, &tv);
@@ -233,8 +233,8 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
-	tv.tv_sec = (ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
 
 	retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
