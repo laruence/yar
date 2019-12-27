@@ -10,7 +10,13 @@ ARG_ENABLE("yar", "enable yar support", "no");
 
 if (PHP_YAR != "no") {
 	if (CHECK_LIB("libcurl_a.lib;libcurl.lib", "yar") &&
-		CHECK_HEADER_ADD_INCLUDE("curl/easy.h", "CFLAGS_YAR")) {
+		CHECK_HEADER_ADD_INCLUDE("curl/easy.h", "CFLAGS_YAR") &&
+		SETUP_OPENSSL("yar") > 0 &&
+		CHECK_LIB("winmm.lib", "yar") &&
+		CHECK_LIB("wldap32.lib", "yar") &&
+		CHECK_LIB("normaliz.lib", "yar") &&
+		CHECK_LIB("libssh2.lib", "yar") &&
+		CHECK_LIB("nghttp2.lib", "yar")) {
 
 		ADD_EXTENSION_DEP("yar", "json");
 
