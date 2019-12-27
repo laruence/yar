@@ -12,8 +12,9 @@ define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ") {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$tmp = getenv('TEST_PHP_ARGS');
-	if ($tmp) {
-		/* $cmd_args .= $tmp; */
+
+	if ($tmp && !(bool)getenv('TRAVIS')) { /* --show-diff break tests after PHP-7.2 */
+		$cmd_args .= $tmp;
 	}
 
 	$descriptorspec = array(
