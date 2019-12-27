@@ -37,7 +37,7 @@ typedef struct _yar_response {
 yar_response_t * php_yar_response_instance();
 int php_yar_response_bind_request(yar_response_t *response, struct _yar_request *request);
 void php_yar_response_alter_body(yar_response_t *response, zend_string *body, int method); 
-void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len); 
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, unsigned len); 
 void php_yar_response_set_exception(yar_response_t *response, zend_object *ex);
 void php_yar_response_set_retval(yar_response_t *response, zval *retval);
 void php_yar_response_map_retval(yar_response_t *response, zval *ret);

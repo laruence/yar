@@ -41,7 +41,7 @@ void php_yar_response_alter_body(yar_response_t *response, zend_string *body, in
 	response->out = body;
 } /* }}} */
 
-void php_yar_response_set_error(yar_response_t *response, int type, char *message, uint len) /* {{{ */ {
+void php_yar_response_set_error(yar_response_t *response, int type, char *message, unsigned len) /* {{{ */ {
 	ZVAL_STRINGL(&response->err, message, len);
 	response->status = type;
 } /* }}} */

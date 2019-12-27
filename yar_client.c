@@ -324,7 +324,7 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 	zval code, retval, retval_ptr;
 	zval callinfo, *callback, *func_params;
 	zend_bool bailout = 0;
-	uint params_count, i;
+	unsigned params_count, i;
 
 	if (calldata) {
 		/* data callback */
@@ -717,7 +717,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	zval *callstack;
 	zval *callback = NULL, *error_callback = NULL;
 	zval *status;
-	uint ret = 0;
+	unsigned ret = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|zz", &callback, &error_callback) == FAILURE) {
 		return;
