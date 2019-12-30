@@ -43,7 +43,7 @@ extern zend_class_entry *yar_client_transport_exception_ce;
 extern zend_class_entry *yar_client_packager_exception_ce;
 extern zend_class_entry *yar_client_protocol_exception_ce;
 
-extern void (*zend_orig_error_cb)(int, const char *, const uint, const char *, va_list);
+extern void (*zend_orig_error_cb)(int, const char *, const unsigned, const char *, va_list);
  
 void php_yar_error_ex(struct _yar_response *response, int type, const char *format, va_list args);
 void php_yar_error(struct _yar_response *response, int type, const char *format, ...);

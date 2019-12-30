@@ -359,7 +359,7 @@ static void php_yar_curl_prepare(yar_transport_interface_t* self) /* {{{ */ {
 
 yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t *request) /* {{{ */ {
 	char *msg;
-	uint len;
+	unsigned len;
 	CURLcode ret;
 	yar_response_t *response;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
@@ -548,7 +548,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 	do {
 		msg = curl_multi_info_read(multi->cm, &msg_in_sequence);
 		if (msg && msg->msg == CURLMSG_DONE) {
-			uint found = 0;
+			unsigned found = 0;
 			yar_transport_interface_t *handle = multi->chs, *q = NULL;
 
 			while (handle) {
@@ -577,7 +577,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 					if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
 						char buf[128];
-						uint len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
+						unsigned len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
 
 						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 
