@@ -59,6 +59,8 @@ static void php_yar_calldata_dtor(zend_resource *rsrc) /* {{{ */ {
 		zend_string_release(entry->method);
 	}
 
+	zval_ptr_dtor(&entry->callback);
+	zval_ptr_dtor(&entry->ecallback);
 	zval_ptr_dtor(&entry->parameters);
 	zval_ptr_dtor(&entry->options);
 

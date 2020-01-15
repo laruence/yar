@@ -701,7 +701,6 @@ PHP_METHOD(yar_concurrent_client, call) {
 PHP_METHOD(yar_concurrent_client, reset) {
 	zval *callstack;
 
-
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
 	if (Z_ISNULL_P(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
 		RETURN_TRUE;
