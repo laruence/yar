@@ -243,7 +243,7 @@ regular_link:
 		data->headers = curl_slist_append(data->headers, "Connection: close");
 	}
 
-#if PHP_VERSION_ID < 70400
+#if PHP_VERSION_ID < 70300
 	snprintf(buf, sizeof(buf), "Hostname: %s", url->host);
 #else
 	snprintf(buf, sizeof(buf), "Hostname: %s", ZSTR_VAL(url->host));
