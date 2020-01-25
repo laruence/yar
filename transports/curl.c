@@ -243,7 +243,7 @@ regular_link:
 		data->headers = curl_slist_append(data->headers, "Connection: close");
 	}
 
-	snprintf(buf, sizeof(buf), "Hostname: %s", url->host);
+	snprintf(buf, sizeof(buf), "Hostname: %s", ZSTR_VAL(url->host));
 	buf[sizeof(buf) - 1] = '\0';
 	data->headers = curl_slist_append(data->headers, buf);
 
