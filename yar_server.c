@@ -519,6 +519,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 				for (; i < count; i++) {
 					zval_ptr_dtor(&func_params[i]);
 				}
+				efree(func_params);
 			}
 			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ce->name, request->method);
 			goto response;
@@ -534,6 +535,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 			for (; i < count; i++) {
 				zval_ptr_dtor(&func_params[i]);
 			}
+			efree(func_params);
 		}
 	} zend_catch {
 		bailout = 1;
