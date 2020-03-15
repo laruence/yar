@@ -280,17 +280,24 @@ regular_link:
 	 * Added in 7.10 */
 	curl_easy_setopt(cp, CURLOPT_NOSIGNAL, 1);
 #endif
+
+
 	curl_easy_setopt(cp, CURLOPT_DNS_USE_GLOBAL_CACHE, 1);
 	/* let's cache the DNS result 5 mins */
 	curl_easy_setopt(cp, CURLOPT_DNS_CACHE_TIMEOUT, 300);
 	curl_easy_setopt(cp, CURLOPT_TCP_NODELAY, 0);
 
-#if LIBCURL_VERSION_NUM > 0x070E01
-	/* added in 7.14.1 */
 	if (!data->persistent) {
+#if LIBCURL_VERSION_NUM > 0x070E01
+		/* Added in 7.14.1 */
 		curl_easy_setopt(cp, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
-	}
 #endif
+	} else {
+#if LIBCURL_VERSION_NUM >= 0x072100
+		/* Available since 7.33.0 */
+		curl_easy_setopt(cp, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+#endif
+	}
 
 #if LIBCURL_VERSION_NUM > 0x071002
 	curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT_MS, YAR_G(connect_timeout));

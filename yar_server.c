@@ -400,7 +400,6 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 	PHPWRITE((char *)&header, sizeof(yar_header_t));
 	if (ZSTR_LEN(payload)) {
 		PHPWRITE(ZSTR_VAL(payload), ZSTR_LEN(payload));
-		return;
 	}
 
 	return;
