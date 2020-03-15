@@ -121,7 +121,7 @@ void php_yar_curl_plink_dtor(void *ptr) /* {{{ */ {
 	for (p = (yar_curl_plink_t *)ptr; p;) {
 		q = p->next;
 		curl_easy_cleanup((CURL *)p->cp);
-		free(p);
+		efree(p);
 		p = q;
 	}
 }
@@ -148,7 +148,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 		size_t key_len = snprintf(buf, sizeof(buf), "yar_%s", ZSTR_VAL(address));
 
 		data->persistent = 1;
-		if ((le = zend_hash_str_find_ptr(&EG(persistent_list), buf, key_len)) == NULL) {
+		if ((le = zend_hash_str_find_ptr(&EG(regular_list), buf, key_len)) == NULL) {
 			yar_persistent_le_t *con;
 			yar_curl_plink_t *plink;
 			zend_resource new_le;
@@ -159,14 +159,14 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 				return 0;
 			}
 
-			plink = malloc(sizeof(yar_curl_plink_t));
+			plink = emalloc(sizeof(yar_curl_plink_t));
 			if (!plink) {
 				goto regular_link;
 			}
 
-			con = malloc(sizeof(yar_persistent_le_t));
+			con = emalloc(sizeof(yar_persistent_le_t));
 			if (!con) {
-				free(plink);
+				efree(plink);
 				goto regular_link;
 			}
 
@@ -180,11 +180,12 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 			new_le.type = le_plink;
 			new_le.ptr = con;
 
-			if (zend_hash_str_update_mem(&EG(persistent_list), buf, key_len, (void *)&new_le, sizeof(new_le)) != NULL) {
+			if (zend_hash_str_update_mem(&EG(regular_list), buf, key_len, (void *)&new_le, sizeof(new_le)) != NULL) {
 				data->plink = plink;
+				data->cp = plink->cp;
 			} else {
 				data->persistent = 0;
-				free(plink);
+				efree(plink);
 			}
 		} else {
 			yar_curl_plink_t *plink;
@@ -207,7 +208,7 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 					return 0;
 				}
 
-				plink = malloc(sizeof(yar_curl_plink_t));
+				plink = emalloc(sizeof(yar_curl_plink_t));
 				if (plink) {
 					plink->next = (yar_curl_plink_t *)con->ptr;
 					plink->in_use = 1;
@@ -295,7 +296,7 @@ regular_link:
 	} else {
 #if LIBCURL_VERSION_NUM >= 0x072100
 		/* Available since 7.33.0 */
-		curl_easy_setopt(cp, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+		//curl_easy_setopt(cp, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
 #endif
 	}
 

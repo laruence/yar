@@ -265,12 +265,10 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		return 0;
 	}
 
-	if (YAR_G(allow_persistent)) {
-		if (options) {
-			zval *flag = php_yar_client_get_opt(options, YAR_OPT_PERSISTENT);
-			if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
-				flags |= YAR_PROTOCOL_PERSISTENT;
-			}
+	if (options) {
+		zval *flag = php_yar_client_get_opt(options, YAR_OPT_PERSISTENT);
+		if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
+			flags |= YAR_PROTOCOL_PERSISTENT;
 		}
 	}
 
@@ -448,12 +446,10 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 
 		transport = factory->init();
 
-		if (YAR_G(allow_persistent)) {
-			if (!Z_ISUNDEF(entry->options)) {
-				zval *flag = php_yar_client_get_opt(&entry->options, YAR_OPT_PERSISTENT);
-				if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
-					flags |= YAR_PROTOCOL_PERSISTENT;
-				}
+		if (!Z_ISUNDEF(entry->options)) {
+			zval *flag = php_yar_client_get_opt(&entry->options, YAR_OPT_PERSISTENT);
+			if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
+				flags |= YAR_PROTOCOL_PERSISTENT;
 			}
 		}
 
