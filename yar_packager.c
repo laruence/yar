@@ -90,7 +90,7 @@ zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret
 	content = content + 8;
     len -= 8;
 	*(pack_info + 7) = '\0';
-	packager = php_yar_packager_get(pack_info, strlen(pack_info));
+	packager = php_yar_packager_get(pack_info, 7);
 
 	if (!packager) {
 		spprintf(msg, 0, "unsupported packager '%s'", pack_info);
