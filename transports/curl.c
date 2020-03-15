@@ -124,6 +124,7 @@ void php_yar_curl_plink_dtor(void *ptr) /* {{{ */ {
 		efree(p);
 		p = q;
 	}
+	efree(ptr);
 }
 /* }}} */
 
