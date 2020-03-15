@@ -48,11 +48,11 @@ dnl }}}
 
 if test "$PHP_YAR" != "no"; then
   if test -r $PHP_CURL/include/curl/easy.h; then
-    CURL_DIR=$PHP_CURL
+    CURL_DIR=$PHP_CURL/include
   else
     AC_MSG_CHECKING(for cURL in default path)
-    for i in /usr/local /usr; do
-      if test -r $i/include/curl/easy.h; then
+    for i in /usr/include /usr/local/include /usr/include/x86_64-linux-gnu; do
+      if test -r $i/curl/easy.h; then
         CURL_DIR=$i
         AC_MSG_RESULT(found in $i)
         break
@@ -65,9 +65,22 @@ if test "$PHP_YAR" != "no"; then
     AC_MSG_ERROR(Please reinstall the libcurl distribution - easy.h should be in <curl-dir>/include/curl/)
   fi
   
-  PHP_ADD_INCLUDE($CURL_DIR/include)
+  PHP_ADD_INCLUDE($CURL_DIR)
   PHP_EVAL_LIBLINE($CURL_LIBS, YAR_SHARED_LIBADD)
-  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_DIR/$PHP_LIBDIR, YAR_SHARED_LIBADD)
+
+  if test -r $PHP_CURL/$PHP_LIBDIR/${CURL_LIB_NAME}.${SHLIB_SUFFIX_NAME} -o -r $PHP_CURL/$PHP_LIBDIR/${CURL_LIB_NAME}.a; then
+    CURL_LIB_DIR=$PHP_CURL/$PHP_LIBDIR
+  else
+    AC_MSG_CHECKING(for lua library in default path)
+    for i in /usr/$PHP_LIBDIR /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu; do
+      if test -r $i/${CURL_LIB_NAME}.${SHLIB_SUFFIX_NAME} -o -r $i/${CURL_LIB_NAME}.a; then
+        CURL_LIB_DIR=$i
+        AC_MSG_RESULT(found in $i)
+        break
+      fi
+    done
+  fi
+  PHP_ADD_LIBRARY_WITH_PATH(curl, $CURL_LIB_DIR, YAR_SHARED_LIBADD)
 
   AC_YAR_EPOLL()
 

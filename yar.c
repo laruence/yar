@@ -156,9 +156,9 @@ PHP_MINFO_FUNCTION(yar)
  */
 #if ZEND_MODULE_API_NO >= 20050922
 zend_module_dep yar_deps[] = {
-	ZEND_MOD_REQUIRED("json")
+	ZEND_MOD_OPTIONAL("json")
 #ifdef ENABLE_MSGPACK
-	ZEND_MOD_REQUIRED("msgpack")
+	ZEND_MOD_OPTIONAL("msgpack")
 #endif
 	{NULL, NULL, NULL}
 };
