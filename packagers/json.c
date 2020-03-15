@@ -38,13 +38,9 @@ int php_yar_packager_json_pack(const yar_packager_t *self, zval *pzval, smart_st
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_json_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
-	zval *return_value;
-
-	php_json_decode(rret, content, len, 1, 512);
-
-	return_value = rret;
-	return return_value;
+zval * php_yar_packager_json_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
+	php_json_decode(ret, content, len, 1, 512);
+	return ret;
 } /* }}} */
 
 const yar_packager_t yar_packager_json = {

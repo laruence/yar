@@ -37,12 +37,10 @@ int php_yar_packager_msgpack_pack(const yar_packager_t *self, zval *pzval, smart
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_msgpack_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
-	zval *return_value;
-	ZVAL_NULL(rret);
+zval * php_yar_packager_msgpack_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
+	ZVAL_NULL(ret);
 	php_msgpack_unserialize(rret, content, len);
-	return_value = rret;
-	return return_value;
+	return ret;
 } /* }}} */
 
 const yar_packager_t yar_packager_msgpack = {

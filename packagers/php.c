@@ -38,23 +38,22 @@ int php_yar_packager_php_pack(const yar_packager_t *self, zval *pzval, smart_str
 	return 1;
 } /* }}} */
 
-zval * php_yar_packager_php_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
+zval * php_yar_packager_php_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
 	zval *return_value;
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
 	p = (const unsigned char*)content;
 
 	PHP_VAR_UNSERIALIZE_INIT(var_hash);
-	if (!php_var_unserialize(rret, &p, p + len,  &var_hash)) {
-		zval_ptr_dtor(rret);
+	if (!php_var_unserialize(ret, &p, p + len,  &var_hash)) {
+		zval_ptr_dtor(ret);
 		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 		spprintf(msg, 0, "unpack error at offset %ld of %ld bytes", (long)((char*)p - content), len);
 		return NULL;
 	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
-	return_value = rret;
-	return return_value;
+	return ret;
 } /* }}} */
 
 const yar_packager_t yar_packager_php = {
