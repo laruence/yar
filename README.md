@@ -111,6 +111,23 @@ $client->SetOpt(YAR_OPT_HEADER, array("hd1: val", "hd2: val"));  //Custom header
 $result = $client->some_method("parameter");
 ?>
 ```
+
+### Persistent call
+if YAR_OPT_PERSISTENT is set to true, then Yar is able to use HTTP keep-alive to speedup repeated calls to a same address, the link will be released at the end of the PHP request lifecycle.
+```php
+<?php
+$client = new Yar_Client("http://host/api/");
+$client->SetOpt(YAR_OPT_PERSISTENT, 1);
+
+$result = $client->some_method("parameter");
+
+/* The following calls will speed up due to keep-alive */
+$result = $client->some_other_method("parameter");
+$result = $client->some_other_method("parameter");
+$result = $client->some_other_method("parameter");
+?>
+```
+
 ### Concurrent call
 ```php
 <?php
