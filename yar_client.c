@@ -322,7 +322,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 
 int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, yar_response_t *response) /* {{{ */ {
 	zval code, retval, retval_ptr;
-	zval callinfo, *callback, *func_params;
+	zval callinfo, *callback, func_params[3];
 	zend_bool bailout = 0;
 	unsigned params_count, i;
 
@@ -382,16 +382,13 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 	}
 
 	if (calldata && (status != YAR_ERR_OKEY)) {
-		func_params = safe_emalloc(sizeof(zval), 3, 0);
 	    ZVAL_COPY_VALUE(&func_params[0], &code);
 	    ZVAL_COPY_VALUE(&func_params[1], &retval);
 	    ZVAL_COPY_VALUE(&func_params[2], &callinfo);
 	} else if (calldata) {
-		func_params = safe_emalloc(sizeof(zval), 2, 0);
 	    ZVAL_COPY_VALUE(&func_params[0], &retval);
 	    ZVAL_COPY_VALUE(&func_params[1], &callinfo);
 	} else {
-		func_params = safe_emalloc(sizeof(zval), 2, 0);
 	    ZVAL_NULL(&func_params[0]);
 	    ZVAL_NULL(&func_params[1]);
 	}
@@ -402,7 +399,6 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 			for (i = 0; i < params_count; i++) {
 				zval_ptr_dtor(&func_params[i]);	
 			}
-			efree(func_params);
 			if (calldata) {
 				php_error_docref(NULL, E_WARNING, "call to callback failed for request: '%s'", ZSTR_VAL(calldata->method));
 			} else {
@@ -421,7 +417,6 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 	for (i = 0; i < params_count; i++) {
 		zval_ptr_dtor(&func_params[i]);	
 	}
-	efree(func_params);
     return bailout? 0 : 1;
 } /* }}} */
 
