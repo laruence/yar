@@ -39,7 +39,7 @@ int php_yar_packager_msgpack_pack(const yar_packager_t *self, zval *pzval, smart
 
 zval * php_yar_packager_msgpack_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
 	ZVAL_NULL(ret);
-	php_msgpack_unserialize(rret, content, len);
+	php_msgpack_unserialize(ret, content, len);
 	return ret;
 } /* }}} */
 
