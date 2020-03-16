@@ -731,21 +731,20 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 		do {
 #ifdef ENABLE_EPOLL
 			/* timeout is milliseconds */
-			nfds = epoll_wait(epfd, events, 16, 500);
+			nfds = epoll_wait(epfd, events, 16, YAR_G(timeout));
 			if (nfds > 0) {
 				int i;
 				for (i=0; i<nfds; i++) {
 					if (events[i].events & EPOLLIN) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, CURL_CSELECT_IN, events[i].data.fd, &running_count);
+						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_IN,  &running_count);
 # else
 						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif
 					}
-
 					if (events[i].events & EPOLLOUT) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, CURL_CSELECT_OUT, events[i].data.fd, &running_count);
+						curl_multi_socket_action(multi->cm, events[i].data.fd, events[i].data.fd, &running_count);
 # else
 						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif

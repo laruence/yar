@@ -22,7 +22,7 @@
 #ifndef PHP_YAR_TRANSPORT_H
 #define PHP_YAR_TRANSPORT_H
 
-#if 0 && HAVE_EPOLL
+#if HAVE_EPOLL
 #define ENABLE_EPOLL
 #endif
 
