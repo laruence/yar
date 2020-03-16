@@ -37,6 +37,8 @@
 #include "yar_response.h"
 #include "yar_protocol.h"
 
+#include <curl/curl.h> /* For checking CUROPT_RESOLVE */
+
 zend_class_entry *yar_client_ce;
 zend_class_entry *yar_concurrent_client_ce;
 
@@ -162,33 +164,26 @@ static zval * php_yar_client_get_opt(zval *options, long type) /* {{{ */ {
 } /* }}} */
 
 static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ */ {
-	zend_bool verified = 0;
+	zval *options;
 	zval rv;
 
 	switch (type) {
-		case YAR_OPT_PACKAGER:
-		{
-			 verified = 1;
+		case YAR_OPT_PACKAGER: {
              if (IS_STRING != Z_TYPE_P(value)) {
 				 php_error_docref(NULL, E_WARNING, "expects a string packager name");
 				 return 0;
-			 }
+			}
 		}
-		case YAR_OPT_PERSISTENT:
-		{
-			if (!verified) {
-				verified = 1;
+		break;
+		case YAR_OPT_PERSISTENT: {
 				if (IS_LONG != Z_TYPE_P(value) && IS_TRUE != Z_TYPE_P(value) && IS_FALSE != Z_TYPE_P(value)) {
 					php_error_docref(NULL, E_WARNING, "expects a boolean persistent flag");
 					return 0;
 				}
-
-			}
 		}
+		break;
 		case YAR_OPT_HEADER: {
-			if (!verified) {
 				zval *protocol = zend_read_property(yar_client_ce, client, ZEND_STRL("_protocol"), 0, &rv);
-				verified = 1;
 				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
 					php_error_docref(NULL, E_WARNING, "header only works with HTTP protocol");
 					return 0;
@@ -197,13 +192,10 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 					php_error_docref(NULL, E_WARNING, "expects an array as header value");
 					return 0;
 				}
-
-			}
 		}
+		break;
 		case YAR_OPT_RESOLVE:{
-			if (!verified) {
 				zval *protocol = zend_read_property(yar_client_ce, client, ZEND_STRL("_protocol"), 0, &rv);
-				verified = 1;
 				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
 					php_error_docref(NULL, E_WARNING, "resolve only works with HTTP protocol");
 					return 0;
@@ -212,35 +204,35 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 					php_error_docref(NULL, E_WARNING, "expects an array as resolve value");
 					return 0;
 				}
-			}
+#if LIBCURL_VERSION_NUM < 0x071503
+				/* Available since 7.21.3 */
+				php_error_docref(NULL, E_WARNING, "YAR_OPT_RESOLVE require libcurl 7.21.3 and above");
+				return 0;
+#endif
 		}
+		break;
 		case YAR_OPT_TIMEOUT:
-		case YAR_OPT_CONNECT_TIMEOUT:
-		{
-			zval *options;
-
-			if (!verified) {
-				if (IS_LONG != Z_TYPE_P(value)) {
-					php_error_docref(NULL, E_WARNING, "expects a long integer timeout value");
-					return 0;
-				}
+		case YAR_OPT_CONNECT_TIMEOUT: {
+			if (IS_LONG != Z_TYPE_P(value)) {
+				php_error_docref(NULL, E_WARNING, "expects a long integer timeout value");
+				return 0;
 			}
-
-			options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0, &rv);
-			if (IS_ARRAY != Z_TYPE_P(options)) {
-			    zval tmp_options;
-				array_init(&tmp_options);
-				zend_update_property(yar_client_ce, client, ZEND_STRL("_options"), &tmp_options);
-				zval_ptr_dtor(&tmp_options);
-			}
-
-			Z_TRY_ADDREF_P(value);
-			zend_hash_index_update(Z_ARRVAL_P(options), type, value);
-			break;
 		}
+		break;
 		default:
 			return 0;
 	}
+
+	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0, &rv);
+	if (IS_ARRAY != Z_TYPE_P(options)) {
+		zval tmp_options;
+		array_init(&tmp_options);
+		zend_update_property(yar_client_ce, client, ZEND_STRL("_options"), &tmp_options);
+		zval_ptr_dtor(&tmp_options);
+	}
+
+	Z_TRY_ADDREF_P(value);
+	zend_hash_index_update(Z_ARRVAL_P(options), type, value);
 
 	return 1;
 } /* }}} */

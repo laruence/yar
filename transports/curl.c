@@ -254,23 +254,25 @@ regular_link:
 	data->headers = curl_slist_append(data->headers, buf);
 
 	if (configs && IS_ARRAY == Z_TYPE_P(configs)) {
-		zval *headers = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_HEADER);
-		if (headers) {
+		zval *resolve, *headers;
+
+		if ((headers = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_HEADER))) {
 			zval *val;
 			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(headers), val) {
 				if (Z_TYPE_P(val) != IS_STRING) continue;
 				data->headers = curl_slist_append(data->headers, Z_STRVAL_P(val));
 			}ZEND_HASH_FOREACH_END();
 		}
-		zval *resolve =zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_RESOLVE);
-		if (resolve){
+		if ((resolve = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_RESOLVE))) {
+#if LIBCURL_VERSION_NUM >= 0x071503 /* Available since 7.21.3 */
 			zval *val;
-			struct curl_slist  *slist = NULL;
+			struct curl_slist *slist = NULL;
 			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(resolve), val) {
 				if (Z_TYPE_P(val) != IS_STRING) continue;
 				slist = curl_slist_append(slist, Z_STRVAL_P(val));
-			}ZEND_HASH_FOREACH_END();
+			} ZEND_HASH_FOREACH_END();
 			curl_easy_setopt(data->cp, CURLOPT_RESOLVE, slist);
+#endif
 		}
 	}
 
@@ -525,7 +527,7 @@ yar_transport_interface_t *php_yar_curl_init() /* {{{ */ {
 	self->data = data = ecalloc(1, sizeof(yar_curl_data_t));
 
 	/* snprintf(content_type, sizeof(content_type), "Content-Type: %s", YAR_G(content_type)); */
-	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar Rpc-" PHP_YAR_VERSION);
+	data->headers = curl_slist_append(data->headers, "User-Agent: PHP Yar RPC-" PHP_YAR_VERSION);
 	data->headers = curl_slist_append(data->headers, "Expect:");
 
 	self->open   	= php_yar_curl_open;

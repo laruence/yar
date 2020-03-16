@@ -1,5 +1,5 @@
 --TEST--
-Check for yar concurrent client with custom headers
+Check for YAR_OPT_PERSISTENT
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {

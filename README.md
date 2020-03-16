@@ -111,23 +111,6 @@ $client->SetOpt(YAR_OPT_HEADER, array("hd1: val", "hd2: val"));  //Custom header
 $result = $client->some_method("parameter");
 ?>
 ```
-
-### Persistent call
-if YAR_OPT_PERSISTENT is set to true, then Yar is able to use HTTP keep-alive to speedup repeated calls to a same address, the link will be released at the end of the PHP request lifecycle.
-```php
-<?php
-$client = new Yar_Client("http://host/api/");
-$client->SetOpt(YAR_OPT_PERSISTENT, 1);
-
-$result = $client->some_method("parameter");
-
-/* The following calls will speed up due to keep-alive */
-$result = $client->some_other_method("parameter");
-$result = $client->some_other_method("parameter");
-$result = $client->some_other_method("parameter");
-?>
-```
-
 ### Concurrent call
 ```php
 <?php
@@ -151,7 +134,34 @@ Yar_Concurrent_Client::loop("callback", "error_callback"); //send the requests,
                                                            //the error_callback is optional
 ?>
 ```
-    
+### Persistent call
+After Yar 2.1.0, if YAR_OPT_PERSISTENT is set to true, then Yar is able to use HTTP keep-alive to speedup repeated calls to a same address, the link will be released at the end of the PHP request lifecycle.
+```php
+<?php
+$client = new Yar_Client("http://host/api/");
+$client->SetOpt(YAR_OPT_PERSISTENT, 1);
+
+$result = $client->some_method("parameter");
+
+/* The following calls will speed up due to keep-alive */
+$result = $client->some_other_method1("parameter");
+$result = $client->some_other_method2("parameter");
+$result = $client->some_other_method3("parameter");
+?>
+```
+### Custom hostname resolving
+After Yar 2.1.0, if Yar runs on HTTP protocl, YAR_OPT_RESOLVE could be used to define custom hostname resolving.
+```php
+
+<?php
+$client = new Yar_Client("http://host/api/");
+
+$client->SetOpt(YAR_OPT_RESOLVE, "host:80:127.0.0.1");
+
+/* call goes to 127.0.0.1 */
+$result = $client->some_method("parameter");
+```
+
 ## Protocols
 ### Yar Header
    Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header

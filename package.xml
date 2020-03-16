@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2020-01-06</date>
- <time>15:00:00</time>
+ <date>2020-03-16</date>
+ <time>11:00:00</time>
  <version>
-  <release>2.0.7</release>
-  <api>2.0.7</api>
+  <release>2.1.0</release>
+  <api>2.1.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,7 +28,11 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Attempted to fix windows build
+  - YAR_OPT_PERSISTENT now make connection PHP request lifecycle
+  - Added YAR_OPT_RESOLVE
+  - Removed yar.allow_persistent
+  - Fixed issue #148 (memory leak in callback)
+  - Fixed issue #149 (malformed hostname was passed)
  </notes>
  <contents> 
   <dir name="/"> 
@@ -85,6 +89,7 @@
     <file name="019.phpt" role="test" />
     <file name="020.phpt" role="test" />
     <file name="021.phpt" role="test" />
+    <file name="022.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <dir name="htdocs">
