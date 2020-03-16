@@ -158,7 +158,7 @@ PHP_MINFO_FUNCTION(yar)
 zend_module_dep yar_deps[] = {
 	ZEND_MOD_OPTIONAL("json")
 #ifdef ENABLE_MSGPACK
-	ZEND_MOD_OPTIONAL("msgpack")
+	ZEND_MOD_REQUIRED("msgpack")
 #endif
 	{NULL, NULL, NULL}
 };
