@@ -96,8 +96,7 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 
 
 ## Client
-It's very easy for a PHP client to call remote RPC:
-
+It's very simple for a PHP client to call remote RPC:
 ### Synchronous call
 ```php
 <?php
@@ -152,7 +151,6 @@ $result = $client->some_other_method3("parameter");
 ### Custom hostname resolving
 After Yar 2.1.0, if Yar runs on HTTP protocl, YAR_OPT_RESOLVE could be used to define custom hostname resolving.
 ```php
-
 <?php
 $client = new Yar_Client("http://host/api/");
 
@@ -161,7 +159,6 @@ $client->SetOpt(YAR_OPT_RESOLVE, "host:80:127.0.0.1");
 /* call goes to 127.0.0.1 */
 $result = $client->some_method("parameter");
 ```
-
 ## Protocols
 ### Yar Header
    Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header
