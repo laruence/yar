@@ -97,6 +97,7 @@
      <file name="auth.php" role="test"/>
      <file name="302.php" role="test"/>
      <file name="rest.php" role="test"/>
+     <file name="internal.php" role="test"/>
     </dir>
    </dir>
    <dir name="tools">
