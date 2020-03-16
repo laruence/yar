@@ -709,6 +709,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	g.multi = multi->cm;
 	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
 	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETDATA, &g);
+	curl_multi_setopt(multi->cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
+	curl_multi_setopt(multi->cm, CURLMOPT_TIMERDATA, &g);
 # if LIBCURL_VERSION_NUM >= 0x071000
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_action(multi->cm, CURL_SOCKET_TIMEOUT, 0, &running_count));
 # else
@@ -737,14 +739,14 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				for (i=0; i<nfds; i++) {
 					if (events[i].events & EPOLLIN) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_IN,  &running_count);
+						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_IN, &running_count);
 # else
 						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif
 					}
 					if (events[i].events & EPOLLOUT) {
 # if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, events[i].data.fd, events[i].data.fd, &running_count);
+						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_OUT, &running_count);
 # else
 						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
 # endif

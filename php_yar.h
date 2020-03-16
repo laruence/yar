@@ -42,7 +42,7 @@ extern zend_module_entry yar_module_entry;
 # define ZEND_ACC_DTOR	0x0
 #endif
 
-#define PHP_YAR_VERSION  "2.1.1"
+#define PHP_YAR_VERSION  "2.1.2-dev"
 
 PHP_MINIT_FUNCTION(yar);
 PHP_MSHUTDOWN_FUNCTION(yar);
