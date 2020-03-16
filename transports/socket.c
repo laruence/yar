@@ -150,7 +150,7 @@ wait_io:
 	}
 
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
-		zval *retval, rret;
+		zval *retval, ret;
 		if (!payload) {
 			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL)) > 0) {
 				if (!(header = php_yar_protocol_parse(buf))) {
@@ -182,7 +182,7 @@ wait_io:
 		}
 
 		if (len) {
-			if (!(retval = php_yar_packager_unpack(payload, len, &msg, &rret))) {
+			if (!(retval = php_yar_packager_unpack(payload, len, &msg, &ret))) {
 				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 				efree(msg);
 				return response;

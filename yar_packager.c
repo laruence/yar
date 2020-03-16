@@ -83,7 +83,7 @@ zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg)
 	return NULL;
 } /* }}} */
 
-zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret) /* {{{ */ {
+zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
     char *pack_info = content; /* 4 bytes, last byte is version */
 	const yar_packager_t *packager;
 
@@ -97,7 +97,7 @@ zval * php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret
 		return NULL;
 	}
 
-	return packager->unpack(packager, content, len, msg, rret);
+	return packager->unpack(packager, content, len, msg, ret);
 
 } /* }}} */
 

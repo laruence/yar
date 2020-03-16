@@ -424,7 +424,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 	}
 
 	if (data->buf.s) {
-		zval *retval, rret;
+		zval *retval, ret;
 		yar_header_t *header;
 		char *payload;
 		size_t payload_len;
@@ -443,7 +443,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 		payload += sizeof(yar_header_t);
 		payload_len -= sizeof(yar_header_t);
 
-		if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &rret))) {
+		if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &ret))) {
 			php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 			efree(msg);
 			return response;
@@ -624,7 +624,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 					} else {
 						if (data->buf.s) {
 							char *msg = NULL;
-							zval *retval, rret;
+							zval *retval, ret;
 							yar_header_t *header;
 							char *payload;
 							size_t payload_len;
@@ -640,7 +640,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 								/* skip over the leading header */
 								payload += sizeof(yar_header_t);
 								payload_len -= sizeof(yar_header_t);
-								if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &rret))) {
+								if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &ret))) {
 									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 								} else {
 									php_yar_response_map_retval(response, retval);

@@ -17,10 +17,10 @@
   <active>yes</active>
  </developer>
  <date>2020-03-16</date>
- <time>11:00:00</time>
+ <time>15:50:00</time>
  <version>
-  <release>2.1.0</release>
-  <api>2.1.0</api>
+  <release>2.1.1</release>
+  <api>2.1.1</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,11 +28,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - YAR_OPT_PERSISTENT now make connection PHP request lifecycle
-  - Added YAR_OPT_RESOLVE
-  - Removed yar.allow_persistent
-  - Fixed issue #148 (memory leak in callback)
-  - Fixed issue #149 (malformed hostname was passed)
+  - Fixed building with Msgpack
  </notes>
  <contents> 
   <dir name="/"> 
@@ -128,6 +124,41 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2020-03-16</date> 
+   <version> 
+    <release>2.1.0</release> 
+    <api>2.1.0</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - Fixed building with Msgpack
+   </notes> 
+  </release> 
+
+  <release> 
+   <date>2020-03-16</date> 
+   <version> 
+    <release>2.1.0</release> 
+    <api>2.1.0</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - YAR_OPT_PERSISTENT now make connection PHP request lifecycle
+    - Added YAR_OPT_RESOLVE
+    - Removed yar.allow_persistent
+    - Fixed issue #148 (memory leak in callback)
+    - Fixed issue #149 (malformed hostname was passed)
+   </notes> 
+  </release> 
+  <release> 
    <date>2020-01-06</date> 
    <version> 
     <release>2.0.7</release> 
@@ -142,7 +173,6 @@
     - Attempted to fix windows build
    </notes> 
   </release> 
-
   <release> 
    <date>2019-12-26</date> 
    <version> 

@@ -33,7 +33,7 @@
 typedef struct _yar_packager {
 	const char *name;
 	int  (*pack) (const struct _yar_packager *self, zval *pzval, smart_str *buf, char **msg);
-	zval * (*unpack) (const struct _yar_packager *self, char *content, size_t len, char **msg, zval *rret);
+	zval * (*unpack) (const struct _yar_packager *self, char *content, size_t len, char **msg, zval *ret);
 } yar_packager_t;
 
 PHP_YAR_API int php_yar_packager_register(const yar_packager_t *packager);
@@ -49,7 +49,7 @@ extern const yar_packager_t yar_packager_msgpack;
 #endif
 
 zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg);
-zval *php_yar_packager_unpack(char *content, size_t len, char **msg, zval *rret);
+zval *php_yar_packager_unpack(char *content, size_t len, char **msg, zval *ret);
 
 YAR_STARTUP_FUNCTION(packager);
 YAR_ACTIVATE_FUNCTION(packager);

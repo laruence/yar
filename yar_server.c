@@ -411,7 +411,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	size_t payload_len;
 	zend_bool bailout = 0;
 	zend_string *method;
-	zval *post_data = NULL, output, func, rret;
+	zval *post_data = NULL, output, func, ret;
 	zend_class_entry *ce;
 	yar_response_t *response;
 	yar_request_t  *request = NULL;
@@ -459,7 +459,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	payload += sizeof(yar_header_t);
 	payload_len -= sizeof(yar_header_t);
 
-	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg, &rret))) {
+	if (!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg, &ret))) {
         php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
 		efree(err_msg);
 		goto response_no_output;
