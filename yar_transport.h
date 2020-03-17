@@ -22,8 +22,7 @@
 #ifndef PHP_YAR_TRANSPORT_H
 #define PHP_YAR_TRANSPORT_H
 
-#if HAVE_EPOLL && 0
-/* libcurl(c-ares) with epoll is nightmare */
+#if HAVE_EPOLL
 #define ENABLE_EPOLL
 #endif
 

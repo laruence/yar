@@ -39,7 +39,8 @@
 
 #ifdef ENABLE_EPOLL
 #include <sys/epoll.h>
-#define YAR_EPOLL_MAX_SIZE 128
+#define YAR_EPOLL_MAX_SIZE 64
+#include <sys/timerfd.h>
 #endif
 
 typedef struct _yar_curl_plink {
@@ -71,13 +72,33 @@ typedef struct _yar_curl_multi_data_t {
 #ifdef ENABLE_EPOLL
 typedef struct _yar_curl_multi_gdata {
 	int epfd;
-	CURLM *multi;
+	int tfd;
+	CURLM *cm;
 } yar_curl_multi_gdata;
 
 typedef struct _yar_curl_multi_sockinfo {
 	curl_socket_t fd;
 	CURL *cp;
 } yar_curl_multi_sockinfo;
+
+static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
+	struct itimerspec its = {0};
+	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
+
+	if (timeout_ms > 0) {
+		its.it_value.tv_sec = timeout_ms / 1000;
+		its.it_value.tv_nsec = (timeout_ms % 1000) * 1000 * 1000;
+	} else if (timeout_ms == 0) {
+		/* libcurl wants us to timeout now, however setting both fields of
+		 * new_value.it_value to zero disarms the timer. The closest we can
+		 * do is to schedule the timer to fire in 1 ns. */
+		its.it_value.tv_nsec = 1;
+	}
+
+	timerfd_settime(g->tfd, 0, &its, NULL);
+	return 0;
+}
+/* }}} */
 
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
 	struct epoll_event ev = {0};
@@ -107,7 +128,7 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 			fdp->cp = e;
 
 			epoll_ctl(g->epfd, EPOLL_CTL_ADD, s, &ev);	
-			curl_multi_assign(g->multi, s, fdp);
+			curl_multi_assign(g->cm, s, fdp);
 		} else {
 			epoll_ctl(g->epfd, EPOLL_CTL_MOD, s, &ev);	
 		}
@@ -309,7 +330,7 @@ regular_link:
 	} else {
 #if LIBCURL_VERSION_NUM >= 0x072100
 		/* Available since 7.33.0 */
-		//curl_easy_setopt(cp, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+		/* curl_easy_setopt(cp, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0); */
 #endif
 	}
 
@@ -694,9 +715,96 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f) /* {{{ */ {
 	int running_count, rest_count;
-	yar_curl_multi_data_t *multi;
-	multi = (yar_curl_multi_data_t *)self->data;
+	yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
 
+#ifdef ENABLE_EPOLL
+	struct epoll_event ev;
+	struct epoll_event events[8];
+	struct itimerspec its;
+	yar_curl_multi_gdata g;
+
+	g.epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
+	if (g.epfd == -1) {
+		php_error_docref(NULL, E_WARNING, "epoll_create failed '%s'", strerror(errno));
+		return 0;
+	}
+
+	g.tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+	if (g.tfd == -1) {
+		php_error_docref(NULL, E_WARNING, "timerfd_create failed '%s'", strerror(errno));
+		return 0;
+	}
+
+	its.it_interval.tv_sec = 0;
+	its.it_interval.tv_nsec = 0;
+	its.it_value.tv_sec = 0;
+	its.it_value.tv_nsec = 1;
+	timerfd_settime(g.tfd, 0, &its, NULL);
+
+	ev.events = EPOLLIN;
+	ev.data.fd = g.tfd;
+	epoll_ctl(g.epfd, EPOLL_CTL_ADD, g.tfd, &ev);
+
+	g.cm = multi->cm;
+	/* setup the generic multi interface options we want */
+	curl_multi_setopt(g.cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
+	curl_multi_setopt(g.cm, CURLMOPT_SOCKETDATA, &g);
+	curl_multi_setopt(g.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
+	curl_multi_setopt(g.cm, CURLMOPT_TIMERDATA, &g);
+
+	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
+		goto bailout;
+	}
+	if (EG(exception)) {
+		goto onerror;
+	}
+
+	rest_count = -1;
+	while (1) {
+		int idx;
+		int ret = epoll_wait(g.epfd, events, 8, 500);
+		if (ret == -1) {
+			if (errno == EINTR) {
+				continue;
+			} else {
+				php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
+				goto onerror;
+			}
+		}
+
+		for (idx = 0; idx < ret; ++idx) {
+			if (events[idx].data.fd == g.tfd) {
+				size_t count;
+				count = read(g.tfd, &count, sizeof(size_t));
+				curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+			} else {
+				if (events[idx].events & EPOLLOUT) {
+					curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_OUT, &running_count);
+				} 
+				if (events[idx].events & EPOLLIN) {
+					curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_IN, &running_count);
+				}
+			}
+		}
+
+		if (rest_count != running_count) {
+			ret  = php_yar_curl_multi_parse_response(multi, f);
+			if (ret == -1) {
+				goto bailout;
+			} else if (ret == 0) {
+				goto onerror;
+			}
+			rest_count = running_count;
+		}
+		if (running_count == 0) {
+			its.it_value.tv_sec = 0;
+			its.it_value.tv_nsec = 0;
+			timerfd_settime(g.tfd, 0, &its, NULL);
+			break;
+		}
+	}
+
+#else
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 
 	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
@@ -722,14 +830,12 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
 			if (max_fd == -1) {
-				/*	When  max_fd  returns  with  -1,  you  need  to  wait  a  while  and then proceed and call
-					curl_multi_perform anyway, How long to wait? I would suggest 100 milliseconds at least */
 				tv.tv_sec = 0;
-				tv.tv_usec = 50000; /* sleep 50ms */
+				tv.tv_usec = 5000;
 				select(1, &readfds, &writefds, &exceptfds, &tv);
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 				goto process;
-			} 
+			}
 
 			/* maybe we should use curl_multi_timeout like:
 			 * curl_multi_timeout(curlm, (long *)&curl_timeout);
@@ -776,6 +882,7 @@ process:
 			goto onerror;
 		}
 	}
+#endif
 
 	return 1;
 onerror:
