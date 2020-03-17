@@ -830,9 +830,23 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
 			if (max_fd == -1) {
+				long timeout;
+#if LIBCURL_VERSION_NUM >= 0x070f04
+				/* Available in 7.15.4 */
+				curl_multi_timeout(multi->cm, &timeout);
+				if (timeout < 0) {
+					timeout = 50;
+				}
+				if (timeout) {
+					tv.tv_sec = timeout / 1000;
+					tv.tv_usec = (timeout % 1000) * 1000;
+					select(1, &readfds, &writefds, &exceptfds, &tv);
+				}
+#else
 				tv.tv_sec = 0;
 				tv.tv_usec = 5000;
 				select(1, &readfds, &writefds, &exceptfds, &tv);
+#endif
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 				goto process;
 			}
