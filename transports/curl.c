@@ -728,7 +728,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				tv.tv_usec = 50000; /* sleep 50ms */
 				select(1, &readfds, &writefds, &exceptfds, &tv);
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-				continue;
+				goto process;
 			} 
 
 			/* maybe we should use curl_multi_timeout like:
@@ -757,7 +757,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				php_error_docref(NULL, E_WARNING, "select timeout %ldms reached", YAR_G(timeout));
 				goto onerror;
 			}
-
+process:
 			if (rest_count > running_count) {
 				int ret = php_yar_curl_multi_parse_response(multi, f);
 				if (ret == -1) {
