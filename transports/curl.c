@@ -81,6 +81,27 @@ typedef struct _yar_curl_multi_sockinfo {
 	CURL *cp;
 } yar_curl_multi_sockinfo;
 
+static int php_yar_start_timer(yar_curl_multi_gdata *g) /* {{{ */ {
+	struct epoll_event ev = {0};
+	struct itimerspec its = {0};
+
+	g->tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+
+	if (g->tfd == -1) {
+		php_error_docref(NULL, E_WARNING, "timerfd_create failed '%s'", strerror(errno));
+		close(g->epfd);
+		return 0;
+	}
+	its.it_value.tv_nsec = 1;
+	timerfd_settime(g->tfd, 0, &its, NULL);
+
+	ev.events = EPOLLIN;
+	ev.data.fd = g->tfd;
+	epoll_ctl(g->epfd, EPOLL_CTL_ADD, g->tfd, &ev);
+	return 1;
+}
+/* }}} */
+
 static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
 	struct itimerspec its = {0};
 	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
@@ -145,7 +166,6 @@ void php_yar_curl_plink_dtor(void *ptr) /* {{{ */ {
 		efree(p);
 		p = q;
 	}
-	efree(ptr);
 }
 /* }}} */
 
@@ -718,9 +738,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
 
 #ifdef ENABLE_EPOLL
-	struct epoll_event ev;
 	struct epoll_event events[8];
-	struct itimerspec its;
 	yar_curl_multi_gdata g;
 
 	g.epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
@@ -729,21 +747,10 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 		return 0;
 	}
 
-	g.tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-	if (g.tfd == -1) {
-		php_error_docref(NULL, E_WARNING, "timerfd_create failed '%s'", strerror(errno));
+	if (!php_yar_start_timer(&g)) {
+		close(g.epfd);
 		return 0;
 	}
-
-	its.it_interval.tv_sec = 0;
-	its.it_interval.tv_nsec = 0;
-	its.it_value.tv_sec = 0;
-	its.it_value.tv_nsec = 1;
-	timerfd_settime(g.tfd, 0, &its, NULL);
-
-	ev.events = EPOLLIN;
-	ev.data.fd = g.tfd;
-	epoll_ctl(g.epfd, EPOLL_CTL_ADD, g.tfd, &ev);
 
 	g.cm = multi->cm;
 	/* setup the generic multi interface options we want */
@@ -752,57 +759,79 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	curl_multi_setopt(g.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
 	curl_multi_setopt(g.cm, CURLMOPT_TIMERDATA, &g);
 
+	/* let's kick off everything */
+	curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
 	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
+		close(g.epfd);
+		close(g.tfd);
 		goto bailout;
 	}
 	if (EG(exception)) {
+		close(g.epfd);
+		close(g.tfd);
 		goto onerror;
 	}
 
-	rest_count = -1;
-	while (1) {
-		int idx;
-		int ret = epoll_wait(g.epfd, events, 8, 500);
-		if (ret == -1) {
-			if (errno == EINTR) {
-				continue;
-			} else {
-				php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
-				goto onerror;
-			}
-		}
-
-		for (idx = 0; idx < ret; ++idx) {
-			if (events[idx].data.fd == g.tfd) {
-				size_t count;
-				count = read(g.tfd, &count, sizeof(size_t));
-				curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
-			} else {
-				if (events[idx].events & EPOLLOUT) {
-					curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_OUT, &running_count);
-				} 
-				if (events[idx].events & EPOLLIN) {
-					curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_IN, &running_count);
+	if (running_count) {
+		rest_count = running_count;
+		do {
+			int idx;
+			int ret = epoll_wait(g.epfd, events, sizeof(events)/sizeof(struct epoll_event), YAR_G(timeout));
+			if (ret == -1) {
+				if (errno == EINTR) {
+					continue;
+				} else {
+					php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
+					close(g.epfd);
+					close(g.tfd);
+					goto onerror;
 				}
 			}
+
+			for (idx = 0; idx < ret; ++idx) {
+				if (events[idx].data.fd == g.tfd) {
+					size_t count;
+					count = read(g.tfd, &count, sizeof(size_t));
+					curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+				} else {
+					if (events[idx].events & EPOLLOUT) {
+						curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_OUT, &running_count);
+					} 
+					if (events[idx].events & EPOLLIN) {
+						curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_IN, &running_count);
+					}
+				}
+			}
+
+			if (rest_count > running_count) {
+				ret  = php_yar_curl_multi_parse_response(multi, f);
+				if (ret == -1) {
+					close(g.epfd);
+					close(g.tfd);
+					goto bailout;
+				} else if (ret == 0) {
+					close(g.epfd);
+					close(g.tfd);
+					goto onerror;
+				}
+				rest_count = running_count;
+			}
+		} while (running_count);
+	} else {
+		int ret = php_yar_curl_multi_parse_response(multi, f);
+		if (ret == -1) {
+			close(g.epfd);
+			close(g.tfd);
+			goto bailout;
+		} else if (ret == 0) {
+			close(g.epfd);
+			close(g.tfd);
+			goto onerror;
 		}
 
-		if (rest_count != running_count) {
-			ret  = php_yar_curl_multi_parse_response(multi, f);
-			if (ret == -1) {
-				goto bailout;
-			} else if (ret == 0) {
-				goto onerror;
-			}
-			rest_count = running_count;
-		}
-		if (running_count == 0) {
-			its.it_value.tv_sec = 0;
-			its.it_value.tv_nsec = 0;
-			timerfd_settime(g.tfd, 0, &its, NULL);
-			break;
-		}
 	}
+	close(g.tfd);
+	close(g.epfd);
 
 #else
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
