@@ -695,30 +695,8 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f) /* {{{ */ {
 	int running_count, rest_count;
 	yar_curl_multi_data_t *multi;
-#ifdef ENABLE_EPOLL
-	int epfd, nfds;
-	struct epoll_event events[16];
-	yar_curl_multi_gdata g;
-
-	epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
-	g.epfd = epfd;
-#endif
-
 	multi = (yar_curl_multi_data_t *)self->data;
-#ifdef ENABLE_EPOLL
-	g.multi = multi->cm;
-	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
-	curl_multi_setopt(multi->cm, CURLMOPT_SOCKETDATA, &g);
-	curl_multi_setopt(multi->cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
-	curl_multi_setopt(multi->cm, CURLMOPT_TIMERDATA, &g);
-# if LIBCURL_VERSION_NUM >= 0x071000
-	while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_action(multi->cm, CURL_SOCKET_TIMEOUT, 0, &running_count));
-# else
-	while (CURLM_CALL_MULTI_PERFORM == curl_multi_socket_all(multi->cm, &running_count));
-# endif
-#else
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-#endif
 
 	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
 		goto bailout;
@@ -731,35 +709,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	if (running_count) {
 		rest_count = running_count;
 		do {
-#ifdef ENABLE_EPOLL
-			/* timeout is milliseconds */
-			nfds = epoll_wait(epfd, events, 16, YAR_G(timeout));
-			if (nfds > 0) {
-				int i;
-				for (i=0; i<nfds; i++) {
-					if (events[i].events & EPOLLIN) {
-# if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_IN, &running_count);
-# else
-						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
-# endif
-					}
-					if (events[i].events & EPOLLOUT) {
-# if LIBCURL_VERSION_NUM >= 0x071000
-						curl_multi_socket_action(multi->cm, events[i].data.fd, CURL_CSELECT_OUT, &running_count);
-# else
-						curl_multi_socket(multi->cm, events[i].data.fd, &running_count); 
-# endif
-					}
-				}
-			} else if (-1 == nfds) {
-				php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
-				goto onerror;
-			} else {
-				php_error_docref(NULL, E_WARNING, "epoll_wait timeout %ldms reached", YAR_G(timeout)); 
-				goto onerror;
-			}
-#else
 			int max_fd, return_code;
 			struct timeval tv;
 			fd_set readfds;
@@ -807,7 +756,6 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 				php_error_docref(NULL, E_WARNING, "select timeout %ldms reached", YAR_G(timeout));
 				goto onerror;
 			}
-#endif
 
 			if (rest_count > running_count) {
 				int ret = php_yar_curl_multi_parse_response(multi, f);
