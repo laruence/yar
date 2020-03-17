@@ -87,6 +87,7 @@
     <file name="021.phpt" role="test" />
     <file name="022.phpt" role="test" />
     <file name="023.phpt" role="test" />
+    <file name="024.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <file name="tcp.inc" role="test" />

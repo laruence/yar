@@ -22,7 +22,7 @@ try {
 	var_dump($e->getMessage());
 }
 
-var_dump($client->info("packager"));
+var_dump($client->info("id"));
 var_dump($client->info("provider"));
 try {
 	var_dump($client->pow(4));
@@ -32,7 +32,7 @@ try {
 var_dump($client->pow(4, 2));
 --EXPECTF--
 string(21) "Unsupported API dummy"
-string(8) "PHP%s"
-string(14) "Yar PHP Client"
+int(%d)
+string(14) "Yar TCP Client"
 string(43) "pow() expects exactly 2 parameters, 1 given"
 int(16)

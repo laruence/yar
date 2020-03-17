@@ -10,18 +10,11 @@
     unsigned int   body_len;      // request body len
   }
  */
-function parse_header(&$request_body) {
-    $header_size = 4 + 2 + 4 + 4 + 32 + 32 + 4;
-	$data = substr($request_body, 0, $header_size);
-	$header = unpack("Nid/nversion/Nmagic_num/Nreserved/A32provider/A32token/Nbody_len", $data);
-	if ($header["magic_num"] != 0x80DFEC60) {
-		return array();
-	}
-	$request_body = substr($request_body, $header_size);
-	$packager = substr($request_body, 0, 8);
-	$header["packager"] = $packager;
-	$request_body = substr($request_body, 8, $header["body_len"]);
-	return $header;
+const YAR_HEADER_SIZE = 4 + 2 + 4 + 4 + 32 + 32 + 4;
+const YAR_PROTOCOL_PERSISTENT = 0x1;
+
+function parse_header($data) {
+	return unpack("Nid/nversion/Nmagic_num/Nreserved/A32provider/A32token/Nbody_len", $data);
 }
 
 function gen_header($header) {
@@ -75,15 +68,13 @@ function info($header, $request, $name) {
 	return $header[$name];
 }
 
-function server_handle($request_body) {
+function server_handle($header, $request_body) {
 	$error = NULL;
-	$header = parse_header($request_body);
-	if (count($header) == 0) {
-		return response(NULL, "Malformed request header");	
+	$packager = substr($request_body, YAR_HEADER_SIZE, 3);
+	if (strncmp($packager, "PHP", 3) != 0) {
+		return response(NULL, "Unsupported packager type '$packager', only PHP is supported");
 	}
-	if (strncmp($header["packager"], "PHP", 3) != 0) {
-		return response(NULL, "Unsupported packager type, only PHP is supported");
-	}
+	$request_body = substr($request_body, YAR_HEADER_SIZE + 8);
 	$request = unserialize($request_body);
 	if ($request == false) {
 		return response(NULL, "Malformed request body");	
@@ -107,6 +98,17 @@ function server_handle($request_body) {
 	return response($response, $error);
 }
 
+function verify_header($header) {
+	if (count($header) == 0) {
+		return response(NULL, "Malformed request header");	
+	}
+	if (!isset($header["magic_num"]) || $header["magic_num"] != 0x80DFEC60) {
+		return response(NULL, "Not a legal Yar call");	
+	}
+
+	return true;
+}
+
 function start_server($argv, $argc) {
 	$host = $argv[1];
 	$socket = stream_socket_server($host, $errno, $errstr);
@@ -115,14 +117,35 @@ function start_server($argv, $argc) {
 	} else {
 		while (1) {
 			if ($conn = stream_socket_accept($socket)) {
-				$request_body = NULL;
-				while (!feof($conn)) {
-					$request_body .= fread($conn, 1024);
-				}	
+persistent:
+				$buf = fread($conn, YAR_HEADER_SIZE);
+				if (empty($buf)) {
+					fclose($conn);
+					continue;
+				}
+				$header = parse_header($buf);
+				if (($status = verify_header($header)) !== true) {
+					fwrite($conn, $status, strlen($stats));
+					fclose($conn);
+					continue;
+				}
+				$content_len = $header["body_len"];
+				$total_byte = $content_len + YAR_HEADER_SIZE;
+				$byte_read = YAR_HEADER_SIZE;
 
-				if ($request_body) {
-					$response = server_handle($request_body);
+				while (($byte_read != $total_byte && !feof($conn))) {
+					$buf .= fread($conn, $total_byte - $byte_read);
+					$byte_read = strlen($buf);
+				}
+
+				if ($byte_read == $total_byte) {
+					$response = server_handle($header, $buf);
 					fwrite($conn, $response, strlen($response));
+				} else {
+					fwrite($conn, response(NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
+				}
+				if ($header["reserved"] & YAR_PROTOCOL_PERSISTENT) {
+					goto persistent;
 				}
 				fclose($conn);
 			}
