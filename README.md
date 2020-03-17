@@ -36,6 +36,12 @@ $/path/to/phpize
 $./configure --with-php-config=/path/to/php-config/
 $make && make install
 ```
+Available instructions to configure are
+```
+--with-curl=DIR
+--enable(disable)-msgpack
+--enable(disable)-epoll (require Yar 2.1.2)
+```
 
 ### Install Yar with msgpack 
 first you should install msgpack-ext
