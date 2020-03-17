@@ -86,8 +86,10 @@
     <file name="020.phpt" role="test" />
     <file name="021.phpt" role="test" />
     <file name="022.phpt" role="test" />
+    <file name="023.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
+    <file name="tcp.inc" role="test" />
     <dir name="htdocs">
      <file name="index.php" role="test"/>
      <file name="auth.php" role="test"/>

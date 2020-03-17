@@ -62,7 +62,7 @@ int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, l
 	int err;
 
 	tv.tv_sec = (zend_ulong)(YAR_G(connect_timeout) / 1000);
-	tv.tv_usec = (zend_ulong)((YAR_G(connect_timeout) % 1000)? (YAR_G(connect_timeout) % 1000) * 1000 : 0);
+	tv.tv_usec = (zend_ulong)(YAR_G(connect_timeout) % 1000);
 
 	if (options & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
@@ -152,7 +152,7 @@ wait_io:
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		zval *retval, ret;
 		if (!payload) {
-			if ((recvd = php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL)) > 0) {
+			if ((recvd = (php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL))) >= 0) {
 				if (!(header = php_yar_protocol_parse(buf))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 					return response;
@@ -200,6 +200,7 @@ wait_io:
 		}
 		return response;
 	} else {
+		PHP_SAFE_FD_SET(fd, &rfds);
 		goto wait_io;
 	}
 } /* }}} */
@@ -292,8 +293,12 @@ wait_io:
 			}
 			goto wait_io;
 		}
+	} else {
+		PHP_SAFE_FD_SET(fd, &rfds);
+		goto wait_io;
 	}
 
+	php_stream_xport_shutdown(data->stream, SHUT_WR);
 	zend_string_release(payload);
 
 	return ret < 0? 0 : 1;

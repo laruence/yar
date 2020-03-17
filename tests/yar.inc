@@ -8,6 +8,7 @@ define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: "8964"));
 define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
+define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
 
 function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ") {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
@@ -54,5 +55,42 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 	// does not work. this is why tests sometimes pass and sometimes fail. to get a reliable pass
 	// sleeping doesn't work.
 }
-?>
 
+function yar_tcp_server_start() {
+	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
+	$server = __DIR__ . "/tcp.inc";
+
+	$descriptorspec = array(
+		0 => STDIN,
+		1 => STDOUT,
+		2 => STDERR,
+	);
+
+	if (substr(PHP_OS, 0, 3) == 'WIN') {
+		$cmd = "{$php_executable} {$server}  " . YAR_TCP_ADDRESS;
+
+		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, NULL, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
+	} else {
+		$cmd = "exec {$php_executable} {$server} " . YAR_TCP_ADDRESS . " 2>/dev/null";
+
+		$handle = proc_open($cmd, $descriptorspec, $pipes, NULL);
+	}
+
+	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
+	//       it might not be listening yet...need to wait until fsockopen() call returns
+    $i = 0;
+    while (($i++ < 30) && !($fp = @fsockopen(YAR_API_HOSTNAME, YAR_API_PORT))) {
+        usleep(10000);
+    }
+
+    if ($fp) {
+        fclose($fp);
+    }
+
+	register_shutdown_function(
+		function($handle) {
+			proc_terminate($handle);
+		},
+		$handle);
+}
+?>
