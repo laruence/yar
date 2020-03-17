@@ -696,6 +696,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 	int running_count, rest_count;
 	yar_curl_multi_data_t *multi;
 	multi = (yar_curl_multi_data_t *)self->data;
+
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 
 	if (!f(NULL, YAR_ERR_OKEY, NULL)) {

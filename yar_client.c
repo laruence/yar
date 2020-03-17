@@ -427,7 +427,6 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 	char *msg;
 	zval *calldata;
-	zend_ulong sequence;
 	yar_request_t *request;
 	const yar_transport_t *factory;
 	yar_transport_interface_t *transport;
@@ -436,7 +435,7 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 	factory = php_yar_transport_get(ZEND_STRL("curl"));
 	multi = factory->multi->init();
 
-    ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(callstack), sequence, calldata) {
+    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(callstack), calldata) {
 		yar_call_data_t *entry;
 		long flags = 0;
 

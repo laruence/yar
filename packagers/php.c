@@ -39,7 +39,6 @@ int php_yar_packager_php_pack(const yar_packager_t *self, zval *pzval, smart_str
 } /* }}} */
 
 zval * php_yar_packager_php_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
-	zval *return_value;
 	const unsigned char *p;
 	php_unserialize_data_t var_hash;
 	p = (const unsigned char*)content;
