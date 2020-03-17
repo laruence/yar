@@ -298,7 +298,10 @@ wait_io:
 		goto wait_io;
 	}
 
-	php_stream_xport_shutdown(data->stream, SHUT_WR);
+	if (!data->persistent) {
+		php_stream_xport_shutdown(data->stream, SHUT_WR);
+	}
+
 	zend_string_release(payload);
 
 	return ret < 0? 0 : 1;
