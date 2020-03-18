@@ -153,7 +153,7 @@ wait_io:
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
 		zval *retval, ret;
 		if (!payload) {
-			if ((recvd = (php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL))) >= 0) {
+			if ((recvd = (php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL))) > 0) {
 				if (!(header = php_yar_protocol_parse(buf))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 					return response;
@@ -173,15 +173,20 @@ wait_io:
 				if (recvd < (sizeof(yar_header_t) + len)) {
 					goto wait_io;	
 				}
-			} else if (recvd < 0) {
+			} else if (recvd == 0) {
+				php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("server closed connection prematurely"));
+				return response;
+			} else {
 				/* this should never happen */
 				goto wait_io;
 			}
 		} else {
 			if ((recvd = php_stream_xport_recvfrom(data->stream, payload + total_recvd, len - total_recvd, 0, NULL, NULL, NULL)) > 0) {
 				total_recvd += recvd;
+			} else if (recvd == 0) {
+				php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("server closed connection prematurely"));
+				return response;
 			}
-
 			if (total_recvd < len) {
 				goto wait_io;
 			}
