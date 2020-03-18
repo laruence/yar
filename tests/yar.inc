@@ -181,6 +181,10 @@ function raw($header, $response) {
 	return $header_str . "PHP\0YAR_" . $res_str;
 }
 
+function _exit() {
+	exit();
+}
+
 function info($header, $request, $name) {
 	return $header[$name];
 }
