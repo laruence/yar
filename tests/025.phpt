@@ -36,7 +36,7 @@ try {
 	var_dump($e->getMessage());
 }
 
-$header["magic_num"] = htonl(YAR_PROTOCOL_MAGIC_NUM);
+$header["magic_num"] = YAR_PROTOCOL_MAGIC_NUM;
 $body = array(
 	"i" => 0,
 	"s" => 3,

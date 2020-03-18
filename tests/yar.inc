@@ -49,7 +49,7 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 
 		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
 	}
-	
+
 	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
 	//       it might not be listening yet...need to wait until fsockopen() call returns
     $i = 0;
@@ -81,7 +81,7 @@ function yar_tcp_server_start() {
 		1 => STDOUT,
 		2 => STDERR,
 	);
-	
+
 	file_put_contents($server, <<<PHP
 <?php
 	require("yar.inc");
@@ -124,7 +124,7 @@ function parse_header($data) {
 }
 
 function gen_header($header) {
-	$bin = pack("NnLNA32A32N", 
+	$bin = pack("NnNNA32A32N",
 		$header["id"],
 		$header["version"],
 		$header["magic_num"],
@@ -140,7 +140,7 @@ function response($body, $error) {
 	$header = array(
 		"id" => rand(100000, 999999),
 		"version" => 0,
-		"magic_num" => 1626136448,
+		"magic_num" => YAR_PROTOCOL_MAGIC_NUM,
 		"reserved" => 0,
 		"provider" => str_pad("Yar TCP Server", 32),
 		"token" => str_repeat(" ", 32),
@@ -190,14 +190,14 @@ function server_handle($header, $request_body) {
 	$request_body = substr($request_body, YAR_HEADER_SIZE + 8);
 	$request = unserialize($request_body);
 	if ($request == false) {
-		return response(NULL, "Malformed request body");	
+		return response(NULL, "Malformed request body");
 	}
 
 	$function = $request["m"];
 	$parameters = $request["p"];
 
 	if (!function_exists($function)) {
-		return response(NULL, "Unsupported API " . $function);	
+		return response(NULL, "Unsupported API " . $function);
 	}
 
 	set_error_handler(function($no, $msg) use(&$error) { $error = $msg; });
@@ -213,16 +213,12 @@ function server_handle($header, $request_body) {
 	return response($response, $error);
 }
 
-function htonl($num) {
-	return unpack("N", pack("L", $num))[1];
-}
-
 function verify_header($header) {
 	if (count($header) == 0) {
-		return response(NULL, "Malformed request header");	
+		return response(NULL, "Malformed request header");
 	}
 	if (!isset($header["magic_num"]) || $header["magic_num"] != YAR_PROTOCOL_MAGIC_NUM) {
-		return response(NULL, "Not a legal Yar call");	
+		return response(NULL, "Not a legal Yar call");
 	}
 
 	return true;

@@ -109,7 +109,7 @@ static void php_yar_client_trigger_error(int throw_exception, int code, const ch
 } /* }}} */
 
 static void php_yar_client_handle_error(int throw_exception, yar_response_t *response) /* {{{ */ {
-	if (response->status == YAR_ERR_EXCEPTION) {
+	if (response->status == YAR_ERR_EXCEPTION && Z_TYPE(response->err) == IS_ARRAY) {
 		if (throw_exception) {
 			zval ex, *property;
 			object_init_ex(&ex, yar_server_exception_ce);
