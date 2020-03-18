@@ -200,6 +200,7 @@ wait_io:
 		if (len) {
 			if (!(retval = php_yar_packager_unpack(payload, len, &msg, &ret))) {
 				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
+				efree(payload);
 				efree(msg);
 				return response;
 			}

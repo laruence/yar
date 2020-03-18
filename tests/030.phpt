@@ -33,21 +33,19 @@ $body = array(
 );
 
 $exceptions = array(
-	"YAR_ERR_PACKAGER" => 0x1,
-	"YAR_ERR_PROTOCOL" => 0x2,
-	"YAR_ERR_REQUEST" => 0x4,
-	"YAR_ERR_OUTPUT" => 0x8,
-	"YAR_ERR_TRANSPORT" => 0x10,
-	"YAR_ERR_FORBIDDEN" => 0x20,
-	"YAR_ERR_EXCEPTION" => 0x40,
-	"YAR_ERR_EMPTY_RESPONSE" => 0x80,
+	"YAR_ERR_PACKAGER",
+	"YAR_ERR_PROTOCOL",
+	"YAR_ERR_REQUEST",
+	"YAR_ERR_OUTPUT",
+	"YAR_ERR_TRANSPORT",
+	"YAR_ERR_EXCEPTION",
 );
 
 
 $client = new Yar_Client(YAR_TCP_ADDRESS);
 
-foreach ($exceptions as $name => $type) {
-	$body['s'] = $type;
+foreach ($exceptions as $name) {
+	$body['s'] = constant($name);
 	$header["body_len"] = strlen(serialize($body)) + 8;
 	try {
 		$client->raw($header, $body);
@@ -62,6 +60,4 @@ YAR_ERR_PROTOCOL -> Yar_Client_Protocol_Exception
 YAR_ERR_REQUEST -> Yar_Client_Exception
 YAR_ERR_OUTPUT -> Yar_Client_Exception
 YAR_ERR_TRANSPORT -> Yar_Client_Transport_Exception
-YAR_ERR_FORBIDDEN -> Yar_Client_Exception
 YAR_ERR_EXCEPTION -> Yar_Server_Exception
-YAR_ERR_EMPTY_RESPONSE -> Yar_Client_Exception
