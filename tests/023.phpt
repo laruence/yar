@@ -18,7 +18,7 @@ $client = new Yar_Client(YAR_TCP_ADDRESS);
 
 try {
 	$client->dummy("name");
-} catch (Yar_Server_Exception $e) {
+} catch (Yar_Client_Exception $e) {
 	var_dump($e->getMessage());
 }
 
@@ -26,7 +26,7 @@ var_dump($client->info("id"));
 var_dump($client->info("provider"));
 try {
 	var_dump($client->pow(4));
-} catch (Exception $e) {
+} catch (Yar_Client_Exception $e) {
 	var_dump($e->getMessage());
 }
 var_dump($client->pow(4, 2));

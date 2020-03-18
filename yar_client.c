@@ -90,10 +90,10 @@ static void php_yar_client_trigger_error(int throw_exception, int code, const ch
 			case YAR_ERR_TRANSPORT:
 				ce = yar_client_transport_exception_ce;
 				break;
-			case YAR_ERR_REQUEST:
 			case YAR_ERR_EXCEPTION:
 				ce = yar_server_exception_ce;
 				break;
+			case YAR_ERR_REQUEST:
 			default:
 				ce  = yar_client_exception_ce;
 				break;
