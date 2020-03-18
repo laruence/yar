@@ -174,13 +174,13 @@ $result = $client->some_method("parameter");
 #pragma pack(1)
 #endif
 typedef struct _yar_header {
-    unsigned int   id;            // transaction id
-    unsigned short version;       // protocl version
-    unsigned int   magic_num;     // default is: 0x80DFEC60
-    unsigned int   reserved;
+    uint32_t       id;            // transaction id
+    uint16_t       version;       // protocl version
+    uint32_t       magic_num;     // default is: 0x80DFEC60
+    uint32_t       reserved;
     unsigned char  provider[32];  // reqeust from who
     unsigned char  token[32];     // request token, used for authentication
-    unsigned int   body_len;      // request body len
+    uint32_t       body_len;      // request body len
 }
 #ifndef PHP_WIN32
 __attribute__ ((packed))
