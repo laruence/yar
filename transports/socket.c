@@ -47,6 +47,7 @@
 
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280
+#define MAX_BODY_LEN 1024 * 1024 * 10 /* 10 M */
 
 typedef struct _yar_socket_data_t {
 	char persistent;
@@ -155,6 +156,11 @@ wait_io:
 			if ((recvd = (php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL))) >= 0) {
 				if (!(header = php_yar_protocol_parse(buf))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
+					return response;
+				}
+				
+				if (header->body_len > MAX_BODY_LEN) {
+					php_yar_error(response, YAR_ERR_PROTOCOL, "response body too large %u", header->body_len);
 					return response;
 				}
 
