@@ -265,7 +265,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		options = NULL;
 	}
 
-	if (!(request = php_yar_request_instance(method, params, options))) {
+	if (UNEXPECTED(!(request = php_yar_request_instance(method, params, options)))) {
 		transport->close(transport);
 		factory->destroy(transport);
 		return 0;
@@ -280,9 +280,10 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 
 	/* This is tricky to pass options in, for custom headers*/
 	msg = (char*)options;
-	if (!transport->open(transport, Z_STR_P(uri), flags, &msg)) {
+	if (UNEXPECTED(!transport->open(transport, Z_STR_P(uri), flags, &msg))) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
+		ZEND_ASSERT(msg != (char*)options);
 		efree(msg);
 		transport->close(transport);
 		factory->destroy(transport);
@@ -293,7 +294,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
 			zend_hash_num_elements(Z_ARRVAL(request->parameters)));
 
-	if (!transport->send(transport, request, &msg)) {
+	if (UNEXPECTED(!transport->send(transport, request, &msg))) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
 		efree(msg);
@@ -304,7 +305,7 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 
 	response = transport->exec(transport, request);
 
-	if (response->status != YAR_ERR_OKEY) {
+	if (UNEXPECTED(response->status != YAR_ERR_OKEY)) {
 		php_yar_client_handle_error(1, response);
 		php_yar_request_destroy(request);
 		php_yar_response_destroy(response);
@@ -611,24 +612,23 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-	if (!ZSTR_LEN(uri)) {
+	if (UNEXPECTED(!ZSTR_LEN(uri))) {
 		php_error_docref(NULL, E_WARNING, "first parameter is expected to be a valid rpc server uri");
 		return;
 	}
 
-	if (strncasecmp(ZSTR_VAL(uri), "http://", sizeof("http://") - 1) 
-			&& strncasecmp(ZSTR_VAL(uri), "https://", sizeof("https://") - 1)) {
+	if (UNEXPECTED(strncasecmp(ZSTR_VAL(uri), "http://", sizeof("http://") - 1) &&
+		strncasecmp(ZSTR_VAL(uri), "https://", sizeof("https://") - 1))) {
 		php_error_docref(NULL, E_WARNING, "only http protocol is supported in concurrent client for now");
 		return;
 	}
 
-	if (!method->len) {
+	if (UNEXPECTED(!method->len)) {
 		php_error_docref(NULL, E_WARNING, "second parameter is expected to be a valid rpc api name");
 		return;
 	}
 
-    if (callback && !Z_ISNULL_P(callback) &&
-			!zend_is_callable(callback, 0, &name)) {
+    if ((callback && !Z_ISNULL_P(callback) && !zend_is_callable(callback, 0, &name))) {
         php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fourth parameter is expected to be a valid callback");
         zend_string_release(name);
         RETURN_FALSE;
@@ -639,8 +639,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 		name = NULL;
 	}
 
-    if (error_callback && !Z_ISNULL_P(error_callback) &&
-			!zend_is_callable(error_callback, 0, &name)) {
+    if (UNEXPECTED(error_callback && !Z_ISNULL_P(error_callback) && !zend_is_callable(error_callback, 0, &name))) {
         php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fifth parameter is expected to be a valid error callback");
         zend_string_release(name);
         RETURN_FALSE;
@@ -651,7 +650,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 	}
 
 	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0);
-	if (Z_TYPE_P(status) == IS_TRUE) {
+	if (UNEXPECTED(Z_TYPE_P(status) == IS_TRUE)) {
         php_error_docref(NULL, E_WARNING, "concurrent client has already started");
 		RETURN_FALSE;
 	}
@@ -719,13 +718,12 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	}
 
 	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0);
-	if (Z_TYPE_P(status) == IS_TRUE) {
+	if (UNEXPECTED(Z_TYPE_P(status) == IS_TRUE)) {
         php_error_docref(NULL, E_WARNING, "concurrent client has already started");
 		RETURN_FALSE;
 	}
 
-    if (callback && !Z_ISNULL_P(callback) &&
-			!zend_is_callable(callback, 0, &name)) {
+    if (UNEXPECTED(callback && !Z_ISNULL_P(callback) && !zend_is_callable(callback, 0, &name))) {
         php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "first argument is expected to be a valid callback");
         zend_string_release(name);
         RETURN_FALSE;
@@ -736,8 +734,7 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		name = NULL;
 	}
 
-    if (error_callback && !Z_ISNULL_P(error_callback) &&
-			!zend_is_callable(error_callback, 0, &name)) {
+    if (UNEXPECTED(error_callback && !Z_ISNULL_P(error_callback) && !zend_is_callable(error_callback, 0, &name))) {
         php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "second argument is expected to be a valid error callback");
         zend_string_release(name);
         RETURN_FALSE;

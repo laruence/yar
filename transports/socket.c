@@ -45,8 +45,6 @@
 #define YAR_EPOLL_MAX_SIZE 128
 #endif
 
-#define SEND_BUF_SIZE 1280
-#define RECV_BUF_SIZE 1280
 #define MAX_BODY_LEN 1024 * 1024 * 10 /* 10 M */
 
 typedef struct _yar_socket_data_t {

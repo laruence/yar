@@ -26,6 +26,9 @@
 #define ENABLE_EPOLL
 #endif
 
+#define SEND_BUF_SIZE 1280
+#define RECV_BUF_SIZE 1280
+
 typedef struct _yar_call_data {
 	zend_ulong sequence;
 	zend_string *uri;

@@ -17,7 +17,11 @@ class Service_Provider {
     public function output() {
         echo "output";
         return "success";
-    }
+	}
+
+	public function strlen($str) {
+		return strlen($str);
+	}
 
 	public function header($name) {
 		$key = "HTTP_" . strtoupper($name);
