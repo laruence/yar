@@ -8,7 +8,23 @@ define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: "8964"));
 define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
+
+/* For TCP */
 define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
+/*
+  typedef struct _yar_header {
+    unsigned int   id;            // transaction id
+    unsigned short version;       // protocl version
+    unsigned int   magic_num;     // default is: 0x80DFEC60
+    unsigned int   reserved;
+    unsigned char  provider[32];  // reqeust from who
+    unsigned char  token[32];     // request token, used for authentication
+    unsigned int   body_len;      // request body len
+  }
+ */
+define("YAR_HEADER_SIZE", 4 + 2 + 4 + 4 + 32 + 32 + 4);
+define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
+define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ") {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
@@ -58,22 +74,30 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 
 function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . "/tcp.inc";
+	$server = __DIR__ . "/_yar_tcp_server.php.";
 
 	$descriptorspec = array(
 		0 => STDIN,
 		1 => STDOUT,
 		2 => STDERR,
 	);
+	
+	file_put_contents($server, <<<PHP
+<?php
+	require("yar.inc");
+	yar_tcp_server_handle(\$argv, \$argc);
+?>
+PHP
+);
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
 		$cmd = "{$php_executable} {$server}  " . YAR_TCP_ADDRESS;
 
-		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, NULL, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
+		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, __DIR__, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
 		$cmd = "exec {$php_executable} {$server} " . YAR_TCP_ADDRESS . " 2>/dev/null";
 
-		$handle = proc_open($cmd, $descriptorspec, $pipes, NULL);
+		$handle = proc_open($cmd, $descriptorspec, $pipes, __DIR__);
 	}
 
 	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
@@ -88,9 +112,164 @@ function yar_tcp_server_start() {
     }
 
 	register_shutdown_function(
-		function($handle) {
+		function($handle) use ($server) {
+			@unlink($server);
 			proc_terminate($handle);
 		},
 		$handle);
+}
+
+function parse_header($data) {
+	return unpack("Nid/nversion/Nmagic_num/Nreserved/A32provider/A32token/Nbody_len", $data);
+}
+
+function gen_header($header) {
+	$bin = pack("NnLNA32A32N", 
+		$header["id"],
+		$header["version"],
+		$header["magic_num"],
+		$header["reserved"],
+		$header["provider"],
+		$header["token"],
+		$header["body_len"]
+	);
+	return $bin;
+}
+
+function response($body, $error) {
+	$header = array(
+		"id" => rand(100000, 999999),
+		"version" => 0,
+		"magic_num" => 1626136448,
+		"reserved" => 0,
+		"provider" => str_pad("Yar TCP Server", 32),
+		"token" => str_repeat(" ", 32),
+	);
+
+	$response = array(
+		"i" => $header["id"],
+		"s" => 0,
+		"o" => "",
+		"r" => NULL,
+		"e" => 0,
+	);
+
+	if ($error == NULL) {
+		$response["r"] = $body;
+	} else {
+		$response["e"] = $error;
+		$response["s"] = 4;
+	}
+
+	$res_str = serialize($response);
+	$res_str = "PHP\0YAR_" . $res_str;
+	$header["body_len"] = strlen($res_str);
+	$header_str = gen_header($header);
+	$res_str = $header_str .  $res_str;
+
+	return $res_str;
+}
+
+function raw($header, $response) {
+	$res_str = serialize($response);
+	$header_str = gen_header($header);
+
+	return $header_str . "PHP\0YAR_" . $res_str;
+}
+
+function info($header, $request, $name) {
+	return $header[$name];
+}
+
+function server_handle($header, $request_body) {
+	$error = NULL;
+	$packager = substr($request_body, YAR_HEADER_SIZE, 3);
+	if (strncmp($packager, "PHP", 3) != 0) {
+		return response(NULL, "Unsupported packager type '$packager', only PHP is supported");
+	}
+	$request_body = substr($request_body, YAR_HEADER_SIZE + 8);
+	$request = unserialize($request_body);
+	if ($request == false) {
+		return response(NULL, "Malformed request body");	
+	}
+
+	$function = $request["m"];
+	$parameters = $request["p"];
+
+	if (!function_exists($function)) {
+		return response(NULL, "Unsupported API " . $function);	
+	}
+
+	set_error_handler(function($no, $msg) use(&$error) { $error = $msg; });
+
+	if ($function == "info") {
+		$response = call_user_func_array($function, array($header, $request, $parameters[0]));
+	} else if ($function == "raw") {
+		return call_user_func_array($function, $parameters);
+	} else {
+		$response = call_user_func_array($function, $parameters);
+	}
+
+	return response($response, $error);
+}
+
+function htonl($num) {
+	return unpack("N", pack("L", $num))[1];
+}
+
+function verify_header($header) {
+	if (count($header) == 0) {
+		return response(NULL, "Malformed request header");	
+	}
+	if (!isset($header["magic_num"]) || $header["magic_num"] != YAR_PROTOCOL_MAGIC_NUM) {
+		return response(NULL, "Not a legal Yar call");	
+	}
+
+	return true;
+}
+
+function yar_tcp_server_handle($argv, $argc) {
+	$host = $argv[1];
+	$socket = stream_socket_server($host, $errno, $errstr);
+	if (!$socket) {
+		echo "$errstr ($errno)\n";
+	} else {
+		while (1) {
+			if ($conn = stream_socket_accept($socket)) {
+persistent:
+				$buf = fread($conn, YAR_HEADER_SIZE);
+				if (empty($buf)) {
+					fclose($conn);
+					continue;
+				}
+				$header = parse_header($buf);
+				if (($status = verify_header($header)) !== true) {
+					fwrite($conn, $status, strlen($stats));
+					fclose($conn);
+					continue;
+				}
+				$content_len = $header["body_len"];
+				$total_byte = $content_len + YAR_HEADER_SIZE;
+				$byte_read = YAR_HEADER_SIZE;
+
+				while (($byte_read != $total_byte && !feof($conn))) {
+					$buf .= fread($conn, $total_byte - $byte_read);
+					$byte_read = strlen($buf);
+				}
+
+				if ($byte_read == $total_byte) {
+					$response = server_handle($header, $buf);
+					fwrite($conn, $response, strlen($response));
+				} else {
+					fwrite($conn, response(NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
+				}
+				if ($header["reserved"] & YAR_PROTOCOL_PERSISTENT) {
+					goto persistent;
+				}
+				fclose($conn);
+			}
+		}
+		fclose($socket);
+	}
 }
 ?>
