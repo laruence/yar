@@ -170,6 +170,10 @@ function response($body, $error) {
 	return $res_str;
 }
 
+function raw_echo($str) {
+	return $str;
+}
+
 function raw($header, $response) {
 	$res_str = serialize($response);
 	$header_str = gen_header($header);
@@ -204,7 +208,7 @@ function server_handle($header, $request_body) {
 
 	if ($function == "info") {
 		$response = call_user_func_array($function, array($header, $request, $parameters[0]));
-	} else if ($function == "raw") {
+	} else if ($function == "raw" || $function == "raw_echo") {
 		return call_user_func_array($function, $parameters);
 	} else {
 		$response = call_user_func_array($function, $parameters);

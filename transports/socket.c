@@ -154,6 +154,10 @@ wait_io:
 		zval *retval, ret;
 		if (!payload) {
 			if ((recvd = (php_stream_xport_recvfrom(data->stream, buf, sizeof(buf), 0, NULL, NULL, NULL))) > 0) {
+				if (recvd < sizeof(yar_header_t)) {
+					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header, insufficient bytes recieved");
+					return response;
+				}
 				if (!(header = php_yar_protocol_parse(buf))) {
 					php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 					return response;
@@ -185,6 +189,7 @@ wait_io:
 				total_recvd += recvd;
 			} else if (recvd == 0) {
 				php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("server closed connection prematurely"));
+				efree(payload);
 				return response;
 			}
 			if (total_recvd < len) {

@@ -92,6 +92,7 @@
     <file name="026.phpt" role="test" />
     <file name="027.phpt" role="test" />
     <file name="028.phpt" role="test" />
+    <file name="029.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <dir name="htdocs">
