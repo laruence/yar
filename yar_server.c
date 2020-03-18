@@ -34,6 +34,7 @@
 #include "yar_request.h"
 #include "yar_response.h"
 #include "yar_protocol.h"
+#include "yar_transport.h"
 
 zend_class_entry *yar_server_ce;
 
@@ -418,6 +419,8 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	yar_header_t *header;
 	php_stream *s;
 	smart_str raw_data = {0};
+	char buf[RECV_BUF_SIZE];
+	size_t len = 0;
 
 	response = php_yar_response_instance();
 	s = SG(request_info).request_body;
@@ -428,15 +431,17 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	while (!php_stream_eof(s)) {
-		char buf[512];
-		size_t len = php_stream_read(s, buf, sizeof(buf));
-
-		if (len && len != (size_t) -1) {
+		len += php_stream_read(s, buf + len, sizeof(buf) - len);
+		if (len == sizeof(buf) || raw_data.s) {
 			smart_str_appendl(&raw_data, buf, len);
+			len = 0;
 		}
 	}
 
-	if (raw_data.s) {
+	if (len) {
+		payload = buf;
+		payload_len = len;
+	} else if (raw_data.s) {
 		smart_str_0(&raw_data);
 		payload = ZSTR_VAL(raw_data.s);
 		payload_len = ZSTR_LEN(raw_data.s);
@@ -451,7 +456,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		DEBUG_S("0: malformed request '%s'", payload);
 		goto response_no_output;
 	}
-
 
 	DEBUG_S("%ld: accpect rpc request form '%s'",
 			header->id, header->provider? (char *)header->provider : "Yar PHP " PHP_YAR_VERSION);

@@ -45,8 +45,6 @@
 #define YAR_EPOLL_MAX_SIZE 128
 #endif
 
-#define SEND_BUF_SIZE 1280
-#define RECV_BUF_SIZE 1280
 #define MAX_BODY_LEN 1024 * 1024 * 10 /* 10 M */
 
 typedef struct _yar_socket_data_t {
@@ -178,7 +176,7 @@ wait_io:
 					goto wait_io;	
 				}
 			} else if (recvd == 0) {
-				php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("server closed connection prematurely"));
+				php_yar_response_set_error(response, YAR_ERR_TRANSPORT, ZEND_STRL("server closed connection prematurely"));
 				return response;
 			} else {
 				/* this should never happen */
@@ -188,7 +186,7 @@ wait_io:
 			if ((recvd = php_stream_xport_recvfrom(data->stream, payload + total_recvd, len - total_recvd, 0, NULL, NULL, NULL)) > 0) {
 				total_recvd += recvd;
 			} else if (recvd == 0) {
-				php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("server closed connection prematurely"));
+				php_yar_response_set_error(response, YAR_ERR_TRANSPORT, ZEND_STRL("server closed connection prematurely"));
 				efree(payload);
 				return response;
 			}
