@@ -225,10 +225,10 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 
 	options = zend_read_property(yar_client_ce, client, ZEND_STRL("_options"), 0, &rv);
 	if (IS_ARRAY != Z_TYPE_P(options)) {
-		zval tmp_options;
-		array_init(&tmp_options);
-		zend_update_property(yar_client_ce, client, ZEND_STRL("_options"), &tmp_options);
-		zval_ptr_dtor(&tmp_options);
+		zval empty_options;
+		array_init(&empty_options);
+		zend_update_property(yar_client_ce, client, ZEND_STRL("_options"), &empty_options);
+		Z_DELREF(empty_options);
 	}
 
 	Z_TRY_ADDREF_P(value);
@@ -675,10 +675,10 @@ PHP_METHOD(yar_concurrent_client, call) {
 
 	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
 	if (Z_ISNULL_P(callstack)) {
-	    zval tmp;
-		array_init(&tmp);
-		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), &tmp);
-		zval_ptr_dtor(&tmp);
+	    zval rv;
+		array_init(&rv);
+		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), &rv);
+		Z_DELREF(rv);
 	}
 
 	ZVAL_RES(&item, zend_register_resource(entry, le_calldata));
