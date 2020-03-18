@@ -20,7 +20,7 @@ It has the ability to concurrently call multiple remote services.
 - Fast, Easy, Simple
 - Concurrent RPC calls
 - Multiple data packager supported (php, json, msgpack built-in)
-- Multiple transfer protocols supported (http implemented,  tcp/unix will be supported later)
+- Multiple transfer protocols supported (http, https, TCP)
 - Detailed debug informations
 
 ## Install
