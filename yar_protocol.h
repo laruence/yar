@@ -33,13 +33,13 @@
 #pragma pack(1)
 #endif
 typedef struct _yar_header {
-    unsigned int   id;
-    unsigned short version;
-    unsigned int   magic_num;
-    unsigned int   reserved;
+    uint32_t       id;
+    uint16_t       version;
+    uint32_t       magic_num;
+    uint32_t       reserved;
     unsigned char  provider[32];
     unsigned char  token[32];
-    unsigned int   body_len; 
+    uint32_t       body_len;
 }
 #ifndef PHP_WIN32
 __attribute__ ((packed))

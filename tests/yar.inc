@@ -13,14 +13,14 @@ define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
 /*
   typedef struct _yar_header {
-    unsigned int   id;            // transaction id
-    unsigned short version;       // protocl version
-    unsigned int   magic_num;     // default is: 0x80DFEC60
-    unsigned int   reserved;
+    uint32_t       id;            // transaction id
+    uint16_t       version;       // protocl version
+    uint32_t       magic_num;     // default is: 0x80DFEC60
+    uint32_t       reserved;
     unsigned char  provider[32];  // reqeust from who
     unsigned char  token[32];     // request token, used for authentication
-    unsigned int   body_len;      // request body len
-  }
+    uint32_t       body_len;      // request body len
+  }__attribute__ ((packed))
  */
 define("YAR_HEADER_SIZE", 4 + 2 + 4 + 4 + 32 + 32 + 4);
 define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
