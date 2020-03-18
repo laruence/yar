@@ -37,11 +37,6 @@ extern zend_module_entry yar_module_entry;
 #include "TSRM.h"
 #endif
 
-#ifndef ZEND_ACC_CTOR
-# define ZEND_ACC_CTOR	0x0
-# define ZEND_ACC_DTOR	0x0
-#endif
-
 #define PHP_YAR_VERSION  "2.1.2-dev"
 
 PHP_MINIT_FUNCTION(yar);
@@ -82,14 +77,9 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define YAR_DEACTIVATE_FUNCTION(module)  ZEND_MODULE_DEACTIVATE_D(yar_##module)
 #define YAR_DEACTIVATE(module)           ZEND_MODULE_DEACTIVATE_N(yar_##module)(SHUTDOWN_FUNC_ARGS_PASSTHRU)
 
-#ifndef PHP_FE_END
-#define PHP_FE_END { NULL, NULL, NULL }
-#endif
-
-#if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3))
-#define Z_ADDREF_P 	 ZVAL_ADDREF
-#define Z_REFCOUNT_P ZVAL_REFCOUNT
-#define Z_DELREF_P 	 ZVAL_DELREF
+#if PHP_VERSION_ID < 70200
+extern zend_string *php_yar_char_str[26];
+#define ZSTR_CHAR(i) php_yar_char_str[i - 'a']
 #endif
 
 #define YAR_OPT_PACKAGER 			(1<<0)	
@@ -98,32 +88,6 @@ extern ZEND_DECLARE_MODULE_GLOBALS(yar);
 #define YAR_OPT_CONNECT_TIMEOUT 	(1<<3)
 #define YAR_OPT_HEADER				(1<<4)
 #define YAR_OPT_RESOLVE 			(1<<5)
-
-#define YAR_STASH_VARIABLES()  \
-		zend_bool _old_in_compilation, _old_in_execution, _old_display_errors; \
-		zend_execute_data *_old_current_execute_data; \
-		int _old_http_response_code;\
-		char *_old_http_status_line;\
-
-
-#define YAR_STASH_STATE()  \
-		_old_in_compilation = CG(in_compilation); \
-		_old_in_execution = EG(in_execution); \
-		_old_current_execute_data = EG(current_execute_data); \
-		_old_http_response_code = SG(sapi_headers).http_response_code; \
-		_old_http_status_line = SG(sapi_headers).http_status_line; \
-		_old_display_errors = PG(display_errors); \
-		SG(sapi_headers).http_status_line = NULL;
-
-#define YAR_RESTORE_STATE() \
-		CG(in_compilation) = _old_in_compilation; \
-		EG(in_execution) = _old_in_execution; \
-		EG(current_execute_data) = _old_current_execute_data; \
-		if (SG(sapi_headers).http_status_line) { \
-			efree(SG(sapi_headers).http_status_line); \
-		} \
-		SG(sapi_headers).http_status_line = _old_http_status_line; \
-		SG(sapi_headers).http_response_code = _old_http_response_code;
 
 #endif	/* PHP_YAR_H */
 

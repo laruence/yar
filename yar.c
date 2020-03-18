@@ -35,6 +35,10 @@
 
 ZEND_DECLARE_MODULE_GLOBALS(yar);
 
+#if PHP_VERSION_ID < 70200
+zend_string *php_yar_char_str[26];
+#endif
+
 /* {{{ yar_functions[]
  */
 zend_function_entry yar_functions[] = {
@@ -97,7 +101,19 @@ PHP_MINIT_FUNCTION(yar)
 	REGISTER_LONG_CONSTANT("YAR_OPT_HEADER", YAR_OPT_HEADER, CONST_CS|CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("YAR_OPT_RESOLVE", YAR_OPT_RESOLVE, CONST_CS|CONST_PERSISTENT);
 
-	
+#if PHP_VERSION_ID < 70200
+	{
+		unsigned char c = 'a';
+		for (; c <= 'z'; c++) {
+			zend_string *chr = zend_string_alloc(1, 1);
+			ZSTR_VAL(chr)[0] = c;
+			zend_string_hash_val(chr);
+			GC_FLAGS(chr) |= IS_STR_INTERNED | IS_STR_PERMANENT;
+			php_yar_char_str[c - 'a'] = chr;
+		}
+	}
+#endif
+
 	YAR_STARTUP(service);
 	YAR_STARTUP(client);
 	YAR_STARTUP(packager);
@@ -114,6 +130,14 @@ PHP_MSHUTDOWN_FUNCTION(yar)
 {
 	UNREGISTER_INI_ENTRIES();
 
+#if PHP_VERSION_ID < 70200
+	{
+		unsigned char c = 0;
+		for (; c < sizeof(php_yar_char_str)/sizeof(zend_string*); c++) {
+			pefree(php_yar_char_str[c], 1);
+		}
+	}
+#endif
 	YAR_SHUTDOWN(service);
 	YAR_SHUTDOWN(packager);
 

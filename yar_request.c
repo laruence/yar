@@ -83,7 +83,8 @@ yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
 } /* }}} */
 
 zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ {
-	zval zreq;
+	zval rv;
+	zend_array req;
 	zend_string *payload;
 	char *packager_name = NULL;
 
@@ -95,26 +96,29 @@ zend_string *php_yar_request_pack(yar_request_t *request, char **msg) /* {{{ */ 
 		}
 	}
 
-	array_init(&zreq);
+	zend_hash_init(&req, 8, NULL, NULL, 0);
 
-	add_assoc_long_ex(&zreq, ZEND_STRL("i"), request->id);
-	add_assoc_str_ex(&zreq, ZEND_STRL("m"), zend_string_copy(request->method));
+	ZVAL_LONG(&rv, request->id);
+	zend_hash_add(&req, ZSTR_CHAR('i'), &rv);
 
+	ZVAL_STR(&rv, request->method);
+	zend_hash_add(&req, ZSTR_CHAR('m'), &rv);
 	if (IS_ARRAY == Z_TYPE(request->parameters)) {
-		Z_TRY_ADDREF(request->parameters);
-		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), &request->parameters);
+		zend_hash_add(&req, ZSTR_CHAR('p'), &request->parameters);
 	} else {
-		zval tmp;
-		array_init(&tmp);
-		add_assoc_zval_ex(&zreq, ZEND_STRL("p"), &tmp);
+		zend_array empty_arr;
+		zend_hash_init(&empty_arr, 0, NULL, NULL, 0);
+		ZVAL_ARR(&rv, &empty_arr);
+		zend_hash_add(&req, ZSTR_CHAR('p'), &rv);
 	}
 
-	if (!(payload = php_yar_packager_pack(packager_name, &zreq, msg))) {
-		zval_ptr_dtor(&zreq);
+	ZVAL_ARR(&rv, &req);
+	if (!(payload = php_yar_packager_pack(packager_name, &rv, msg))) {
+		zend_hash_destroy(&req);
 		return NULL;
 	}
 
-	zval_ptr_dtor(&zreq);
+	zend_hash_destroy(&req);
 
 	return payload;
 }

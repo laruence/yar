@@ -362,34 +362,38 @@ static void php_yar_server_response_header(size_t content_lenth, void *packager_
 } /* }}} */
 
 static void php_yar_server_response(yar_request_t *request, yar_response_t *response, char *pkg_name) /* {{{ */ {
-	zval ret;
+	zval rv;
 	char *err_msg;
+	zend_array ret;
 	zend_string *payload;
 	yar_header_t header = {0};
 
-	array_init(&ret);
+	zend_hash_init(&ret, 8, NULL, NULL, 0);
 
-	add_assoc_long_ex(&ret, ZEND_STRL("i"), response->id);
-	add_assoc_long_ex(&ret, ZEND_STRL("s"), response->status);
+	ZVAL_LONG(&rv, response->id);
+	zend_hash_add(&ret, ZSTR_CHAR('i'), &rv);
+	ZVAL_LONG(&rv, response->status);
+	zend_hash_add(&ret, ZSTR_CHAR('s'), &rv);
+
 	if (response->out && ZSTR_LEN(response->out)) {
-		add_assoc_str_ex(&ret, ZEND_STRL("o"), zend_string_copy(response->out));
+		ZVAL_STR(&rv, response->out);
+		zend_hash_add(&ret, ZSTR_CHAR('o'), &rv);
 	}
 	if (!Z_ISUNDEF(response->retval)) {
-		Z_TRY_ADDREF(response->retval);
-		add_assoc_zval_ex(&ret, ZEND_STRL("r"), &response->retval);
+		zend_hash_add(&ret, ZSTR_CHAR('r'), &response->retval);
 	}
 	if (!Z_ISUNDEF(response->err)) {
-		Z_TRY_ADDREF(response->err);
-		add_assoc_zval_ex(&ret, ZEND_STRL("e"), &response->err);
+		zend_hash_add(&ret, ZSTR_CHAR('e'), &response->err);
 	}
 
-    if (!(payload = php_yar_packager_pack(pkg_name, &ret, &err_msg))) {
-		zval_ptr_dtor(&ret);
+	ZVAL_ARR(&rv, &ret);
+    if (!(payload = php_yar_packager_pack(pkg_name, &rv, &err_msg))) {
+		zend_hash_destroy(&ret);
 		php_yar_error(response, YAR_ERR_PACKAGER, "%s", err_msg);
 		efree(err_msg);
 		return;
 	}
-	zval_ptr_dtor(&ret);
+	zend_hash_destroy(&ret);
 
 	php_yar_protocol_render(&header, request? request->id : 0, "PHP Yar Server", NULL, ZSTR_LEN(payload), 0);
 
