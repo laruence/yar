@@ -18,12 +18,6 @@ install:
             7z x c:\build-cache\$bname -oc:\build-cache
             move c:\build-cache\$dname0 c:\build-cache\$dname1
         }
-        $bname = 'libcurl-7.68.0-' + $env:VC + '-' + $env:ARCH + '.zip'
-        $dname = 'libcurl-7.68.0-' + $env:VC + '-' + $env:ARCH
-        if (-not (Test-Path c:\build-cache\$bname)) {
-            $lname = 'https://windows.php.net/downloads/php-sdk/deps/' + $env:VC + '/' + $env:ARCH + "/$bname"
-            Invoke-WebRequest "$lname" -OutFile "c:\build-cache\$bname"
-        }
 
 cache:
   - c:\build-cache -> .appveyor.yml
@@ -104,14 +98,14 @@ build_script:
         }
         $env:PATH = 'c:\build-cache\' + $dname1 + ';' + $env:PATH
 
-        $bname = 'libcurl-7.68.0-' + $env:VC + '-' + $env:ARCH + '.zip'
-        7z x c:\build-cache\$bname -oc:\build-cache\$dname1\
+        md c:\build-cache\deps
         cd c:\projects\yar
         #echo "@echo off" | Out-File -Encoding "ASCII" task.bat
         #echo "" | Out-File -Encoding "ASCII" -Append task.bat
         echo "" | Out-File -Encoding "ASCII" task.bat
+        echo "call phpsdk_deps -d c:\build-cache\deps -un" | Out-File -Encoding "ASCII" -Append task.bat
         echo "call phpize 2>&1" | Out-File -Encoding "ASCII" -Append task.bat
-        echo "call configure --enable-yar --enable-debug-pack 2>&1" | Out-File -Encoding "ASCII" -Append task.bat
+        echo "call configure --with-php-build=c:\build-cache\deps --enable-yar --enable-debug-pack 2>&1" | Out-File -Encoding "ASCII" -Append task.bat
         echo "nmake /nologo 2>&1" | Out-File -Encoding "ASCII" -Append task.bat
         echo "exit %errorlevel%" | Out-File -Encoding "ASCII" -Append task.bat
         $here = (Get-Item -Path "." -Verbose).FullName
@@ -142,49 +136,49 @@ after_build:
         & 7z a c:\$zip_bname $dir\$dll_bname $dir\php_yar.pdb c:\projects\yar\LICENSE
         Push-AppveyorArtifact c:\$zip_bname
 
-test_script:
-    ps: |
-        $ts_part = ''
-        if ('0' -eq $env:TS) { $ts_part = '-nts' }
-        $bname = 'php-' + $env:PHP_VER + $ts_part + '-Win32-' + $env:VC.toUpper() + '-' + $env:ARCH + '.zip'
-        if (-not (Test-Path c:\build-cache\$bname)) {
-            Invoke-WebRequest "http://windows.php.net/downloads/releases/archives/$bname" -OutFile "c:\build-cache\$bname"
-            if (-not (Test-Path c:\build-cache\$bname)) {
-                Invoke-WebRequest "http://windows.php.net/downloads/releases/$bname" -OutFile "c:\build-cache\$bname"
-            }
-        }
-        $dname = 'php-' + $env:PHP_VER + $ts_part + '-' + $env:VC.toUpper() + '-' + $env:ARCH
-        if (-not (Test-Path c:\build-cache\$dname)) {
-            7z x c:\build-cache\$bname -oc:\build-cache\$dname
-        }
+# test_script:
+#     ps: |
+#         $ts_part = ''
+#         if ('0' -eq $env:TS) { $ts_part = '-nts' }
+#         $bname = 'php-' + $env:PHP_VER + $ts_part + '-Win32-' + $env:VC.toUpper() + '-' + $env:ARCH + '.zip'
+#         if (-not (Test-Path c:\build-cache\$bname)) {
+#             Invoke-WebRequest "http://windows.php.net/downloads/releases/archives/$bname" -OutFile "c:\build-cache\$bname"
+#             if (-not (Test-Path c:\build-cache\$bname)) {
+#                 Invoke-WebRequest "http://windows.php.net/downloads/releases/$bname" -OutFile "c:\build-cache\$bname"
+#             }
+#         }
+#         $dname = 'php-' + $env:PHP_VER + $ts_part + '-' + $env:VC.toUpper() + '-' + $env:ARCH
+#         if (-not (Test-Path c:\build-cache\$dname)) {
+#             7z x c:\build-cache\$bname -oc:\build-cache\$dname
+#         }
         
-        $dir = 'c:\projects\yar\';
-        if ('x64' -eq $env:ARCH) { $dir = $dir + 'x64\' }
-        $dir = $dir + 'Release'
-        if ('1' -eq $env:TS) { $dir = $dir + '_TS' }
+#         $dir = 'c:\projects\yar\';
+#         if ('x64' -eq $env:ARCH) { $dir = $dir + 'x64\' }
+#         $dir = $dir + 'Release'
+#         if ('1' -eq $env:TS) { $dir = $dir + '_TS' }
 
-        $yar_dll_opt = '-d extension=' + $dir + '\php_yar.dll'
+#         $yar_dll_opt = '-d extension=' + $dir + '\php_yar.dll'
 
-        cd c:\projects\yar
-        mkdir c:\tests_tmp
-        echo "" | Out-File -Encoding "ASCII" task.bat
-        echo "set REPORT_EXIT_STATUS=1" | Out-File -Encoding "ASCII" -Append task.bat
-        $cmd = 'call configure --enable-yar --with-prefix=c:\build-cache\' + $dname + " 2>&1"
-        echo $cmd | Out-File -Encoding "ASCII" -Append task.bat
+#         cd c:\projects\yar
+#         mkdir c:\tests_tmp
+#         echo "" | Out-File -Encoding "ASCII" task.bat
+#         echo "set REPORT_EXIT_STATUS=1" | Out-File -Encoding "ASCII" -Append task.bat
+#         $cmd = 'call configure --enable-yar --with-prefix=c:\build-cache\' + $dname + " 2>&1"
+#         echo $cmd | Out-File -Encoding "ASCII" -Append task.bat
 
-        $opts = 'set TEST_PHP_ARGS=-n -d foo=yes'
-        if ('yes' -eq $env:OPCACHE) { $opts = $opts + ' -d zend_extension=c:\build-cache\' + $dname + '\ext\php_opcache.dll -d opcache.enabled=1 -d opcache.enable_cli=1' }
-        $opts = $opts + ' ' + $yar_dll_opt
-        echo $opts | Out-File -Encoding "ASCII" -Append task.bat
+#         $opts = 'set TEST_PHP_ARGS=-n -d foo=yes'
+#         if ('yes' -eq $env:OPCACHE) { $opts = $opts + ' -d zend_extension=c:\build-cache\' + $dname + '\ext\php_opcache.dll -d opcache.enabled=1 -d opcache.enable_cli=1' }
+#         $opts = $opts + ' ' + $yar_dll_opt
+#         echo $opts | Out-File -Encoding "ASCII" -Append task.bat
 
-        $php = "c:\\build-cache\\" + $dname + '\php.exe'
-        $test_php_exec = "set TEST_PHP_EXECUTABLE=" + $php
-        echo $test_php_exec | Out-File -Encoding "ASCII" -Append task.bat
-        $tcmd = $php + ' run-tests.php -q --offline --show-diff --set-timeout 120 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP --temp-source c:\tests_tmp --temp-target c:\tests_tmp -p c:\build-cache\' + $dname + '\php.exe'
-        echo $tcmd | Out-File -Encoding "ASCII" -Append task.bat
-        echo "exit %errorlevel%" | Out-File -Encoding "ASCII" -Append task.bat
+#         $php = "c:\\build-cache\\" + $dname + '\php.exe'
+#         $test_php_exec = "set TEST_PHP_EXECUTABLE=" + $php
+#         echo $test_php_exec | Out-File -Encoding "ASCII" -Append task.bat
+#         $tcmd = $php + ' run-tests.php -q --offline --show-diff --set-timeout 120 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP --temp-source c:\tests_tmp --temp-target c:\tests_tmp -p c:\build-cache\' + $dname + '\php.exe'
+#         echo $tcmd | Out-File -Encoding "ASCII" -Append task.bat
+#         echo "exit %errorlevel%" | Out-File -Encoding "ASCII" -Append task.bat
 
-        $here = (Get-Item -Path "." -Verbose).FullName
-        $runner = 'c:\build-cache\php-sdk-' + $env:BIN_SDK_VER + '\phpsdk' + '-' + $env:VC + '-' + $env:ARCH + '.bat'
-        $task = $here + '\task.bat'
-        & $runner -t $task
+#         $here = (Get-Item -Path "." -Verbose).FullName
+#         $runner = 'c:\build-cache\php-sdk-' + $env:BIN_SDK_VER + '\phpsdk' + '-' + $env:VC + '-' + $env:ARCH + '.bat'
+#         $task = $here + '\task.bat'
+#         & $runner -t $task
