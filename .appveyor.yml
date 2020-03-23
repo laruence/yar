@@ -105,9 +105,7 @@ build_script:
         $env:PATH = 'c:\build-cache\' + $dname1 + ';' + $env:PATH
 
         $bname = 'libcurl-7.68.0-' + $env:VC + '-' + $env:ARCH + '.zip'
-        if ((Test-Path c:\build-cache\$bname)) {
-            7z x c:\build-cache\$bname -oc:\build-cache\dname1\
-        }
+        7z x c:\build-cache\$bname -oc:\build-cache\$dname1\
         cd c:\projects\yar
         #echo "@echo off" | Out-File -Encoding "ASCII" task.bat
         #echo "" | Out-File -Encoding "ASCII" -Append task.bat
