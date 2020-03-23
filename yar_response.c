@@ -87,25 +87,25 @@ void php_yar_response_map_retval(yar_response_t *response, zval *ret) /* {{{ */ 
 		zval *pzval;                       
 		HashTable *ht = Z_ARRVAL_P(ret);     
 
-		if ((pzval = zend_hash_str_find(ht, ZEND_STRL("i"))) == NULL) {
+		if ((pzval = zend_hash_find(ht, ZSTR_CHAR('i'))) == NULL) {
 			return;
 		}                                    
 		convert_to_long(pzval);            
 		response->id = Z_LVAL_P(pzval);    
 
-		if ((pzval = zend_hash_str_find(ht, ZEND_STRL("s"))) == NULL) {
+		if ((pzval = zend_hash_find(ht, ZSTR_CHAR('s'))) == NULL) {
 			return;
 		}                                    
 		convert_to_long(pzval);            
 		if ((response->status = Z_LVAL_P(pzval)) == YAR_ERR_OKEY) {
-			if ((pzval = zend_hash_str_find(ht, ZEND_STRL("o"))) != NULL) {
+			if ((pzval = zend_hash_find(ht, ZSTR_CHAR('o'))) != NULL) {
 				response->out = Z_STR_P(pzval);
 				ZVAL_NULL(pzval);          
 			}                                
-			if ((pzval = zend_hash_str_find(ht, ZEND_STRL("r"))) != NULL) {
+			if ((pzval = zend_hash_find(ht, ZSTR_CHAR('r'))) != NULL) {
 				ZVAL_COPY(&response->retval, pzval);
 			}                                
-		} else if ((pzval = zend_hash_str_find(ht, ZEND_STRL("e"))) != NULL) {
+		} else if ((pzval = zend_hash_find(ht, ZSTR_CHAR('e'))) != NULL) {
 			ZVAL_COPY(&response->err, pzval);
 		}                      
 	}
