@@ -36,10 +36,10 @@ void php_yar_protocol_render(yar_header_t *header, unsigned id, char *provider, 
 	header->body_len = htonl(body_len);
 	header->reserved = htonl(reserved);
 	if (provider) {
-		memcpy(header->provider, provider, strlen(provider));
+		memcpy(header->provider, provider, MIN(strlen(provider), 32));
 	}
 	if (token) {
-		memcpy(header->token, token, strlen(token));
+		memcpy(header->token, token, MIN(strlen(token), 32));
 	}
 	return;
 } /* }}} */
