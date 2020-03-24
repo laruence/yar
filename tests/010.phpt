@@ -5,6 +5,7 @@ Check for yar debug
 if (!extension_loaded("yar")) {
     print "skip";
 }
+if (substr(PHP_OS, 0, 3) == 'WIN') die('skip hangs on Windows');
 ?>
 --INI--
 yar.debug=1

@@ -26,7 +26,15 @@ define("YAR_HEADER_SIZE", 4 + 2 + 4 + 4 + 32 + 32 + 4);
 define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
 define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
-function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ") {
+function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = null) {
+	if (!isset($cmd_args)) {
+		if (substr(PHP_OS, 0, 3) != 'WIN') {
+			$cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ";
+		} else {
+			// extension must be loaded via TEST_PHP_ARGS environment variable
+			$cmd_args = '';
+		}
+	}
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$tmp = getenv('TEST_PHP_ARGS');
 
@@ -34,17 +42,21 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = "-dextens
 		$cmd_args .= $tmp;
 	}
 
-	$descriptorspec = array(
-		0 => STDIN,
-		1 => STDOUT,
-		2 => STDERR,
-	);
-
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
+		$descriptorspec = array(
+			0 => STDIN,
+			1 => STDOUT,
+			2 => array("pipe", "w"),
+		);
 		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
 
 		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
+		$descriptorspec = array(
+			0 => STDIN,
+			1 => STDOUT,
+			2 => STDERR,
+		);
 		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
 
 		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
