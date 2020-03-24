@@ -23,6 +23,10 @@
 #include "config.h"
 #endif
 
+#ifdef PHP_WIN32
+#include "win32/time.h"
+#endif
+
 #include "php.h"
 #include "php_yar.h"
 #include "yar_protocol.h"
