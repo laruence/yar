@@ -48,13 +48,10 @@ function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$server = __DIR__ . "/yar_tcp_server.php.";
 
-	file_put_contents($server, <<<PHP
-<?php
-	require("yar.inc");
-	yar_tcp_server_handle(\$argv, \$argc);
-?>
-PHP
-);
+	$fp = fopen($server, "w+");
+	fwrite($fp, '<?php require("yar.inc"); yar_tcp_server_handle($argv, $argc);?>');
+	fclose($fp);
+
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
 		$cmd = "{$php_executable} {$server} " . YAR_TCP_ADDRESS;
 	} else {

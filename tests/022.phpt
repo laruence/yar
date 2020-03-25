@@ -5,6 +5,7 @@ Check for YAR_OPT_RESOLVE
 if (!extension_loaded("yar")) {
     die("skip");
 }
+if (substr(PHP_OS, 0, 3) == 'WIN') die("skip YAR_OPT_RESOLVE seems doesn't work on Windows");
 if (false == ((new Yar_Client("http://doesnotexists"))->setOpt(YAR_OPT_RESOLVE, array("doesnotexists.com:80:127.0.0.1")))) {
 	die("skip require libcurl 7.21.3+");
 }
