@@ -552,7 +552,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 
 	if (EG(exception)) {
 		php_yar_response_set_exception(response, EG(exception));
-		EG(exception) = NULL;
+		zend_clear_exception();
 	}
 
 response:
