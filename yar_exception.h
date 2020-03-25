@@ -22,6 +22,10 @@
 #ifndef PHP_YAR_EXCEPTION_H
 #define PHP_YAR_EXCEPTION_H
 
+#ifdef PHP_WIN32
+#include "win32/time.h" /* gettimeofday definition */
+#endif
+
 #define YAR_ERR_OKEY      		0x0
 #define YAR_ERR_PACKAGER  		0x1
 #define YAR_ERR_PROTOCOL  		0x2
