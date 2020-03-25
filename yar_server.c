@@ -407,6 +407,8 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 		PHPWRITE(ZSTR_VAL(payload), ZSTR_LEN(payload));
 	}
 
+	zend_string_release(payload);
+
 	return;
 } /* }}} */
 
