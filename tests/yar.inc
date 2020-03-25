@@ -72,11 +72,10 @@ PHP
 
 function yar_server_run($cmd) {
 	$descriptorspec = array(
-		0 => STDIN,
-		1 => STDOUT,
-		2 => STDERR,
+		0 => array("pipe", "r"),
+		1 => array("pipe", "w"),
+		2 => array("pipe", "w"),
 	);
-
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
 		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, NULL, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
