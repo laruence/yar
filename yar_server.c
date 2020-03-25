@@ -407,6 +407,8 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 		PHPWRITE(ZSTR_VAL(payload), ZSTR_LEN(payload));
 	}
 
+	zend_string_release(payload);
+
 	return;
 } /* }}} */
 
@@ -550,7 +552,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 
 	if (EG(exception)) {
 		php_yar_response_set_exception(response, EG(exception));
-		EG(exception) = NULL;
+		zend_clear_exception();
 	}
 
 response:

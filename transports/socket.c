@@ -29,6 +29,7 @@
 #define php_select(m, r, w, e, t)   select(m, r, w, e, t)
 #else
 #include "win32/select.h"
+#include "win32/time.h"
 #endif
 
 #include "php_yar.h"
