@@ -9,6 +9,25 @@ define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 
+function yar_server_start($doc_root = __DIR__ . "/htdocs") {
+	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
+	$tmp = getenv('TEST_PHP_ARGS');
+
+	if ($tmp && !(bool)getenv('TRAVIS')) { /* --show-diff break tests after PHP-7.2 */
+		$cmd_args .= $tmp;
+	}
+
+	if (substr(PHP_OS, 0, 3) == 'WIN') {
+		$cmd_args = " -d extension=" . dirname(__DIR__) . "/ext/php_yar.dll";
+		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
+	} else {
+		$cmd_args = " -d extension=" . dirname(__DIR__) . "/modules/yar.so";
+		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
+	}
+
+	return yar_server_run($cmd);
+}
+
 /* For TCP */
 define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
 /*
@@ -26,40 +45,43 @@ define("YAR_HEADER_SIZE", 4 + 2 + 4 + 4 + 32 + 32 + 4);
 define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
 define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
-function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = null) {
-	if (!isset($cmd_args)) {
-		if (substr(PHP_OS, 0, 3) != 'WIN') {
-			$cmd_args = "-dextension=" . __DIR__ . "/../modules/yar.so ";
-		} else {
-			// extension must be loaded via TEST_PHP_ARGS environment variable
-			$cmd_args = '';
-		}
-	}
+function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$tmp = getenv('TEST_PHP_ARGS');
+	$server = __DIR__ . "/yar_tcp_server.php.";
 
-	if ($tmp && !(bool)getenv('TRAVIS')) { /* --show-diff break tests after PHP-7.2 */
-		$cmd_args .= $tmp;
+	file_put_contents($server, <<<PHP
+<?php
+	require("yar.inc");
+	yar_tcp_server_handle(\$argv, \$argc);
+?>
+PHP
+);
+	if (substr(PHP_OS, 0, 3) == 'WIN') {
+		$cmd = "{$php_executable} {$server} " . YAR_TCP_ADDRESS;
+	} else {
+		$cmd = "exec {$php_executable} {$server} " . YAR_TCP_ADDRESS . " 2>/dev/null";
 	}
+
+	yar_server_run($cmd);
+
+	register_shutdown_function(
+		function($server) {
+			@unlink($server);
+		},
+		$server);
+}
+
+function yar_server_run($cmd) {
+	$descriptorspec = array(
+		0 => STDIN,
+		1 => STDOUT,
+		2 => STDERR,
+	);
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
-		$descriptorspec = array(
-			0 => STDIN,
-			1 => STDOUT,
-			2 => array("pipe", "w"),
-		);
-		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
-
-		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
+		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, NULL, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
-		$descriptorspec = array(
-			0 => STDIN,
-			1 => STDOUT,
-			2 => STDERR,
-		);
-		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
-
-		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
+		$handle = proc_open($cmd, $descriptorspec, $pipes, NULL);
 	}
 
 	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
@@ -71,7 +93,9 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = null) {
 
     if ($fp) {
         fclose($fp);
-    }
+	} else {
+		die("Cannot start Yar_Server with '$cmd'");
+	}
 
 	register_shutdown_function(
 		function($handle) {
@@ -82,53 +106,7 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs", $cmd_args = null) {
 	// server can take a variable amount of time to be up, so just sleeping a guessed amount of time
 	// does not work. this is why tests sometimes pass and sometimes fail. to get a reliable pass
 	// sleeping doesn't work.
-}
-
-function yar_tcp_server_start() {
-	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . "/_yar_tcp_server.php.";
-
-	$descriptorspec = array(
-		0 => STDIN,
-		1 => STDOUT,
-		2 => STDERR,
-	);
-
-	file_put_contents($server, <<<PHP
-<?php
-	require("yar.inc");
-	yar_tcp_server_handle(\$argv, \$argc);
-?>
-PHP
-);
-
-	if (substr(PHP_OS, 0, 3) == 'WIN') {
-		$cmd = "{$php_executable} {$server}  " . YAR_TCP_ADDRESS;
-
-		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, __DIR__, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
-	} else {
-		$cmd = "exec {$php_executable} {$server} " . YAR_TCP_ADDRESS . " 2>/dev/null";
-
-		$handle = proc_open($cmd, $descriptorspec, $pipes, __DIR__);
-	}
-
-	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
-	//       it might not be listening yet...need to wait until fsockopen() call returns
-    $i = 0;
-    while (($i++ < 30) && !($fp = @fsockopen(YAR_API_HOSTNAME, YAR_API_PORT))) {
-        usleep(10000);
-    }
-
-    if ($fp) {
-        fclose($fp);
-    }
-
-	register_shutdown_function(
-		function($handle) use ($server) {
-			@unlink($server);
-			proc_terminate($handle);
-		},
-		$handle);
+	return;
 }
 
 function parse_header($data) {
