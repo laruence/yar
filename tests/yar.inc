@@ -46,19 +46,17 @@ define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . DIRECTORY_SEPARATOR . "server" . DIRECTORY_SEPARATOR . "yar_tcp_server.php";
+	$server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_tcp_server.php";
 
-	/* For windows, We can not directly write to current directory */
-	mkdir(dirname($server), 0755);
 	file_put_contents($server, <<<'PHP'
 <?php
-   require(dirname(__DIR__) . DIRECTORY_SEPARATOR . "yar.inc");
+   require("yar.inc");
    yar_tcp_server_handle($argv, $argc);
 ?>
 PHP
 );
 	if (!file_exists($server)) {
-		die ("Can not write server script");
+		die("Can not write server script");
 	}
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
@@ -71,8 +69,7 @@ PHP
 
 	register_shutdown_function(
 		function($server) {
-			@unlink($server);
-			@rmdir(dirname($server));
+			unlink($server);
 		},
 		$server);
 }
