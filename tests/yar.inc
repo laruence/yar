@@ -46,11 +46,9 @@ define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . DIRECTORY_SEPARATOR . "yar_tcp_server.php.";
+	$server = __DIR__ . DIRECTORY_SEPARATOR . "yar_tcp_server.php";
 
-	$fp = fopen($server, "w+");
-	fwrite($fp, '<?php require("yar.inc"); yar_tcp_server_handle($argv, $argc);?>');
-	fclose($fp);
+	file_put_contents($server, '<?php require("yar.inc"); yar_tcp_server_handle($argv, $argc); ?>');
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
 		$cmd = "{$php_executable} {$server} " . YAR_TCP_ADDRESS;
