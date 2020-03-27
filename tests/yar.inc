@@ -230,6 +230,9 @@ function yar_tcp_server_handle($argv, $argc) {
 	if (!$socket) {
 		echo "$errstr ($errno)\n";
 	} else {
+		register_shutdown_function(function($socket) {
+			fclose($socket);
+		}, $socket);
 		while (1) {
 			if ($conn = stream_socket_accept($socket)) {
 persistent:
@@ -265,7 +268,6 @@ persistent:
 				fclose($conn);
 			}
 		}
-		fclose($socket);
 	}
 }
 ?>
