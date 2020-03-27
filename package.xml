@@ -16,11 +16,11 @@
   <email>zhangzhenyu@php.net</email>
   <active>yes</active>
  </developer>
- <date>2020-03-16</date>
- <time>15:50:00</time>
+ <date>2020-03-27</date>
+ <time>18:00:00</time>
  <version>
-  <release>2.1.1</release>
-  <api>2.1.1</api>
+  <release>2.1.2</release>
+  <api>2.1.2</api>
  </version>
  <stability>
   <release>stable</release>
@@ -28,7 +28,9 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed building with Msgpack
+  - USE ZSTR_CHAR to avoding memory allocation
+  - Fixed segfault if tcp server return malformed response->err
+  - Fixed bug tcp client hangs if server closed connection prematurely 
  </notes>
  <contents> 
   <dir name="/"> 
@@ -134,10 +136,28 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2020-03-27</date> 
+   <version> 
+    <release>2.1.2</release> 
+    <api>2.1.2</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - USE ZSTR_CHAR to avoding memory allocation
+    - Fixed segfault if tcp server return malformed response->err
+    - Fixed bug tcp client hangs if server closed connection prematurely 
+   </notes> 
+  </release> 
+
+  <release> 
    <date>2020-03-16</date> 
    <version> 
-    <release>2.1.0</release> 
-    <api>2.1.0</api> 
+    <release>2.1.1</release> 
+    <api>2.1.1</api> 
    </version> 
    <stability> 
     <release>stable</release> 
@@ -148,7 +168,6 @@
     - Fixed building with Msgpack
    </notes> 
   </release> 
-
   <release> 
    <date>2020-03-16</date> 
    <version> 
