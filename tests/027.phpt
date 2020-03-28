@@ -5,6 +5,7 @@ Check for TCP RPC Malfromaled response (Not enough payload recved)
 if (!extension_loaded("yar")) {
     die("skip");
 }
+if (substr(PHP_OS, 0, 3) == 'WIN') die('skip hangs on Windows');
 ?>
 --INI--
 yar.packager=php
