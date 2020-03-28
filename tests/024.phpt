@@ -20,6 +20,7 @@ var_dump($client->info("id"));
 
 $client->setOpt(YAR_OPT_PACKAGER, "json");
 try {
+    /* use %s below, it maybe negative in 32bits */
 	var_dump($client->info("id"));
 } catch (Exception $e) {
 	var_dump($e->getMessage());
@@ -34,7 +35,7 @@ var_dump($client->info("reserved"));
 var_dump($client->info("provider"));
 ?>
 --EXPECTF--
-int(%d)
+int(%s)
 string(54) "Unsupported packager type 'JSO', only PHP is supported"
 
 Warning: Yar_Client::setOpt(): resolve only works with HTTP protocol in %s024.php on line %d
