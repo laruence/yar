@@ -5,7 +5,6 @@ Check for TCP client with server exit
 if (!extension_loaded("yar")) {
     die("skip");
 }
-if (substr(PHP_OS, 0, 3) == 'WIN') die('skip hangs on Windows');
 ?>
 --INI--
 yar.packager=php
