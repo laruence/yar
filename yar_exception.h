@@ -22,10 +22,6 @@
 #ifndef PHP_YAR_EXCEPTION_H
 #define PHP_YAR_EXCEPTION_H
 
-#ifdef PHP_WIN32
-#include "win32/time.h" /* gettimeofday definition */
-#endif
-
 #define YAR_ERR_OKEY      		0x0
 #define YAR_ERR_PACKAGER  		0x1
 #define YAR_ERR_PROTOCOL  		0x2
@@ -75,8 +71,13 @@ static inline void php_yar_debug_server(const char *format, ...) {
 	struct timeval tv;
 	struct tm *t, m;
 
+#ifdef PHP_WIN32
+	tv.tv_usec = 0;
+	t = php_localtime_r(time(NULL), &m);
+#else
 	gettimeofday(&tv, NULL);
 	t = php_localtime_r(&tv.tv_sec, &m);
+#endif
 
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
@@ -92,8 +93,13 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	struct timeval tv;
 	struct tm *t, m;
 
+#ifdef PHP_WIN32
+	tv.tv_usec = 0;
+	t = php_localtime_r(time(NULL), &m);
+#else
 	gettimeofday(&tv, NULL);
 	t = php_localtime_r(&tv.tv_sec, &m);
+#endif
 
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
