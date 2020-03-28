@@ -233,7 +233,7 @@ function yar_tcp_server_handle($argv, $argc) {
 		register_shutdown_function(function($socket) {
 			fclose($socket);
 		}, $socket);
-		while ($conn = stream_socket_accept($socket)) {
+		while ($conn = stream_socket_accept($socket, 5)) {
 persistent:
 			$buf = fread($conn, YAR_HEADER_SIZE);
 			if (empty($buf)) {
