@@ -134,7 +134,7 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 	}
 
 	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
 
 wait_io:
 	retval = php_select(fd+1, &rfds, NULL, NULL, &tv);
@@ -251,7 +251,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
 	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
+	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
 
 	retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
@@ -261,7 +261,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 		return 0;
 	} else if (retval == 0) {
 		zend_string_release(payload);
-		spprintf(msg, 0, "select timeout '%ld' seconds reached", YAR_G(timeout));
+		spprintf(msg, 0, "select timeout %ldms reached", YAR_G(timeout));
 		return 0;
 	}
 

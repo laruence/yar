@@ -9,7 +9,7 @@ if (substr(PHP_OS, 0, 3) == 'WIN') die('skip hangs on Windows');
 ?>
 --INI--
 yar.packager=php
-yar.timeout=3
+yar.timeout=3000
 yar.connect_time=1
 --FILE--
 <?php 

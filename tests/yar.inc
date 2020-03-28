@@ -233,40 +233,38 @@ function yar_tcp_server_handle($argv, $argc) {
 		register_shutdown_function(function($socket) {
 			fclose($socket);
 		}, $socket);
-		while (1) {
-			if ($conn = stream_socket_accept($socket)) {
+		while ($conn = stream_socket_accept($socket)) {
 persistent:
-				$buf = fread($conn, YAR_HEADER_SIZE);
-				if (empty($buf)) {
-					fclose($conn);
-					continue;
-				}
-				$header = parse_header($buf);
-				if (($status = verify_header($header)) !== true) {
-					fwrite($conn, $status, strlen($stats));
-					fclose($conn);
-					continue;
-				}
-				$content_len = $header["body_len"];
-				$total_byte = $content_len + YAR_HEADER_SIZE;
-				$byte_read = YAR_HEADER_SIZE;
-
-				while (($byte_read != $total_byte && !feof($conn))) {
-					$buf .= fread($conn, $total_byte - $byte_read);
-					$byte_read = strlen($buf);
-				}
-
-				if ($byte_read == $total_byte) {
-					$response = server_handle($header, $buf);
-					fwrite($conn, $response, strlen($response));
-				} else {
-					fwrite($conn, response(NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
-				}
-				if ($header["reserved"] & YAR_PROTOCOL_PERSISTENT) {
-					goto persistent;
-				}
+			$buf = fread($conn, YAR_HEADER_SIZE);
+			if (empty($buf)) {
 				fclose($conn);
+				continue;
 			}
+			$header = parse_header($buf);
+			if (($status = verify_header($header)) !== true) {
+				fwrite($conn, $status, strlen($stats));
+				fclose($conn);
+				continue;
+			}
+			$content_len = $header["body_len"];
+			$total_byte = $content_len + YAR_HEADER_SIZE;
+			$byte_read = YAR_HEADER_SIZE;
+
+			while (($byte_read != $total_byte && !feof($conn))) {
+				$buf .= fread($conn, $total_byte - $byte_read);
+				$byte_read = strlen($buf);
+			}
+
+			if ($byte_read == $total_byte) {
+				$response = server_handle($header, $buf);
+				fwrite($conn, $response, strlen($response));
+			} else {
+				fwrite($conn, response(NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
+			}
+			if ($header["reserved"] & YAR_PROTOCOL_PERSISTENT) {
+				goto persistent;
+			}
+			fclose($conn);
 		}
 	}
 }
