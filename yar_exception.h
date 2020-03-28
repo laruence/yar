@@ -22,10 +22,6 @@
 #ifndef PHP_YAR_EXCEPTION_H
 #define PHP_YAR_EXCEPTION_H
 
-#ifdef PHP_WIN32
-#include "win32/time.h" /* gettimeofday definition */
-#endif
-
 #define YAR_ERR_OKEY      		0x0
 #define YAR_ERR_PACKAGER  		0x1
 #define YAR_ERR_PROTOCOL  		0x2
@@ -51,56 +47,6 @@ extern void (*zend_orig_error_cb)(int, const char *, const unsigned, const char 
  
 void php_yar_error_ex(struct _yar_response *response, int type, const char *format, va_list args);
 void php_yar_error(struct _yar_response *response, int type, const char *format, ...);
-
-YAR_STARTUP_FUNCTION(exception);
-
-#define DEBUG_S(fmt, ...) \
-	do { \
-		if (UNEXPECTED(YAR_G(debug))) { \
-			 php_yar_debug_server(fmt, ##__VA_ARGS__); \
-		} \
-	} while (0)
-
-#define DEBUG_C(fmt, ...) \
-	do { \
-		if (UNEXPECTED(YAR_G(debug))) { \
-			 php_yar_debug_client(fmt, ##__VA_ARGS__); \
-		} \
-	} while (0)
-
-static inline void php_yar_debug_server(const char *format, ...) {
-	va_list args;
-	char buf[1024];
-	char *message;
-	struct timeval tv;
-	struct tm *t, m;
-
-	gettimeofday(&tv, NULL);
-	t = php_localtime_r(&tv.tv_sec, &m);
-
-	va_start(args, format);
-	snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
-	vspprintf(&message, 0, buf, args);
-	php_error(E_WARNING, "%s", message);
-	efree(message);
-}
-
-static inline void php_yar_debug_client(const char *format, ...) {
-	va_list args;
-	char buf[1024];
-	char *message;
-	struct timeval tv;
-	struct tm *t, m;
-
-	gettimeofday(&tv, NULL);
-	t = php_localtime_r(&tv.tv_sec, &m);
-
-	va_start(args, format);
-	snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
-	vspprintf(&message, 0, buf, args);
-	php_error(E_WARNING, "%s", message);
-	efree(message);
-}
 
 YAR_STARTUP_FUNCTION(exception);
 

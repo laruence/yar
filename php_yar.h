@@ -89,6 +89,22 @@ extern zend_string *php_yar_char_str[26];
 #define YAR_OPT_HEADER				(1<<4)
 #define YAR_OPT_RESOLVE 			(1<<5)
 
+#define DEBUG_S(fmt, ...) \
+	do { \
+		if (UNEXPECTED(YAR_G(debug))) { \
+			 php_yar_debug(1, fmt, ##__VA_ARGS__); \
+		} \
+	} while (0)
+
+#define DEBUG_C(fmt, ...) \
+	do { \
+		if (UNEXPECTED(YAR_G(debug))) { \
+			 php_yar_debug(0, fmt, ##__VA_ARGS__); \
+		} \
+	} while (0)
+
+void php_yar_debug(int server_side, const char *format, ...);
+
 #endif	/* PHP_YAR_H */
 
 /*

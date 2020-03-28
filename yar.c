@@ -33,6 +33,10 @@
 #include "yar_exception.h"
 #include "yar_transport.h"
 
+#ifdef PHP_WIN32
+#include "win32/time.h"
+#endif
+
 ZEND_DECLARE_MODULE_GLOBALS(yar);
 
 #if PHP_VERSION_ID < 70200
@@ -67,16 +71,28 @@ PHP_INI_END()
  */
 void php_yar_debug(int server_side, const char *format, ...) {
 	va_list args;
-	if (!YAR_G(debug)) {
-		return;
+	char buf[1024];
+	char *message;
+	struct timeval tv;
+	struct tm *t, m;
+
+	gettimeofday(&tv, NULL);
+	t = php_localtime_r(&tv.tv_sec, &m);
+#ifdef PHP_WIN32
+	if (UNEXPECTED(t == NULL)) {
+		memset(&m, 0, sizeof(m));
+		t = &m;
 	}
+#endif
 	va_start(args, format);
 	if (server_side) {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Server]: %s", args);
+		snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	} else {
-		php_verror(NULL, NULL, E_NOTICE, "[Debug Yar_Client]: %s", args);
+		snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
 	}
-	va_end(args);
+	vspprintf(&message, 0, buf, args);
+	php_error(E_WARNING, "%s", message);
+	efree(message);
 }
 /* }}} */
 

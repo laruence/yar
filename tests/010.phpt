@@ -5,7 +5,6 @@ Check for yar debug
 if (!extension_loaded("yar")) {
     print "skip";
 }
-if (substr(PHP_OS, 0, 3) == 'WIN') die('skip Fails on 32bits Windows');
 ?>
 --INI--
 yar.debug=1
