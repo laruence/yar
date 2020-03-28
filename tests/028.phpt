@@ -5,7 +5,7 @@ Check for TCP RPC Malfromaled response (body_len too small)
 if (!extension_loaded("yar")) {
     die("skip");
 }
-if (substr(PHP_OS, 0, 3) == 'WIN') die('skip hangs on Windows');
+if (substr(PHP_OS, 0, 3) == 'WIN') die('skip Fails on 32bits Windows');
 ?>
 --INI--
 yar.packager=php
