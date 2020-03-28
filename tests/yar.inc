@@ -41,7 +41,11 @@ define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
   }__attribute__ ((packed))
  */
 define("YAR_HEADER_SIZE", 4 + 2 + 4 + 4 + 32 + 32 + 4);
-define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
+if (PHP_INT_SIZE == 8) {
+	define("YAR_PROTOCOL_MAGIC_NUM", 0x80DFEC60);
+} else {
+	define("YAR_PROTOCOL_MAGIC_NUM", unpack("N", pack("H*", "80DFEC60"))[1]);
+}
 define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_tcp_server_start() {
@@ -242,7 +246,7 @@ persistent:
 			}
 			$header = parse_header($buf);
 			if (($status = verify_header($header)) !== true) {
-				fwrite($conn, $status, strlen($stats));
+				fwrite($conn, $status, strlen($status));
 				fclose($conn);
 				continue;
 			}
