@@ -59,24 +59,24 @@ YAR_STARTUP_FUNCTION(exception);
 		if (UNEXPECTED(YAR_G(debug))) { \
 			 php_yar_debug_server(fmt, ##__VA_ARGS__); \
 		} \
-	} while (0);
+	} while (0)
 
 #define DEBUG_C(fmt, ...) \
 	do { \
 		if (UNEXPECTED(YAR_G(debug))) { \
 			 php_yar_debug_client(fmt, ##__VA_ARGS__); \
 		} \
-	} while (0);
+	} while (0)
 
 static inline void php_yar_debug_server(const char *format, ...) {
 	va_list args;
 	char buf[1024];
 	char *message;
 	struct timeval tv;
-	struct tm *t;
+	struct tm *t, m;
 
 	gettimeofday(&tv, NULL);
-	t = localtime(&tv.tv_sec);
+	t = php_localtime_r(&tv.tv_sec, &m);
 
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
@@ -90,10 +90,10 @@ static inline void php_yar_debug_client(const char *format, ...) {
 	char buf[1024];
 	char *message;
 	struct timeval tv;
-	struct tm *t;
+	struct tm *t, m;
 
 	gettimeofday(&tv, NULL);
-	t = localtime(&tv.tv_sec);
+	t = php_localtime_r(&tv.tv_sec, &m);
 
 	va_start(args, format);
 	snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
