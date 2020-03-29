@@ -74,21 +74,19 @@ void php_yar_debug(int server_side, const char *format, ...) {
 	char buf[1024];
 	char *message;
 	struct timeval tv;
-	struct tm *t, m;
+	struct tm m = {0};
 
 	gettimeofday(&tv, NULL);
-	t = php_localtime_r(&tv.tv_sec, &m);
 #ifdef PHP_WIN32
-	if (UNEXPECTED(t == NULL)) {
-		memset(&m, 0, sizeof(m));
-		t = &m;
-	}
+	localtime_s(&m, &tv.tv_sec);
+#else
+	php_localtime_r(&tv.tv_sec, &m);
 #endif
 	va_start(args, format);
 	if (server_side) {
-		snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
+		snprintf(buf, sizeof(buf), "[Debug Yar_Server %d:%d:%d.%ld]: %s", m.tm_hour, m.tm_min, m.tm_sec, tv.tv_usec, format);
 	} else {
-		snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, format);
+		snprintf(buf, sizeof(buf), "[Debug Yar_Client %d:%d:%d.%ld]: %s", m.tm_hour, m.tm_min, m.tm_sec, tv.tv_usec, format);
 	}
 	vspprintf(&message, 0, buf, args);
 	php_error(E_WARNING, "%s", message);
