@@ -78,7 +78,11 @@ void php_yar_debug(int server_side, const char *format, ...) {
 
 	gettimeofday(&tv, NULL);
 #ifdef PHP_WIN32
+#ifdef _USE_32BIT_TIME_T
+	_localtime32_s(&m, &tv.tv_sec);
+#else
 	localtime_s(&m, &tv.tv_sec);
+#endif
 #else
 	php_localtime_r(&tv.tv_sec, &m);
 #endif
