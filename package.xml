@@ -10,14 +10,8 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <developer>
-  <name>Zhenyu Zhang</name>
-  <user>zhangzhenyu</user>
-  <email>zhangzhenyu@php.net</email>
-  <active>yes</active>
- </developer>
- <date>2020-03-27</date>
- <time>18:00:00</time>
+ <date>2020-03-31</date>
+ <time>17:00:00</time>
  <version>
   <release>2.1.2</release>
   <api>2.1.2</api>
@@ -31,6 +25,8 @@
   - USE ZSTR_CHAR to avoding memory allocation
   - Fixed segfault if tcp server return malformed response->err
   - Fixed bug tcp client hangs if server closed connection prematurely 
+  - Fixed segfault on windows as localtime may return NULL
+  - Fixed all TCP tests on windows
  </notes>
  <contents> 
   <dir name="/"> 
@@ -136,7 +132,7 @@
  </extsrcrelease>
  <changelog> 
   <release> 
-   <date>2020-03-27</date> 
+   <date>2020-03-31</date> 
    <version> 
     <release>2.1.2</release> 
     <api>2.1.2</api> 
@@ -150,6 +146,8 @@
     - USE ZSTR_CHAR to avoding memory allocation
     - Fixed segfault if tcp server return malformed response->err
     - Fixed bug tcp client hangs if server closed connection prematurely 
+    - Fixed segfault on windows as localtime may return NULL
+    - Fixed all TCP tests on windows
    </notes> 
   </release> 
 
