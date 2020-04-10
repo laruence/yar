@@ -242,7 +242,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 					if (precv && precv->opcode == ZEND_RECV_INIT
 						   	&& precv->op2_type != IS_UNUSED
 							) {
-#if PHP_VERSION_ID < 70400
+#if PHP_VERSION_ID < 70300
 						zval *zv = RT_CONSTANT(&fptr->op_array, precv->op2);
 #else
 						zval *zv = RT_CONSTANT(precv, precv->op2);
