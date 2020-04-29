@@ -551,7 +551,10 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	} zend_end_try();
 
 	if (EG(exception)) {
-		php_yar_response_set_exception(response, EG(exception));
+		zend_object *exception = EG(exception);
+		php_yar_response_set_exception(response, exception);
+		EG(exception) = NULL; /* exception may have __destruct will be called */
+		OBJ_RELEASE(exception);
 		zend_clear_exception();
 	}
 
