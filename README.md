@@ -155,7 +155,7 @@ $result = $client->some_other_method3("parameter");
 ?>
 ```
 ### Custom hostname resolving
-After Yar 2.1.0, if Yar runs on HTTP protocl, YAR_OPT_RESOLVE could be used to define custom hostname resolving.
+After Yar 2.1.0, if Yar runs on HTTP protocol, YAR_OPT_RESOLVE could be used to define custom hostname resolving.
 ```php
 <?php
 $client = new Yar_Client("http://host/api/");
@@ -175,7 +175,7 @@ $result = $client->some_method("parameter");
 #endif
 typedef struct _yar_header {
     uint32_t       id;            // transaction id
-    uint16_t       version;       // protocl version
+    uint16_t       version;       // protocol version
     uint32_t       magic_num;     // default is: 0x80DFEC60
     uint32_t       reserved;
     unsigned char  provider[32];  // reqeust from who
@@ -191,7 +191,7 @@ yar_header_t;
 #endif
 ````
 ### Packager Header
-   Since Yar also supports multi packager protocl, so there is a char[8] at the begining of body, to identicate which packager the body is packaged by.
+   Since Yar also supports multi packager protocol, so there is a char[8] at the begining of body, to identicate which packager the body is packaged by.
 
 ### Request 
    When a Client request a remote server,  it will send a struct (in PHP):
