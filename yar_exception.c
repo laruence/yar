@@ -40,6 +40,11 @@ zend_class_entry *yar_client_transport_exception_ce;
 zend_class_entry *yar_client_packager_exception_ce;
 zend_class_entry *yar_client_protocol_exception_ce;
 
+/* {{{ ARG_INFO */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_exception_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+/* }}} */
+
 zend_class_entry * php_yar_get_exception_base(int root) /* {{{ */ {
 #if can_handle_soft_dependency_on_SPL && defined(HAVE_SPL) && ((PHP_MAJOR_VERSION > 5) || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 1))
 	if (!root) {
@@ -87,7 +92,11 @@ void php_yar_error(yar_response_t *response, int type, const char *format, ...) 
 PHP_METHOD(yar_exception_server, getType)
 {
 	zval *type, rv;
+#if PHP_VERSION_ID < 80000
 	type = zend_read_property(yar_server_exception_ce, getThis(), ZEND_STRL("_type"), 0, &rv);
+#else
+	type = zend_read_property(yar_server_exception_ce, Z_OBJ_P(getThis()), ZEND_STRL("_type"), 0, &rv);
+#endif
 
 	RETURN_ZVAL(type, 1, 0);
 }
@@ -103,14 +112,14 @@ PHP_METHOD(yar_exception_client, getType)
 
 /* {{{ yar_exception_server_methods */
 zend_function_entry yar_exception_server_methods[] = {
-	PHP_ME(yar_exception_server, getType, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_exception_server, getType, arginfo_exception_void, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 /* }}} */
 
 /* {{{ yar_exception_client_methods */
 zend_function_entry yar_exception_client_methods[] = {
-	PHP_ME(yar_exception_client, getType, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_exception_client, getType, arginfo_exception_void, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 /* }}} */

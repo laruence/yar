@@ -51,6 +51,7 @@ void php_yar_response_set_exception(yar_response_t *response, zend_object *ex) /
 	zend_class_entry *ce;
 	zval zv, rv;
 
+#if PHP_VERSION_ID < 80000
 	ZVAL_OBJ(&zv, ex);
 	ce = Z_OBJCE(zv);
 
@@ -58,6 +59,14 @@ void php_yar_response_set_exception(yar_response_t *response, zend_object *ex) /
 	code = zend_read_property(ce, &zv, ZEND_STRL("code"), 0, &rv);
 	file = zend_read_property(ce, &zv, ZEND_STRL("file"), 0, &rv);
 	line = zend_read_property(ce, &zv, ZEND_STRL("line"), 0, &rv);
+#else
+	ce = ex->ce;
+
+	msg = zend_read_property(ce, ex, ZEND_STRL("message"), 0, &rv);
+	code = zend_read_property(ce, ex, ZEND_STRL("code"), 0, &rv);
+	file = zend_read_property(ce, ex, ZEND_STRL("file"), 0, &rv);
+	line = zend_read_property(ce, ex, ZEND_STRL("line"), 0, &rv);
+#endif
 
 	array_init(&response->err);
 

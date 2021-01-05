@@ -30,7 +30,7 @@
 #define RECV_BUF_SIZE 1280
 
 typedef struct _yar_call_data {
-	zend_ulong sequence;
+	zend_long sequence;
 	zend_string *uri;
 	zend_string *method;
 	zval callback;

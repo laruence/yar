@@ -35,7 +35,7 @@ HEADER
 )) {
     while (!feof($fp)) {
         $line = trim(fgets($fp));
-        if (strpos($line, 'SplFixedArray::offsetSet($index, $newval)') != FALSE) {
+        if (strpos($line, 'SplFixedArray::count()') != FALSE) {
             echo "okey";
             break;
         }   
