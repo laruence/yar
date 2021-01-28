@@ -14,8 +14,9 @@ jobs:
         TEST_PHP_ARGS : "--show-diff"
 
     steps:
-      #https://github.com/actions/checkout
     - uses: actions/checkout@v2
+    - name: dep
+      run: apt install libcurl-ocaml-dev
     - name: autoconf
       run: phpize
     - name: configure
