@@ -11,6 +11,7 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
+        GITHUB: yes
         TEST_PHP_ARGS : "--show-diff"
 
     steps:
