@@ -1,22 +1,22 @@
 name: integrate
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [ master ]
+    pull_request:
+        branches: [ master ]
 
 jobs:
-  build:
+    build:
 
-    runs-on: ubuntu-latest
+        runs-on: ubuntu-latest
     env :
         TEST_PHP_ARGS : "--show-diff"
 
     steps:
     - uses: actions/checkout@v2
-    # - name: dep
-    # run: apt install libcurl-dev
+    - name: dep
+      run: apt install libcurl-ocaml-dev
     - name: autoconf
       run: phpize
     - name: configure
