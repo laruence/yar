@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: dep
-      run: apt install libcurl-ocaml-dev
+      run: sudo apt install libcurl-ocaml-dev
     - name: autoconf
       run: phpize
     - name: configure
