@@ -15,8 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: dep
-      run: apt install libcurl-dev
+    # - name: dep
+    # run: apt install libcurl-dev
     - name: autoconf
       run: phpize
     - name: configure
