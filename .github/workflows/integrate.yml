@@ -9,18 +9,18 @@ on:
 jobs:
     build:
         runs-on: ubuntu-latest
-    env :
+    env:
         TEST_PHP_ARGS : "--show-diff"
-
+    
     steps:
-    - uses: actions/checkout@v2
-    - name: dep
-      run: apt install libcurl-ocaml-dev
-    - name: autoconf
-      run: phpize
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make test
-      run: make test
+        - uses: actions/checkout@v2
+        - name: dep
+          run: apt install libcurl-ocaml-dev
+        - name: autoconf
+          run: phpize
+        - name: configure
+          run: ./configure
+        - name: make
+          run: make
+        - name: make test
+          run: make test
