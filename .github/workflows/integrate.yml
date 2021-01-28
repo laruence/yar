@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: integrate
 
 on:
   push:
@@ -10,14 +10,18 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    env :
+        TEST_PHP_ARGS : "--show-diff"
 
     steps:
     - uses: actions/checkout@v2
+    - name: dep
+      run: apt install libcurl-dev
+    - name: autoconf
+      run: phpize
     - name: configure
       run: ./configure
     - name: make
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    - name: make test
+      run: make test
