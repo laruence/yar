@@ -74,6 +74,7 @@ $make && make install
 - YAR_OPT_TIMEOUT
 - YAR_OPT_CONNECT_TIMEOUT
 - YAR_OPT_HEADER // Since 2.0.4
+- YAR_OPT_PROXY //Since 2.2.0
 ## Server
 
 It's very easy to setup a Yar HTTP RPC Server
@@ -111,6 +112,7 @@ $client = new Yar_Client("http://host/api/");
 $client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1000);
 
 $client->SetOpt(YAR_OPT_HEADER, array("hd1: val", "hd2: val"));  //Custom headers, Since 2.0.4
+$client->SetOpt(YAR_OPT_PROXY,"127.0.0.1:8888"); //http proxy , Since 2.2.0 
 
 /* call remote service */
 $result = $client->some_method("parameter");
