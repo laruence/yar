@@ -223,6 +223,18 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 #endif
 		}
 		break;
+		case YAR_OPT_PROXY:{
+		        zval *protocol = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_protocol"), 0, &rv);
+			    if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
+				    php_error_docref(NULL, E_WARNING, "proxy only works with HTTP protocol");
+				    return 0;
+			    }
+			    if (IS_STRING != Z_TYPE_P(value)){
+				    php_error_docref(NULL, E_WARNING, "expects a string as proxy value");
+				    return 0;
+				}
+		}
+		break;
 		case YAR_OPT_TIMEOUT:
 		case YAR_OPT_CONNECT_TIMEOUT: {
 			if (IS_LONG != Z_TYPE_P(value)) {

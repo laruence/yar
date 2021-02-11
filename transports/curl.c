@@ -446,6 +446,10 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 			convert_to_long_ex(pzval);
 			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
 		}
+		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_PROXY))) {
+			convert_to_string_ex(pzval);
+			self->setopt(self, YAR_OPT_PROXY, (char *)&Z_STRVAL_P(pzval), NULL);
+		}
 	}
 
 	response = php_yar_response_instance();
@@ -557,9 +561,17 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 			curl_easy_setopt(cp, CURLOPT_CONNECTTIMEOUT, ((zend_ulong)(*(long *)value) / 1000));
 #endif
 		break;
+		case YAR_OPT_PROXY:
+#if LIBCURL_VERSION_NUM > 0x071002
+			curl_easy_setopt(cp, CURLOPT_PROXY, (char *)value);
+#else
+			curl_easy_setopt(cp, CURLOPT_PROXY, ((zend_uchar*)(char *)value));
+#endif
+		break;
 		default:
 		    return 0;
 	}
+
 	return 1;
 } /* }}} */
 

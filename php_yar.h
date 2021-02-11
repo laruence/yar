@@ -88,6 +88,7 @@ extern zend_string *php_yar_char_str[26];
 #define YAR_OPT_CONNECT_TIMEOUT 	(1<<3)
 #define YAR_OPT_HEADER				(1<<4)
 #define YAR_OPT_RESOLVE 			(1<<5)
+#define YAR_OPT_PROXY                (1<<6)
 
 #define DEBUG_S(fmt, ...) \
 	do { \
