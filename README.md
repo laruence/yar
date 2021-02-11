@@ -112,7 +112,6 @@ $client = new Yar_Client("http://host/api/");
 $client->SetOpt(YAR_OPT_CONNECT_TIMEOUT, 1000);
 
 $client->SetOpt(YAR_OPT_HEADER, array("hd1: val", "hd2: val"));  //Custom headers, Since 2.0.4
-$client->SetOpt(YAR_OPT_PROXY,"127.0.0.1:8888"); //http proxy , Since 2.2.0 
 
 /* call remote service */
 $result = $client->some_method("parameter");
@@ -167,6 +166,20 @@ $client->SetOpt(YAR_OPT_RESOLVE, "host:80:127.0.0.1");
 /* call goes to 127.0.0.1 */
 $result = $client->some_method("parameter");
 ```
+
+### Use http proxy
+After Yar 2.2.1, if Yar runs on HTTP protocol, YAR_OPT_PROXY could be used to define http proxy , such as fidder or charles.
+
+```
+<?php
+$client = new Yar_Client("http://host/api/");
+
+$client->SetOpt(YAR_OPT_PROXY,"127.0.0.1:8888"); //http proxy , Since 2.2.0
+
+/* call goes to 127.0.0.1 */
+$result = $client->some_method("parameter"); 
+```
+
 ## Protocols
 ### Yar Header
    Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header
