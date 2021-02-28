@@ -562,11 +562,7 @@ int php_yar_curl_setopt(yar_transport_interface_t* self, long type, void *value,
 #endif
 		break;
 		case YAR_OPT_PROXY:
-#if LIBCURL_VERSION_NUM > 0x071002
 			curl_easy_setopt(cp, CURLOPT_PROXY, (char *)value);
-#else
-			curl_easy_setopt(cp, CURLOPT_PROXY, ((zend_uchar*)(char *)value));
-#endif
 		break;
 		default:
 		    return 0;
