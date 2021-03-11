@@ -64,15 +64,15 @@ yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
 	}
 
 	ht = Z_ARRVAL_P(body);
-	if ((pzval = zend_hash_str_find(ht, "i", sizeof("i") - 1)) != NULL) {
+	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('i'))) != NULL) {
 		req->id = zval_get_long(pzval);
 	}
 
-	if ((pzval = zend_hash_str_find(ht, "m", sizeof("m") - 1)) != NULL) {
+	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('m'))) != NULL) {
 		req->method = zval_get_string(pzval);
 	}
 
-	if ((pzval = zend_hash_str_find(ht, "p", sizeof("p") - 1)) != NULL) {
+	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('p'))) != NULL) {
 		if (IS_ARRAY != Z_TYPE_P(pzval)) {
 			convert_to_array(pzval);
 		}
