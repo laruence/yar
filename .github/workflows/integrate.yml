@@ -7,7 +7,7 @@ on:
 
 jobs:
   matrix:
-    name: "NTS-DEBUG"
+    name: $ {{ matrix.PHP }}
     runs-on: ubuntu-20.04
     strategy:
       matrix:
