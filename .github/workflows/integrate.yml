@@ -19,7 +19,7 @@ jobs:
       GITHUB: "yes"
       enable_debug: "yes"
       enable_session: "yes"
-      TEST_PHP_ARGS : "--show-diff"
+      TEST_PHP_ARGS : "--show-diff -d extension=json.so"
       REPORT_EXIT_STATUS: "yes"
       NO_INTERACTION: "yes"
     steps:
