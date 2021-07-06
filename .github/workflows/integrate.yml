@@ -13,9 +13,9 @@ jobs:
       matrix:
         PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0"]
         ZTS: ["no"]
-      include:
-        PHP: 8.0
-        ZTS: "yes"
+        include:
+          PHP: 8.0
+          ZTS: "yes"
     env:
       PHP: $ {{ matrix.PHP }}
       GITHUB: "yes"
