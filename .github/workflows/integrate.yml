@@ -6,7 +6,7 @@ on:
     branches: [ master ]
 
 jobs:
-  NTS-DEBUG:
+  matrix:
     name: "NTS-DEBUG"
     runs-on: ubuntu-20.04
     strategy:
@@ -14,8 +14,8 @@ jobs:
         PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0"]
         ZTS: ["no"]
         include:
-            - PHP: 8.0
-              ZTS: "yes"
+          - PHP: "8.0"
+            ZTS: "yes"
     env:
       PHP: $ {{ matrix.PHP }}
       GITHUB: "yes"
@@ -23,6 +23,8 @@ jobs:
       enable_maintainer_zts: $ {{ matrix.ZTS }}
       enable_session: "yes"
       TEST_PHP_ARGS : "--show-diff"
+      REPORT_EXIT_STATUS: "yes"
+      NO_INTERACTION: "yes"
     steps:
       - uses: actions/checkout@v2
         with:
