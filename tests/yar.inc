@@ -13,7 +13,7 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs") {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$cmd_args = NULL;
 
-	if (!(bool)getenv('TRAVIS')) { /* --show-diff break tests after PHP-7.2 */
+	if (!(bool)getenv('TRAVIS') && !(bool)getenv('GITHUB')) { /* --show-diff break tests after PHP-7.2 */
 		$cmd_args = getenv('TEST_PHP_ARGS');
 	}
 

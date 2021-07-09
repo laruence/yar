@@ -48,4 +48,4 @@ jobs:
             make
       - name: Test
         run: |
-            TEST_PHP_EXECUTABLE=`which php` php run-tests.php -q --show-diff tests/*.phpt
+            TEST_PHP_ARGS="-d extension=modules/yar.so" TEST_PHP_EXECUTABLE=`which php` php run-tests.php -q --show-diff tests/*.phpt
