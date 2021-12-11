@@ -31,6 +31,8 @@
    <file name="CREDITS" role="doc" />
    <file name="LICENSE" role="doc" />
    <file name="php_yar.h" role="src" />
+   <file name="yar_arginfo.h" role="src" />
+   <file name="yar_legacy_arginfo.h" role="src" />
    <file name="yar.c" role="src" />
    <file name="yar_server.h" role="src" />
    <file name="yar_server.c" role="src" />
