@@ -37,40 +37,17 @@
 #include "yar_response.h"
 #include "yar_protocol.h"
 
+#if PHP_MAJOR_VERSION > 7
+#include "yar_arginfo.h"
+#else
+#include "yar_legacy_arginfo.h"
+#endif
+
+
 #include <curl/curl.h> /* For checking CUROPT_RESOLVE */
 
 zend_class_entry *yar_client_ce;
 zend_class_entry *yar_concurrent_client_ce;
-
-/* {{{ ARG_INFO */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client___construct, 0, 0, 1)
-	ZEND_ARG_INFO(0, url)
-	ZEND_ARG_INFO(0, async)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client___call, 0, 0, 2)
-	ZEND_ARG_INFO(0, method)
-	ZEND_ARG_INFO(0, parameters)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_getopt, 0, 0, 1)
-	ZEND_ARG_INFO(0, type)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_setopt, 0, 0, 2)
-	ZEND_ARG_INFO(0, type)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_async, 0, 0, 3)
-	ZEND_ARG_INFO(0, uri)
-	ZEND_ARG_INFO(0, method)
-	ZEND_ARG_INFO(0, parameters)
-	ZEND_ARG_INFO(0, callback)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_loop, 0, 0, 0)
-	ZEND_ARG_INFO(0, callback)
-	ZEND_ARG_INFO(0, error_callback)
-ZEND_END_ARG_INFO()
-ZEND_BEGIN_ARG_INFO_EX(arginfo_client_void, 0, 0, 0)
-ZEND_END_ARG_INFO()
-/* }}} */
 
 static void php_yar_client_trigger_error(int throw_exception, int code, const char *format, ...) /* {{{ */ {
 	va_list arg;
@@ -807,20 +784,20 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
 /* {{{ yar_client_methods */
 zend_function_entry yar_client_methods[] = {
-	PHP_ME(yar_client, __construct, arginfo_client___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR|ZEND_ACC_FINAL)
-	PHP_ME(yar_client, call, arginfo_client___call, ZEND_ACC_PUBLIC)
-	PHP_ME(yar_client, __call, arginfo_client___call, ZEND_ACC_PUBLIC)
-	PHP_ME(yar_client, getOpt, arginfo_client_getopt, ZEND_ACC_PUBLIC)
-	PHP_ME(yar_client, setOpt, arginfo_client_setopt, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_client, __construct, arginfo_class_Yar_Client___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR|ZEND_ACC_FINAL)
+	PHP_ME(yar_client, call, arginfo_class_Yar_Client_call, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_client, __call, arginfo_class_Yar_Client___call, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_client, getOpt, arginfo_class_Yar_Client_getOpt, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_client, setOpt, arginfo_class_Yar_Client_setOpt, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 /* }}} */
 
 /* {{{ yar_concurrent_client_methods */
 zend_function_entry yar_concurrent_client_methods[] = {
-	PHP_ME(yar_concurrent_client, call, arginfo_client_async, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(yar_concurrent_client, loop, arginfo_client_loop, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	PHP_ME(yar_concurrent_client, reset,arginfo_client_void, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(yar_concurrent_client, call, arginfo_class_Yar_Concurrent_Client_call, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(yar_concurrent_client, loop, arginfo_class_Yar_Concurrent_Client_loop, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(yar_concurrent_client, reset, arginfo_class_Yar_Concurrent_Client_reset, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 /* }}} */
