@@ -36,17 +36,13 @@
 #include "yar_protocol.h"
 #include "yar_transport.h"
 
+#if PHP_MAJOR_VERSION > 7
+#include "yar_arginfo.h"
+#else
+#include "yar_legacy_arginfo.h"
+#endif
+
 zend_class_entry *yar_server_ce;
-
-/* {{{ ARG_INFO */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_service___construct, 0, 0, 1)
-	ZEND_ARG_INFO(0, obj)
-	ZEND_ARG_INFO(0, protocol)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_service_void, 0, 0, 0)
-ZEND_END_ARG_INFO()
-/* }}} */
 
 /* {{{ HTML Markups for service info */
 #define HTML_MARKUP_HEADER  \
@@ -680,8 +676,8 @@ PHP_METHOD(yar_server, handle)
 
 /* {{{ yar_server_methods */
 zend_function_entry yar_server_methods[] = {
-	PHP_ME(yar_server, __construct, arginfo_service___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR|ZEND_ACC_FINAL)
-	PHP_ME(yar_server, handle, arginfo_service_void, ZEND_ACC_PUBLIC)
+	PHP_ME(yar_server, __construct, arginfo_class_Yar_Server___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR|ZEND_ACC_FINAL)
+	PHP_ME(yar_server, handle, arginfo_class_Yar_Server_handle, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 /* }}} */
