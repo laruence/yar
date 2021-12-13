@@ -21,6 +21,7 @@ jobs:
       GITHUB: "yes"
       enable_debug: "yes"
       enable_session: "yes"
+      enable_maintainer_zts: $ {{ matrix.ZTS }}
       TEST_PHP_ARGS : "--show-diff"
       REPORT_EXIT_STATUS: "yes"
       NO_INTERACTION: "yes"
