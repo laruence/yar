@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0"]
+        PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0", "8.1"]
         include:
-          - PHP: "8.0"
+          - PHP: "8.1"
             ZTS: "yes"
     env:
       GITHUB: "yes"
