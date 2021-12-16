@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 5f0aaec3b41bbf136058d99d3302b23de4f12a44 */
+ * Stub hash: 763c2919da859afd6c29a276bb884191fdf19015 */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_Yar_Server___construct, 0, 0, 1)
 	ZEND_ARG_TYPE_INFO(0, executor, IS_OBJECT, 0)
@@ -29,18 +29,18 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_Yar_Client___call arginfo_class_Yar_Client_call
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_Yar_Concurrent_Client_call, 0, 5, _IS_BOOL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_Yar_Concurrent_Client_call, 0, 2, MAY_BE_NULL|MAY_BE_LONG|MAY_BE_BOOL)
 	ZEND_ARG_TYPE_INFO(0, uri, IS_STRING, 0)
 	ZEND_ARG_TYPE_INFO(0, method, IS_STRING, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, arguments, IS_ARRAY, 0, "NULL")
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, callback, IS_CALLABLE, 0, "NULL")
-	ZEND_ARG_TYPE_INFO(0, error_callback, IS_CALLABLE, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, error_callback, IS_CALLABLE, 0, "NULL")
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, options, IS_ARRAY, 0, "NULL")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_Yar_Concurrent_Client_loop, 0, 2, _IS_BOOL, 1)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_Yar_Concurrent_Client_loop, 0, 0, _IS_BOOL, 1)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, callback, IS_CALLABLE, 0, "NULL")
-	ZEND_ARG_TYPE_INFO(0, error_callback, IS_CALLABLE, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, error_callback, IS_CALLABLE, 0, "NULL")
 ZEND_END_ARG_INFO()
 
 #define arginfo_class_Yar_Concurrent_Client_reset arginfo_class_Yar_Server_handle

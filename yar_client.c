@@ -724,7 +724,7 @@ PHP_METHOD(yar_concurrent_client, reset) {
 }
 /* }}} */
 
-/* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback) */
+/* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback = NULL) */
 PHP_METHOD(yar_concurrent_client, loop) {
 	zend_string *name = NULL;
 	zval *callstack;
