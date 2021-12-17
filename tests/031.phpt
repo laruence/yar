@@ -5,11 +5,12 @@ Check for TCP client with server exit
 if (!extension_loaded("yar")) {
     die("skip");
 }
+if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
 ?>
 --INI--
 yar.packager=php
 yar.timeout=3000
-yar.connect_time=1
+yar.connect_timeout=1000
 --FILE--
 <?php 
 include "yar.inc";
