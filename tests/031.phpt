@@ -25,7 +25,7 @@ try {
 }
 
 /* wait for server call its shutdown function */
-usleep(500);
+usleep(1000);
 
 try {
 	$client->info("id");
