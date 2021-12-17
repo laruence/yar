@@ -184,7 +184,7 @@ test_script:
         $php = "c:\\build-cache\\" + $dname + '\php.exe'
         $test_php_exec = "set TEST_PHP_EXECUTABLE=" + $php
         echo $test_php_exec | Out-File -Encoding "ASCII" -Append task.bat
-        $tcmd = $php + ' run-tests.php -q --offline --show-diff --set-timeout 120 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP --temp-source c:\tests_tmp --temp-target c:\tests_tmp -p c:\build-cache\' + $dname + '\php.exe'
+        $tcmd = $php + ' run-tests.php -q --offline --show-diff --set-timeout 30 --temp-source c:\tests_tmp --temp-target c:\tests_tmp -p c:\build-cache\' + $dname + '\php.exe'
         echo $tcmd | Out-File -Encoding "ASCII" -Append task.bat
         echo "exit %errorlevel%" | Out-File -Encoding "ASCII" -Append task.bat
 
