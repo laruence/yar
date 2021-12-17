@@ -5,7 +5,7 @@ Check for TCP client with server exit
 if (!extension_loaded("yar")) {
     die("skip");
 }
-if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
+if (substr(PHP_OS, 0, 3) == 'WIN') die("skip doesn't work on Windows");
 ?>
 --INI--
 yar.packager=php
