@@ -319,6 +319,20 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 		}
 	}
 	*(offset++) = ')';
+#if PHP_VERSION_ID >= 80000
+	if (fptr->common.fn_flags & ZEND_ACC_HAS_RETURN_TYPE) {
+		zend_type return_type = fptr->common.arg_info[-1].type;
+		zend_string *type_str = zend_type_to_string(return_type);
+		*(offset++) = ':';
+		*(offset++) = ' ';
+		REALLOC_BUF_IF_EXCEED(buf, offset, length, ZSTR_LEN(type_str));
+		memcpy(offset, ZSTR_VAL(type_str), ZSTR_LEN(type_str));
+		offset += ZSTR_LEN(type_str);
+		*(offset++) = ' ';
+		zend_string_release(type_str);
+	}
+#endif
+
 	*offset = '\0';
 
 	return buf;
