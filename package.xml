@@ -10,8 +10,8 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2021-12-16</date>
- <time>15:30:00</time>
+ <date>2021-12-18</date>
+ <time>16:00:00</time>
  <version>
   <release>2.2.1</release>
   <api>2.2.1</api>
@@ -145,6 +145,21 @@
    </notes> 
   </release> 
 
+  <release> 
+   <date>2021-12-18</date> 
+   <version> 
+    <release>2.2.1</release> 
+    <api>2.2.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - Fixed build with PHP8.1
+   </notes> 
+  </release> 
   <release> 
    <date>2020-03-31</date> 
    <version> 
