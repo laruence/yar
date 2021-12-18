@@ -239,6 +239,10 @@ function yar_tcp_server_handle($argv, $argc) {
 		}, $socket);
 
 		while ($conn = stream_socket_accept($socket, 5)) {
+			/* in case of unexpected exit while handling */
+			register_shutdown_function(function($conn) {
+				fclose($conn);
+			}, $conn);
 persistent:
 			$buf = fread($conn, YAR_HEADER_SIZE);
 			if (empty($buf)) {
@@ -254,16 +258,11 @@ persistent:
 			$content_len = $header["body_len"];
 			$total_byte = $content_len + YAR_HEADER_SIZE;
 			$byte_read = YAR_HEADER_SIZE;
-
 			while (($byte_read != $total_byte && !feof($conn))) {
 				$buf .= fread($conn, $total_byte - $byte_read);
 				$byte_read = strlen($buf);
 			}
 			if ($byte_read == $total_byte) {
-				/* in case of _exit being called */
-				register_shutdown_function(function($conn) {
-					fclose($conn);
-				}, $conn);
 				$response = server_handle($header, $buf);
 				fwrite($conn, $response, strlen($response));
 			} else {
