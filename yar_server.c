@@ -56,12 +56,12 @@ zend_class_entry *yar_server_ce;
 	"  <style>\n" \
 	"   body { margin: 0; font:14px/20px Verdana, Arial, sans-serif; color: #333; background: #f8f8f8;}\n" \
 	"   h1, h2, pre { margin: 0; padding: 0;}\n" \
-	"   h1 { font:bold 28px Verdana,Arial; background:#99c; padding: 12px 5px; border-bottom: 4px solid #669; box-shadow: 0 1px 4px #bbb; color: #222;}\n" \
-	"   h2 { font:normal 20px/22px Georgia, Times, \"Times New Roman\", serif; padding: 5px 0 8px; margin: 20px 10px 0; border-bottom: 1px solid #ddd; cursor:pointer;}\n" \
+	"   h1 { font:bold 24px Verdana, Arial; background:#99c; padding: 12px 5px; border-bottom: 4px solid #669; box-shadow: 0 1px 4px #bbb; color: #222;}\n" \
+	"   h2 { font:normal 18px/20px Courier, monospace; padding: 5px 0 8px; margin: 20px 10px 0; border-bottom: 1px solid #ddd; cursor:pointer;}\n" \
 	"   p, dd { color: #555; }\n" \
 	"   .api-info { padding: 10px 0; margin-left: 20px; }\n" \
 	"   .api-block { margin-left: 40px;}\n" \
-	"   h2 u { font-size:20px;text-decoration:none;padding:10px; }\n" \
+	"   h2 u { font-size:16px;text-decoration:none;padding:10px; }\n" \
 	"  </style>\n"
 
 #define HTML_MARKUP_SCRIPT  \
@@ -81,19 +81,24 @@ zend_class_entry *yar_server_ce;
 	"   }\n" \
 	"  </script>\n" \
 	" </head>\n" \
-	" <body>\n" \
-	" <!-- powered by yar-" PHP_YAR_VERSION " -->\n"
+	" <body>\n"
 
 #define HTML_MARKUP_TITLE \
 	" <h1>Yar Server: %s</h1>"
 
-#define HTML_MARKUP_ENTRY \
+#define HTML_MARKUP_ENTRY_Y \
 	" <h2 onclick=\"_t(this)\"><u>+</u>%s</h2>\n" \
 	" <div class=\"api-block\" style=\"display:none\">\n" \
     " <pre style=\"white-space:pre-line\">%s</pre>\n" \
 	" </div>\n" 
 
+#define HTML_MARKUP_ENTRY_N \
+	" <h2><u>-</u>%s</h2>\n" \
+	" <div class=\"api-block\" style=\"display:none\">\n" \
+	" </div>\n"
+
 #define HTML_MARKUP_FOOTER  \
+	  " <!-- powered by yar-" PHP_YAR_VERSION " -->\n"\
       "</body>\n" \
      "</html>"
 /* }}} */
@@ -352,7 +357,11 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
 					doc_comment = (char *)ZSTR_VAL(f->op_array.doc_comment);
 				}
 			}
-			spprintf(&buf, 0, HTML_MARKUP_ENTRY, prototype, doc_comment? doc_comment : "");
+			if (doc_comment) {
+				spprintf(&buf, 0, HTML_MARKUP_ENTRY_Y, prototype, doc_comment);
+			} else {
+				spprintf(&buf, 0, HTML_MARKUP_ENTRY_N, prototype);
+			}
 			efree(prototype);
 			PHPWRITE(buf, strlen(buf));
             efree(buf);
