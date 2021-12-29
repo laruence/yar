@@ -20,7 +20,7 @@ function callback($return, $callinfo) {
     if ($callinfo) {
         $sequence[$callinfo["sequence"]] = $return;
     } else {
-        $sequence[0] = NULL;
+     //   $sequence[0] = NULL;
     }
 }
 
@@ -44,13 +44,9 @@ ksort($sequence);
 print_r($sequence);
 
 $sequence = array();
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(1), function($ret, $callinfo) {
-    global $sequence;
-    $sequence[$callinfo["sequence"]] = $ret;
-	echo "Sequence ", $callinfo["sequence"], " calling loop\n"; 
-	var_dump(Yar_Concurrent_Client::loop("callback"));
+for ($i=0; $i<3; $i++) {
+    $sequence[Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(1))] = NULL;
 }
-);
 Yar_Concurrent_Client::loop("callback");
 ksort($sequence);
 print_r($sequence);
@@ -59,8 +55,20 @@ Yar_Concurrent_Client::reset();
 for ($i=0; $i<3; $i++) {
     $sequence[Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(1))] = NULL;
 }
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(1), function($ret, $callinfo) {
+    global $sequence;
+    $sequence[$callinfo["sequence"]] = $ret;
+	echo "Sequence ", $callinfo["sequence"], " calling loop\n"; 
+	var_dump(Yar_Concurrent_Client::loop("callback"));
+}
+);
 $sequence = array();
-Yar_Concurrent_Client::loop("callback");
+Yar_Concurrent_Client::loop(function($ret, $callinfo) {
+   if ($callinfo == NULL) {
+       echo "Looping start...\n";
+   }
+   callback($ret, $callinfo);
+});
 
 ksort($sequence);
 print_r($sequence);
@@ -71,7 +79,6 @@ Warning: Yar_Concurrent_Client::reset(): cannot reset while client is running in
 bool(false)
 Array
 (
-    [0] => 
     [1] => 3.6
     [2] => 3.6
     [3] => 3.6
@@ -80,22 +87,24 @@ Sequence 4 calling reset
 
 Warning: Yar_Concurrent_Client::reset(): cannot reset while client is running in %s035.php on line %d
 bool(false)
-Sequence 5 calling loop
+Array
+(
+    [1] => 3.6
+    [2] => 3.6
+    [3] => 3.6
+    [5] => 3.6
+    [6] => 3.6
+    [7] => 3.6
+)
+Looping start...
+Sequence 4 calling loop
 
 Warning: Yar_Concurrent_Client::loop(): concurrent client has already been started in %s035.php on line %d
 bool(false)
 Array
 (
-    [0] => 
     [1] => 3.6
     [2] => 3.6
     [3] => 3.6
-    [5] => 3.6
-)
-Array
-(
-    [0] => 
-    [1] => 3.6
-    [2] => 3.6
-    [3] => 3.6
+    [4] => 3.6
 )
