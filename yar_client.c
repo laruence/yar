@@ -345,7 +345,7 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 		break;
 		case YAR_OPT_TOKEN:
 		case YAR_OPT_PROVIDER: {
-		    if (IS_STRING != Z_TYPE_P(value) && Z_STRLEN_P(value) > 32) {
+		    if (IS_STRING != Z_TYPE_P(value) || Z_STRLEN_P(value) > 32) {
 				php_error_docref(NULL, E_WARNING, "expects a maximum 32 bytes string value");
 				return 0;
 			}
