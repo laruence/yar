@@ -687,8 +687,12 @@ static HashTable *yar_client_get_properties(void *object) /* {{{ */ {
 }
 /* }}} */
 
-static HashTable *yar_client_get_gc(zend_object *object, zval **table, int *n) /* {{{ */ {
-	yar_client_object *client = php_yar_client_fetch_object(object);
+static HashTable *yar_client_get_gc(void *object, zval **table, int *n) /* {{{ */ {
+#if PHP_VERSION_ID < 80000
+	yar_client_object *client = php_yar_client_fetch_object(Z_OBJ_P((zval*)object));
+#else
+	yar_client_object *client = php_yar_client_fetch_object((zend_object*)object);
+#endif
 
 	*table = NULL;
 	*n = 0;
@@ -992,7 +996,7 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 	yar_client_obj_handlers.offset = XtOffsetOf(yar_client_object, std);
 	yar_client_obj_handlers.free_obj = yar_client_object_free;
 	yar_client_obj_handlers.get_properties = (zend_object_get_properties_t)yar_client_get_properties;
-	yar_client_obj_handlers.get_gc = yar_client_get_gc;
+	yar_client_obj_handlers.get_gc = (zend_object_get_gc_t)yar_client_get_gc;
 	yar_client_obj_handlers.clone_obj = NULL;
 
 	INIT_CLASS_ENTRY(ce, "Yar_Concurrent_Client", yar_concurrent_client_methods);
