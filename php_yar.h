@@ -94,6 +94,10 @@ extern zend_string *php_yar_char_str[26];
 #define ZSTR_CHAR(i) php_yar_char_str[i - 'a']
 #endif
 
+# if PHP_VERSION_ID < 70300
+# define GC_ADDREF(gc)           (++GC_REFCOUNT(gc))
+# define GC_DELREF(gc)           (--GC_REFCOUNT(gc))
+# endif
 
 typedef enum _yar_opt {
 	YAR_OPT_PACKAGER,
