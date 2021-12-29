@@ -163,7 +163,7 @@ static void php_yar_options_dtor(void **options) /* {{{ */ {
 				break;
 				case YAR_OPT_HEADER:
 				case YAR_OPT_RESOLVE: {
-					zend_array *val = (zend_array*)options[YAR_OPT_HEADER];
+					zend_array *val = (zend_array*)options[i];
 					zend_array_destroy(val);
 				}
 				break;
