@@ -45,7 +45,6 @@ static zend_always_inline yar_client_object *php_yar_client_fetch_object(zend_ob
 }
 
 YAR_STARTUP_FUNCTION(client);
-YAR_DEACTIVATE_FUNCTION(client);
 
 #endif	/* PHP_YAR_CLIENT_H */
 

@@ -83,18 +83,11 @@ Array
     [2] => 3.6
     [3] => 3.6
 )
-Sequence 4 calling reset
-
-Warning: Yar_Concurrent_Client::reset(): cannot reset while client is running in %s035.php on line %d
-bool(false)
 Array
 (
     [1] => 3.6
     [2] => 3.6
     [3] => 3.6
-    [5] => 3.6
-    [6] => 3.6
-    [7] => 3.6
 )
 Looping start...
 Sequence 4 calling loop

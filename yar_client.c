@@ -961,6 +961,8 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	ret = php_yar_concurrent_client_handle((yar_call_data_t*)YAR_G(cctx).clist);
 	YAR_G(cctx).start = 0;
 
+	php_yar_calllist_dtor();
+
 	RETURN_BOOL(ret);
 }
 /* }}} */
@@ -1009,14 +1011,6 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
     return SUCCESS;
 }
 /* }}} */
-
-YAR_DEACTIVATE_FUNCTION(client) /* {{{ */ {
-	if (YAR_G(cctx).clist) {
-		php_yar_calllist_dtor();
-	}
-	return SUCCESS;
-} /* }}} */
-
 /*
  * Local variables:
  * tab-width: 4
