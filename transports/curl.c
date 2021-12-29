@@ -181,15 +181,15 @@ size_t php_yar_curl_buf_writer(char *ptr, size_t size, size_t nmemb, void *ctx) 
 	return len;
 } /* }}} */
 
-int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, long options, char **msg) /* {{{ */ {
+int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, long flags, char **msg) /* {{{ */ {
 	CURL *cp = NULL;
 	php_url *url;
 	char buf[1024];
 	CURLcode error = CURLE_OK;
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
-	zval *configs = (zval *)*msg;
+	void **options = (void**)*msg;
 
-	if (options & YAR_PROTOCOL_PERSISTENT) {
+	if (flags & YAR_PROTOCOL_PERSISTENT) {
 		zend_resource *le;
 		size_t key_len = snprintf(buf, sizeof(buf), "yar_%s", ZSTR_VAL(address));
 
@@ -298,27 +298,27 @@ regular_link:
 	buf[sizeof(buf) - 1] = '\0';
 	data->headers = curl_slist_append(data->headers, buf);
 
-	if (configs && IS_ARRAY == Z_TYPE_P(configs)) {
-		zval *resolve, *headers;
-
-		if ((headers = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_HEADER))) {
+	if (options) {
+		if (options[YAR_OPT_HEADER]) {
 			zval *val;
-			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(headers), val) {
+			zend_array *headers = (zend_array*)options[YAR_OPT_HEADER];
+			ZEND_HASH_FOREACH_VAL(headers, val) {
 				if (Z_TYPE_P(val) != IS_STRING) continue;
 				data->headers = curl_slist_append(data->headers, Z_STRVAL_P(val));
 			}ZEND_HASH_FOREACH_END();
 		}
-		if ((resolve = zend_hash_index_find(Z_ARRVAL_P(configs), YAR_OPT_RESOLVE))) {
 #if LIBCURL_VERSION_NUM >= 0x071503 /* Available since 7.21.3 */
+		if (options[YAR_OPT_RESOLVE]) {
 			zval *val;
+			zend_array *resolve = (zend_array*)options[YAR_OPT_RESOLVE];
 			struct curl_slist *slist = NULL;
-			ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(resolve), val) {
+			ZEND_HASH_FOREACH_VAL(resolve, val) {
 				if (Z_TYPE_P(val) != IS_STRING) continue;
 				slist = curl_slist_append(slist, Z_STRVAL_P(val));
 			} ZEND_HASH_FOREACH_END();
 			curl_easy_setopt(data->cp, CURLOPT_RESOLVE, slist);
-#endif
 		}
+#endif
 	}
 
 	curl_easy_setopt(data->cp, CURLOPT_HTTPHEADER, data->headers);
@@ -436,19 +436,15 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 
 	php_yar_curl_prepare(self);
 
-	if (IS_ARRAY == Z_TYPE(request->options)) {
-		zval *pzval;
-		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_TIMEOUT))) {
-			convert_to_long_ex(pzval);
-			self->setopt(self, YAR_OPT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
+	if (request->options) {
+		if (request->options[YAR_OPT_TIMEOUT]) {
+			self->setopt(self, YAR_OPT_TIMEOUT, (long *)&request->options[YAR_OPT_TIMEOUT], NULL);
 		}
-		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_CONNECT_TIMEOUT))) {
-			convert_to_long_ex(pzval);
-			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&Z_LVAL_P(pzval), NULL);
+		if (request->options[YAR_OPT_CONNECT_TIMEOUT]) {
+			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&request->options[YAR_OPT_CONNECT_TIMEOUT], NULL);
 		}
-		if ((pzval = zend_hash_index_find(Z_ARRVAL(request->options), YAR_OPT_PROXY))) {
-			convert_to_string_ex(pzval);
-			self->setopt(self, YAR_OPT_PROXY, (char *)&Z_STRVAL_P(pzval), NULL);
+		if (request->options[YAR_OPT_PROXY]) {
+			self->setopt(self, YAR_OPT_PROXY, ZSTR_VAL((zend_string*)request->options[YAR_OPT_CONNECT_TIMEOUT]), NULL);
 		}
 	}
 
@@ -463,8 +459,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 	} else {
 		long http_code;
 
-		if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK 
-				&& http_code != 200) {
+		if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
 			len = spprintf(&msg, 0, "server responsed non-200 code '%ld'", http_code);
 			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len);
 			efree(msg);
@@ -515,6 +510,7 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	yar_header_t header = {0};
 	yar_curl_data_t *data = (yar_curl_data_t *)self->data;
 	zend_string *payload;
+	char *provider, *token;
 
 	if (!(payload = php_yar_request_pack(request, msg))) {
 		return 0;
@@ -523,11 +519,27 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
+	if (request->options && request->options[YAR_OPT_PROVIDER]) {
+		provider = (char*)(ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROVIDER]));
+	} else {
 #if PHP_VERSION_ID < 70300
-	php_yar_protocol_render(&header, request->id, data->host->user, data->host->pass, ZSTR_LEN(payload), 0);
+		provider = data->host->user;
 #else
-	php_yar_protocol_render(&header, request->id, data->host->user? ZSTR_VAL(data->host->user) : NULL, data->host->pass? ZSTR_VAL(data->host->pass) : NULL, ZSTR_LEN(payload), 0);
+		provider = data->host->user? ZSTR_VAL(data->host->user) : NULL;
 #endif
+	}
+
+	if (request->options && request->options[YAR_OPT_TOKEN]) {
+		token = (char*)ZSTR_VAL((zend_string*)request->options[YAR_OPT_TOKEN]);
+	} else {
+#if PHP_VERSION_ID < 70300
+		token = data->host->pass;
+#else
+		token = data->host->pass? ZSTR_VAL(data->host->pass) : NULL;
+#endif
+	}
+
+	php_yar_protocol_render(&header, request->id, provider, token, ZSTR_LEN(payload), 0);
 
 	smart_str_appendl(&data->postfield, (char *)&header, sizeof(yar_header_t));
 	smart_str_appendl(&data->postfield, ZSTR_VAL(payload), ZSTR_LEN(payload));

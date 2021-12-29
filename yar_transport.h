@@ -29,20 +29,27 @@
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280
 
-typedef struct _yar_call_data {
-	zend_long sequence;
-	zend_string *uri;
-	zend_string *method;
-	zval callback;
-	zval ecallback;
-	zval parameters;
-	zval options;
-} yar_call_data_t;
-
 typedef struct _yar_persistent_le {
 	void *ptr;
 	void (*dtor)(void *ptr);
 } yar_persistent_le_t;
+
+typedef struct _yar_call_data {
+	zend_long sequence;
+	zend_string *uri;
+	zend_string *method;
+	zend_array *parameters;
+	void **options;
+	struct {
+		zend_fcall_info fci;
+		zend_fcall_info_cache fcc;
+	} callback;
+	struct {
+		zend_fcall_info fci;
+		zend_fcall_info_cache fcc;
+	} ecallback;
+	struct _yar_call_data *next;
+} yar_call_data_t;
 
 typedef int yar_concurrent_client_callback(yar_call_data_t *calldata, int status, struct _yar_response *response);
 
@@ -74,7 +81,6 @@ typedef struct _yar_transport {
 	yar_transport_multi_t *multi;
 } yar_transport_t;
 
-extern int le_calldata;
 extern int le_plink;
 
 PHP_YAR_API const yar_transport_t * php_yar_transport_get(char *name, int nlen);

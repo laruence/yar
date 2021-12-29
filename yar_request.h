@@ -25,16 +25,16 @@
 typedef struct _yar_request {
 	zend_ulong id;
 	zend_string *method;
-	zval parameters;
+	zend_array *parameters;
 	/* following fileds don't going to packager */
-	zval options;
+	void **options;
 } yar_request_t;
 
-yar_request_t * php_yar_request_unpack(zval *body);
+yar_request_t *php_yar_request_unpack(zval *body);
 void php_yar_request_destroy(yar_request_t *request);
 zend_string *php_yar_request_pack(yar_request_t *request, char **msg);
 int php_yar_request_valid(yar_request_t *req, struct _yar_response *response, char **msg);
-yar_request_t * php_yar_request_instance(zend_string *method, zval *params, zval *options);
+yar_request_t * php_yar_request_instance(zend_string *method, zend_array *params, void **options);
 
 #endif	/* PHP_YAR_REQUEST_H */
 

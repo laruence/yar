@@ -50,7 +50,7 @@ yar_header_t;
 #endif
 
 yar_header_t * php_yar_protocol_parse(char *payload);
-void php_yar_protocol_render(yar_header_t *header, unsigned id, char *provider, char *token, unsigned body_len, unsigned reserved);
+void php_yar_protocol_render(yar_header_t *header, uint32_t id, char *provider, char *token, uint32_t body_len, uint32_t reserved);
 
 #endif	/* PHP_YAR_PROTOCOL_H */
 

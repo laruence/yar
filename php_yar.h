@@ -37,7 +37,7 @@ extern zend_module_entry yar_module_entry;
 #include "TSRM.h"
 #endif
 
-#define PHP_YAR_VERSION  "2.2.2-dev"
+#define PHP_YAR_VERSION  "2.3.0-dev"
 
 PHP_MINIT_FUNCTION(yar);
 PHP_MSHUTDOWN_FUNCTION(yar);
@@ -58,6 +58,18 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
 	zend_bool allow_persistent;
 	zend_ulong timeout;
 	zend_ulong connect_timeout;
+	struct {
+		zend_bool start;
+		struct {
+			zend_fcall_info fci;
+			zend_fcall_info_cache fcc;
+		} callback;
+		struct {
+			zend_fcall_info fci;
+			zend_fcall_info_cache fcc;
+		} ecallback;
+		void *clist; /* call data list */
+	} cctx; /* concurrent context */
 ZEND_END_MODULE_GLOBALS(yar)
 
 #ifdef ZTS
@@ -82,13 +94,19 @@ extern zend_string *php_yar_char_str[26];
 #define ZSTR_CHAR(i) php_yar_char_str[i - 'a']
 #endif
 
-#define YAR_OPT_PACKAGER 			(1<<0)	
-#define YAR_OPT_PERSISTENT 			(1<<1)
-#define YAR_OPT_TIMEOUT  			(1<<2)
-#define YAR_OPT_CONNECT_TIMEOUT 	(1<<3)
-#define YAR_OPT_HEADER				(1<<4)
-#define YAR_OPT_RESOLVE 			(1<<5)
-#define YAR_OPT_PROXY                (1<<6)
+
+typedef enum _yar_opt {
+	YAR_OPT_PACKAGER,
+	YAR_OPT_PERSISTENT,
+	YAR_OPT_TIMEOUT,
+	YAR_OPT_CONNECT_TIMEOUT,
+	YAR_OPT_HEADER,
+	YAR_OPT_RESOLVE,
+	YAR_OPT_PROXY,
+	YAR_OPT_TOKEN,
+	YAR_OPT_PROVIDER,
+	YAR_OPT_MAX
+} yar_opt;
 
 #define DEBUG_S(fmt, ...) \
 	do { \

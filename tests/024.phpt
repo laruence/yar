@@ -27,7 +27,7 @@ try {
 }
 
 $client->setOpt(YAR_OPT_PACKAGER, "php");
-$client->setOpt(YAR_OPT_RESOLVE, "localhost:80:127.0.0.1");
+$client->setOpt(YAR_OPT_RESOLVE, array("localhost:80:127.0.0.1"));
 
 var_dump($client->info("reserved"));
 $client->setOpt(YAR_OPT_PERSISTENT, 1);

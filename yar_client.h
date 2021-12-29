@@ -27,8 +27,25 @@
 #define YAR_CLIENT_PROTOCOL_UDP   3
 #define YAR_CLIENT_PROTOCOL_UNIX  4
 
+typedef struct {
+	zend_uchar protocol;
+	zend_uchar running;
+	zend_string *uri;
+	zend_array *parameters;
+    void **options;
+	zend_array *properties; /* for debug info */
+	zend_object std;
+} yar_client_object;
+
+#define Z_YARCLIENTOBJ(z)    (php_yar_client_fetch_object(Z_OBJ(z)))
+#define Z_YARCLIENTOBJ_P(z)  Z_YARCLIENTOBJ((*z))
+
+static zend_always_inline yar_client_object *php_yar_client_fetch_object(zend_object *obj) {
+	return (yar_client_object *)((char*)(obj) - XtOffsetOf(yar_client_object, std));
+}
+
 YAR_STARTUP_FUNCTION(client);
-YAR_SHUTDOWN_FUNCTION(client);
+YAR_DEACTIVATE_FUNCTION(client);
 
 #endif	/* PHP_YAR_CLIENT_H */
 

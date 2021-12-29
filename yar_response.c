@@ -47,11 +47,12 @@ void php_yar_response_set_error(yar_response_t *response, int type, char *messag
 } /* }}} */
 
 void php_yar_response_set_exception(yar_response_t *response, zend_object *ex) /* {{{ */ {
+	zval rv;
 	zval *msg, *code, *file, *line;
 	zend_class_entry *ce;
-	zval zv, rv;
-
 #if PHP_VERSION_ID < 80000
+	zval zv;
+
 	ZVAL_OBJ(&zv, ex);
 	ce = Z_OBJCE(zv);
 
@@ -90,33 +91,35 @@ void php_yar_response_set_retval(yar_response_t *response, zval *retval) /* {{{ 
 } /* }}} */
 
 void php_yar_response_map_retval(yar_response_t *response, zval *ret) /* {{{ */ {
-	if (IS_ARRAY != Z_TYPE_P(ret)) {         
+	zval *zv;
+	HashTable *ht;
+
+	if (IS_ARRAY != Z_TYPE_P(ret)) {
 		return;
-	} else { 
-		zval *pzval;                       
-		HashTable *ht = Z_ARRVAL_P(ret);     
+	}
 
-		if ((pzval = zend_hash_find(ht, ZSTR_CHAR('i'))) == NULL) {
-			return;
-		}                                    
-		convert_to_long(pzval);            
-		response->id = Z_LVAL_P(pzval);    
+	ht = Z_ARRVAL_P(ret);
+	if ((zv = zend_hash_find(ht, ZSTR_CHAR('i'))) == NULL) {
+		return;
+	}
+	response->id = zval_get_long(zv);
 
-		if ((pzval = zend_hash_find(ht, ZSTR_CHAR('s'))) == NULL) {
-			return;
-		}                                    
-		convert_to_long(pzval);            
-		if ((response->status = Z_LVAL_P(pzval)) == YAR_ERR_OKEY) {
-			if ((pzval = zend_hash_find(ht, ZSTR_CHAR('o'))) != NULL) {
-				response->out = Z_STR_P(pzval);
-				ZVAL_NULL(pzval);          
-			}                                
-			if ((pzval = zend_hash_find(ht, ZSTR_CHAR('r'))) != NULL) {
-				ZVAL_COPY(&response->retval, pzval);
-			}                                
-		} else if ((pzval = zend_hash_find(ht, ZSTR_CHAR('e'))) != NULL) {
-			ZVAL_COPY(&response->err, pzval);
-		}                      
+	if ((zv = zend_hash_find(ht, ZSTR_CHAR('s'))) == NULL) {
+		return;
+	}
+	response->status = zval_get_long(zv);
+
+	if (response->status == YAR_ERR_OKEY) {
+		if ((zv = zend_hash_find(ht, ZSTR_CHAR('o'))) != NULL) {
+			ZEND_ASSERT(Z_TYPE_P(zv) == IS_STRING);
+			response->out = Z_STR_P(zv);
+			ZVAL_NULL(zv);
+		}
+		if ((zv = zend_hash_find(ht, ZSTR_CHAR('r'))) != NULL) {
+			ZVAL_COPY(&response->retval, zv);
+		}
+	} else if ((zv = zend_hash_find(ht, ZSTR_CHAR('e'))) != NULL) {
+		ZVAL_COPY(&response->err, zv);
 	}
 }
 /* }}} */

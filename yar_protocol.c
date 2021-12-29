@@ -30,7 +30,7 @@
 #include <arpa/inet.h>
 #endif
 
-void php_yar_protocol_render(yar_header_t *header, unsigned id, char *provider, char *token, unsigned body_len, unsigned reserved) /* {{{ */ {
+void php_yar_protocol_render(yar_header_t *header, uint32_t id, char *provider, char *token, uint32_t body_len, uint32_t reserved) /* {{{ */ {
 	header->magic_num = htonl(YAR_PROTOCOL_MAGIC_NUM);
 	header->id = htonl(id);
 	header->body_len = htonl(body_len);
@@ -41,7 +41,6 @@ void php_yar_protocol_render(yar_header_t *header, unsigned id, char *provider, 
 	if (token) {
 		memcpy(header->token, token, MIN(strlen(token), 32));
 	}
-	return;
 } /* }}} */
 
 yar_header_t * php_yar_protocol_parse(char *payload) /* {{{ */ {

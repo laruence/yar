@@ -28,7 +28,6 @@
 #include "yar_transport.h"
 
 /* True globals, no need for thread safety */
-int le_calldata;
 int le_plink;
 
 struct _yar_transports_list {
@@ -44,26 +43,6 @@ static void php_yar_plink_dtor(zend_resource *rsrc) /* {{{ */ {
 	yar_persistent_le_t *le = (yar_persistent_le_t *)rsrc->ptr;
 	le->dtor(le->ptr);
 	efree(le);
-}
-/* }}} */
-
-static void php_yar_calldata_dtor(zend_resource *rsrc) /* {{{ */ {
-	yar_call_data_t *entry = (yar_call_data_t *)rsrc->ptr;
-	
-	if (entry->uri) {
-		zend_string_release(entry->uri);
-	}
-
-	if (entry->method) {
-		zend_string_release(entry->method);
-	}
-
-	zval_ptr_dtor(&entry->callback);
-	zval_ptr_dtor(&entry->ecallback);
-	zval_ptr_dtor(&entry->parameters);
-	zval_ptr_dtor(&entry->options);
-
-	efree(entry);
 }
 /* }}} */
 
@@ -95,7 +74,7 @@ PHP_YAR_API int php_yar_transport_register(const yar_transport_t *transport) /* 
 YAR_STARTUP_FUNCTION(transport) /* {{{ */ {
 	php_yar_transport_register(&yar_transport_curl);
 	php_yar_transport_register(&yar_transport_socket);
-	le_calldata = zend_register_list_destructors_ex(php_yar_calldata_dtor, NULL, "Yar Call Data", module_number);
+
 	le_plink = zend_register_list_destructors_ex(php_yar_plink_dtor, NULL, "Yar Persistent Link", module_number);
 
 	return SUCCESS;

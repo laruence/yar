@@ -49,6 +49,8 @@
 zend_class_entry *yar_client_ce;
 zend_class_entry *yar_concurrent_client_ce;
 
+static zend_object_handlers yar_client_obj_handlers;
+
 static void php_yar_client_trigger_error(int throw_exception, int code, const char *format, ...) /* {{{ */ {
 	va_list arg;
 	char *message;
@@ -134,82 +136,202 @@ static void php_yar_client_handle_error(int throw_exception, yar_response_t *res
 }
 /* }}} */
 
-static zval * php_yar_client_get_opt(zval *options, long type) /* {{{ */ {
-	zval *value;
-	if (IS_ARRAY != Z_TYPE_P(options)) {
-		return NULL;
+static inline int php_yar_check_array_values(zend_array *arr) /* {{{ */ {
+	zval *rv;
+	ZEND_HASH_FOREACH_VAL(arr, rv) {
+		ZVAL_DEREF(rv);
+		if (Z_TYPE_P(rv) != IS_STRING) {
+			return 0;
+		}
+	} ZEND_HASH_FOREACH_END();
+	return 1;
+}
+/* }}} */
+
+static void php_yar_options_dtor(void **options) /* {{{ */ {
+	unsigned int i;
+	for (i = 0; i < YAR_OPT_MAX; i++) {
+		if (options[i]) {
+			switch (i) {
+				case YAR_OPT_PACKAGER:
+				case YAR_OPT_PROXY:
+				case YAR_OPT_PROVIDER:
+				case YAR_OPT_TOKEN: {
+					zend_string *val = (zend_string*)options[i];
+					zend_string_release(val);
+				}
+				break;
+				case YAR_OPT_HEADER:
+				case YAR_OPT_RESOLVE: {
+					zend_array *val = (zend_array*)options[YAR_OPT_HEADER];
+					zend_array_destroy(val);
+				}
+				break;
+				default:
+				break;
+			}
+		}
+	}
+	efree(options);
+}
+/* }}} */
+
+static void php_yar_calldata_dtor(yar_call_data_t *entry) /* {{{ */ {
+	if (entry->uri) {
+		zend_string_release(entry->uri);
 	}
 
-	if ((value = zend_hash_index_find(Z_ARRVAL_P(options), type)) != NULL) {
-		return value;
+	if (entry->method) {
+		zend_string_release(entry->method);
 	}
 
-	return NULL;
-} /* }}} */
+	if (entry->parameters) {
+		zend_array_destroy(entry->parameters);
+	}
 
-static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ */ {
-	zval *options;
-	zval rv;
-#if PHP_VERSION_ID < 80000
-	zval *zobj = client;
-#else
-	zend_object *zobj = Z_OBJ_P(client);
-#endif
+	if (entry->options) {
+		php_yar_options_dtor(entry->options);
+	}
+
+	if (entry->callback.fci.size) {
+		zval_ptr_dtor(&entry->callback.fci.function_name);
+	}
+
+	if (entry->ecallback.fci.size) {
+		zval_ptr_dtor(&entry->ecallback.fci.function_name);
+	}
+
+	efree(entry);
+}
+/* }}} */
+
+static void php_yar_calllist_dtor() /* {{{ */ {
+	yar_call_data_t *entry = (yar_call_data_t*)YAR_G(cctx).clist;
+	while (entry) {
+		yar_call_data_t *next = entry->next;
+		php_yar_calldata_dtor(entry);
+		entry = next;
+	}
+	YAR_G(cctx).clist = NULL;
+}
+/* }}} */
+
+static int php_yar_client_get_opt(void **options, yar_opt type, zval *rv) /* {{{ */ {
+	if (options == NULL || options[type] == NULL) {
+		return 0;
+	}
 
 	switch (type) {
-		case YAR_OPT_PACKAGER: {
-             if (IS_STRING != Z_TYPE_P(value)) {
-				 php_error_docref(NULL, E_WARNING, "expects a string packager name");
-				 return 0;
+		case YAR_OPT_PACKAGER:
+		case YAR_OPT_PROXY:
+		case YAR_OPT_TOKEN:
+		case YAR_OPT_PROVIDER: {
+			ZVAL_STR_COPY(rv, (zend_string*)(options[type]));
+			return 1;
+		}
+		case YAR_OPT_PERSISTENT:
+		case YAR_OPT_TIMEOUT:
+		case YAR_OPT_CONNECT_TIMEOUT: {
+			ZVAL_LONG(rv, (zend_long)(options[type]));
+			return 1;
+		}
+		case YAR_OPT_RESOLVE:
+#if LIBCURL_VERSION_NUM < 0x071503
+			return 0;
+#endif
+		case YAR_OPT_HEADER: {
+			ZVAL_ARR(rv, zend_array_dup((zend_array*)(options[type])));
+			return 1;
+		}
+		default:
+		break;
+	}
+	return 0;
+} /* }}} */
+
+static int php_yar_client_validate_option(int protocol, yar_opt type) /* {{{ */ {
+	switch (type) {
+		case YAR_OPT_HEADER:
+			if (protocol != YAR_CLIENT_PROTOCOL_HTTP) {
+				php_error_docref(NULL, E_WARNING, "header only works with HTTP protocol");
+				return 0;
 			}
+			break;
+		case YAR_OPT_RESOLVE:
+			if (protocol != YAR_CLIENT_PROTOCOL_HTTP) {
+				php_error_docref(NULL, E_WARNING, "resolve only works with HTTP protocol");
+				return 0;
+			}
+			break;
+		case YAR_OPT_PROXY:
+			if (protocol != YAR_CLIENT_PROTOCOL_HTTP) {
+				php_error_docref(NULL, E_WARNING, "proxy only works with HTTP protocol");
+				return 0;
+			}
+			break;
+		default:
+			break;
+	}
+	return 1;
+}
+/* }}} */
+
+static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* {{{ */ {
+	switch (type) {
+		case YAR_OPT_PACKAGER: {
+		    if (IS_STRING != Z_TYPE_P(value)) {
+			    php_error_docref(NULL, E_WARNING, "expects a string packager name");
+			    return 0;
+		    }
+		    options[YAR_OPT_PACKAGER] = (void*)zend_string_copy(Z_STR_P(value));
+		    return 1;
 		}
 		break;
 		case YAR_OPT_PERSISTENT: {
-				if (IS_LONG != Z_TYPE_P(value) && IS_TRUE != Z_TYPE_P(value) && IS_FALSE != Z_TYPE_P(value)) {
-					php_error_docref(NULL, E_WARNING, "expects a boolean persistent flag");
-					return 0;
-				}
+			if (IS_LONG != Z_TYPE_P(value) && IS_TRUE != Z_TYPE_P(value) && IS_FALSE != Z_TYPE_P(value)) {
+				php_error_docref(NULL, E_WARNING, "expects a boolean persistent flag");
+				return 0;
+			}
+			options[YAR_OPT_PERSISTENT] = (void*)(zend_uintptr_t)(zval_get_long(value));
 		}
 		break;
 		case YAR_OPT_HEADER: {
-				zval *protocol = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_protocol"), 0, &rv);
-				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
-					php_error_docref(NULL, E_WARNING, "header only works with HTTP protocol");
-					return 0;
-				}
-				if (IS_ARRAY != Z_TYPE_P(value)) {
-					php_error_docref(NULL, E_WARNING, "expects an array as header value");
-					return 0;
-				}
-		}
-		break;
-		case YAR_OPT_RESOLVE:{
-				zval *protocol = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_protocol"), 0, &rv);
-				if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
-					php_error_docref(NULL, E_WARNING, "resolve only works with HTTP protocol");
-					return 0;
-				}
-				if (IS_ARRAY != Z_TYPE_P(value)) {
-					php_error_docref(NULL, E_WARNING, "expects an array as resolve value");
-					return 0;
-				}
-#if LIBCURL_VERSION_NUM < 0x071503
-				/* Available since 7.21.3 */
-				php_error_docref(NULL, E_WARNING, "YAR_OPT_RESOLVE require libcurl 7.21.3 and above");
+			if (IS_ARRAY != Z_TYPE_P(value)) {
+				php_error_docref(NULL, E_WARNING, "expects an array as header value");
 				return 0;
-#endif
+			}
+			if (!php_yar_check_array_values(Z_ARRVAL_P(value))) {
+				php_error_docref(NULL, E_WARNING, "expects an array which should only contains string value");
+				return 0;
+			}
+			options[YAR_OPT_HEADER] = zend_array_dup(Z_ARRVAL_P(value));
+			return 1;
 		}
 		break;
-		case YAR_OPT_PROXY:{
-		        zval *protocol = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_protocol"), 0, &rv);
-			    if (Z_LVAL_P(protocol) != YAR_CLIENT_PROTOCOL_HTTP) {
-				    php_error_docref(NULL, E_WARNING, "proxy only works with HTTP protocol");
-				    return 0;
-			    }
-			    if (IS_STRING != Z_TYPE_P(value)){
-				    php_error_docref(NULL, E_WARNING, "expects a string as proxy value");
-				    return 0;
-				}
+		case YAR_OPT_RESOLVE: {
+			if (IS_ARRAY != Z_TYPE_P(value)) {
+				php_error_docref(NULL, E_WARNING, "expects an array as resolve value");
+				return 0;
+			}
+			if (!php_yar_check_array_values(Z_ARRVAL_P(value))) {
+				php_error_docref(NULL, E_WARNING, "expects an array which should only contains string value");
+				return 0;
+			}
+#if LIBCURL_VERSION_NUM < 0x071503
+			/* Available since 7.21.3 */
+			php_error_docref(NULL, E_WARNING, "YAR_OPT_RESOLVE require libcurl 7.21.3 and above");
+			return 0;
+#endif
+			options[YAR_OPT_RESOLVE] = zend_array_dup(Z_ARRVAL_P(value));
+			return 1;
+		}
+		break;
+		case YAR_OPT_PROXY: {
+			if (IS_STRING != Z_TYPE_P(value)){
+				php_error_docref(NULL, E_WARNING, "expects a string as proxy value");
+				return 0;
+			}
+			options[YAR_OPT_PROXY] = zend_string_copy(Z_STR_P(value));
 		}
 		break;
 		case YAR_OPT_TIMEOUT:
@@ -218,78 +340,61 @@ static int php_yar_client_set_opt(zval *client, long type, zval *value) /* {{{ *
 				php_error_docref(NULL, E_WARNING, "expects a long integer timeout value");
 				return 0;
 			}
+			options[type] = (void*)(zend_uintptr_t)(zval_get_long(value));
+		}
+		break;
+		case YAR_OPT_TOKEN:
+		case YAR_OPT_PROVIDER: {
+		    if (IS_STRING != Z_TYPE_P(value) && Z_STRLEN_P(value) > 32) {
+				php_error_docref(NULL, E_WARNING, "expects a maximum 32 bytes string value");
+				return 0;
+			}
+			options[type] = zend_string_copy(Z_STR_P(value));
 		}
 		break;
 		default:
 			return 0;
 	}
 
-	options = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_options"), 0, &rv);
-	if (IS_ARRAY != Z_TYPE_P(options)) {
-		zval empty_options;
-		array_init(&empty_options);
-		zend_update_property(yar_client_ce, zobj, ZEND_STRL("_options"), &empty_options);
-		Z_DELREF(empty_options);
-	}
-
-	Z_TRY_ADDREF_P(value);
-	zend_hash_index_update(Z_ARRVAL_P(options), type, value);
-
 	return 1;
 } /* }}} */
 
-static int php_yar_client_handle(int protocol, zval *client, zend_string *method, zval *params, zval *retval) /* {{{ */ {
+static int php_yar_client_handle(yar_client_object *client, zend_string *method, zend_array *params, zval *retval) /* {{{ */ {
 	char *msg;
-	zval *uri, *options;
-	zval rv;
+	zend_string *uri;
 	const yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_request_t *request;
 	yar_response_t *response;
 	int flags = 0;
-#if PHP_VERSION_ID < 80000
-	zval *zobj = client;
-#else
-	zend_object *zobj = Z_OBJ_P(client);
-#endif
 
-	uri = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_uri"), 0, &rv);
-
-	if (protocol == YAR_CLIENT_PROTOCOL_HTTP) {
+	if (client->protocol == YAR_CLIENT_PROTOCOL_HTTP) {
 		factory = php_yar_transport_get(ZEND_STRL("curl"));
-	} else if (protocol == YAR_CLIENT_PROTOCOL_TCP || protocol == YAR_CLIENT_PROTOCOL_UNIX) {
+	} else if (client->protocol == YAR_CLIENT_PROTOCOL_TCP || client->protocol == YAR_CLIENT_PROTOCOL_UNIX) {
 		factory = php_yar_transport_get(ZEND_STRL("sock"));
 	} else {
 		return 0;
 	}
 
+	uri = client->uri;
 	transport = factory->init();
 
-	options = zend_read_property(yar_client_ce, zobj, ZEND_STRL("_options"), 1, &rv);
-
-	if (IS_ARRAY != Z_TYPE_P(options)) {
-		options = NULL;
-	}
-
-	if (UNEXPECTED(!(request = php_yar_request_instance(method, params, options)))) {
+	if (UNEXPECTED(!(request = php_yar_request_instance(method, params, client->options)))) {
 		transport->close(transport);
 		factory->destroy(transport);
 		return 0;
 	}
 
-	if (options) {
-		zval *flag = php_yar_client_get_opt(options, YAR_OPT_PERSISTENT);
-		if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
-			flags |= YAR_PROTOCOL_PERSISTENT;
-		}
+	if (client->options && client->options[YAR_OPT_PERSISTENT]) {
+		flags |= YAR_PROTOCOL_PERSISTENT;
 	}
 
-	/* This is tricky to pass options in, for custom headers*/
-	msg = (char*)options;
-	if (UNEXPECTED(!transport->open(transport, Z_STR_P(uri), flags, &msg))) {
+	/* This is tricky to pass options in, for custom headers */
+	msg = (char*)client->options;
+	if (UNEXPECTED(!transport->open(transport, uri, flags, &msg))) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 		php_yar_request_destroy(request);
-		ZEND_ASSERT(msg != (char*)options);
+		ZEND_ASSERT(msg != (char*)client->options);
 		efree(msg);
 		transport->close(transport);
 		factory->destroy(transport);
@@ -297,8 +402,8 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 	}
 
 	DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
-			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', Z_STRVAL_P(uri), 
-			zend_hash_num_elements(Z_ARRVAL(request->parameters)));
+			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', uri, 
+			zend_hash_num_elements(request->parameters));
 
 	if (UNEXPECTED(!transport->send(transport, request, &msg))) {
 		php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
@@ -327,35 +432,41 @@ static int php_yar_client_handle(int protocol, zval *client, zend_string *method
 		php_yar_response_destroy(response);
 		transport->close(transport);
 		factory->destroy(transport);
-		return 1;
 	}
+	return 1;
 } /* }}} */
 
 int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, yar_response_t *response) /* {{{ */ {
-	zval code, retval, retval_ptr;
-	zval callinfo, *callback, func_params[3];
+	zend_fcall_info *fci;
+	zend_fcall_info_cache *fcc;
+	zval retval_ptr;
+	zval func_params[3];
 	zend_bool bailout = 0;
 	unsigned params_count, i;
 
 	if (calldata) {
+		zval callinfo;
+
 		/* data callback */
 		if (status == YAR_ERR_OKEY) {
-			if (!Z_ISUNDEF(calldata->callback)) {
-				callback = &calldata->callback;
+			if (calldata->callback.fci.size) {
+				fci = &calldata->callback.fci;
+				fcc = &calldata->callback.fcc;
 			} else {
-				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0);
+				fci = &YAR_G(cctx).callback.fci;
+				fcc = &YAR_G(cctx).callback.fcc;
 			}
-			params_count = 2;
 		} else {
-			if (!Z_ISUNDEF(calldata->ecallback)) {
-				callback = &calldata->ecallback;
+			if (calldata->ecallback.fci.size) {
+				fci = &calldata->ecallback.fci;
+				fcc = &calldata->ecallback.fcc;
 			} else {
-				callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), 0);
+				fci = &YAR_G(cctx).ecallback.fci;
+				fcc = &YAR_G(cctx).ecallback.fcc;
 			}
-			params_count = 3;
 		}
 
-		if (Z_ISNULL_P(callback)) {
+		if (fci->size == 0) {
 			if (status != YAR_ERR_OKEY) {
 				if (!Z_ISUNDEF(response->err)) {
 					php_yar_client_handle_error(0, response);
@@ -368,44 +479,47 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 			return 1;
 		}
 
-		if (status == YAR_ERR_OKEY) {
-			if (Z_ISUNDEF(response->retval)) {
-				php_yar_client_trigger_error(0, YAR_ERR_REQUEST, "%s", "server responsed empty response");
-				return 1;
-			}
-			ZVAL_COPY(&retval, &response->retval);
-		} else {
-			ZVAL_LONG(&code, status);
-			ZVAL_COPY(&retval, &response->err);
+		if (UNEXPECTED(status == YAR_ERR_OKEY && Z_ISUNDEF(response->retval))) {
+			php_yar_client_trigger_error(0, YAR_ERR_REQUEST, "%s", "server responsed empty response");
+			return 1;
 		}
 
 		array_init(&callinfo);
-
 		add_assoc_long_ex(&callinfo, "sequence", sizeof("sequence") - 1, calldata->sequence);
 		add_assoc_str_ex(&callinfo, "uri", sizeof("uri") - 1, zend_string_copy(calldata->uri));
 		add_assoc_str_ex(&callinfo, "method", sizeof("method") - 1, zend_string_copy(calldata->method));
+
+		if (status == YAR_ERR_OKEY) {
+			params_count = 2;
+			ZVAL_COPY(&func_params[0], &response->retval);
+			ZVAL_COPY_VALUE(&func_params[1], &callinfo);
+		} else {
+			params_count = 3;
+			ZVAL_LONG(&func_params[0], status);
+			ZVAL_COPY(&func_params[1], &response->err);
+			ZVAL_COPY_VALUE(&func_params[2], &callinfo);
+		}
 	} else {
-		callback = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), 0);
-		if (Z_ISNULL_P(callback)) {
+		/* first callback, triggered right after all request are sent */
+		if (YAR_G(cctx).callback.fci.size == 0) {
 			return 1;
 		}
-		params_count = 2;
-	}
+		fci = &YAR_G(cctx).callback.fci;
+		fcc = &YAR_G(cctx).callback.fcc;
 
-	if (calldata && (status != YAR_ERR_OKEY)) {
-	    ZVAL_COPY_VALUE(&func_params[0], &code);
-	    ZVAL_COPY_VALUE(&func_params[1], &retval);
-	    ZVAL_COPY_VALUE(&func_params[2], &callinfo);
-	} else if (calldata) {
-	    ZVAL_COPY_VALUE(&func_params[0], &retval);
-	    ZVAL_COPY_VALUE(&func_params[1], &callinfo);
-	} else {
+		params_count = 2;
 	    ZVAL_NULL(&func_params[0]);
 	    ZVAL_NULL(&func_params[1]);
 	}
 
 	zend_try {
-		if (call_user_function(EG(function_table), NULL, callback, &retval_ptr, params_count, func_params) != SUCCESS) {
+		fci->param_count = params_count;
+		fci->params = func_params;
+		fci->retval = &retval_ptr;
+#if PHP_VERSION_ID < 80000
+		fci->no_separation = 1;
+#endif
+		if (zend_call_function(fci, fcc) != SUCCESS) {
 			for (i = 0; i < params_count; i++) {
 				zval_ptr_dtor(&func_params[i]);	
 			}
@@ -420,58 +534,48 @@ int php_yar_concurrent_client_callback(yar_call_data_t *calldata, int status, ya
 		bailout = 1;
 	} zend_end_try();
 
-	if (!Z_ISUNDEF(retval_ptr)) {
-		zval_ptr_dtor(&retval_ptr);
-	}
+	zval_ptr_dtor(&retval_ptr);
 
 	for (i = 0; i < params_count; i++) {
 		zval_ptr_dtor(&func_params[i]);	
 	}
+
     return bailout? 0 : 1;
 } /* }}} */
 
-int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
+int php_yar_concurrent_client_handle(yar_call_data_t *entry) /* {{{ */ {
 	char *msg;
-	zval *calldata;
 	yar_request_t *request;
 	const yar_transport_t *factory;
 	yar_transport_interface_t *transport;
 	yar_transport_multi_interface_t *multi;
+	int flags = 0;
 
 	factory = php_yar_transport_get(ZEND_STRL("curl"));
 	multi = factory->multi->init();
 
-    ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(callstack), calldata) {
-		yar_call_data_t *entry;
-		long flags = 0;
-
-		entry = (yar_call_data_t *)zend_fetch_resource(Z_RES_P(calldata), "Yar Call Data", le_calldata);
-
-		if (!entry) {
-			continue;
-		}
-
-		if (Z_ISUNDEF(entry->parameters)) {
-			array_init(&entry->parameters);
+	while ((entry)) {
+		if (entry->parameters == NULL) {
+#if PHP_VERSION_ID < 70300
+			ALLOC_HASHTABLE(entry->parameters);
+			zend_hash_init(entry->parameters, 0, NULL, NULL, 0);
+#else
+			entry->parameters = (zend_array*)&zend_empty_array;
+#endif
 		} 
 
 		transport = factory->init();
-
-		if (!Z_ISUNDEF(entry->options)) {
-			zval *flag = php_yar_client_get_opt(&entry->options, YAR_OPT_PERSISTENT);
-			if (flag && (Z_TYPE_P(flag) == IS_TRUE || (Z_TYPE_P(flag) == IS_LONG && Z_LVAL_P(flag)))) {
-				flags |= YAR_PROTOCOL_PERSISTENT;
-			}
+		if (entry->options && entry->options[YAR_OPT_PERSISTENT]) {
+			flags |= YAR_PROTOCOL_PERSISTENT;
 		}
 
-		if (!(request = php_yar_request_instance(entry->method,
-						&entry->parameters, Z_ISUNDEF(entry->options)? NULL: & entry->options))) {
+		if (!(request = php_yar_request_instance(entry->method, entry->parameters, entry->options))) {
 			transport->close(transport);
 			factory->destroy(transport);
 			return 0;
 		}
 
-		msg = (char*)&entry->options;
+		msg = (char*)entry->options;
 		if (!transport->open(transport, entry->uri, flags, &msg)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
 			transport->close(transport);
@@ -481,8 +585,8 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		}
 
 		DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
-				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', entry->uri, 
-			   	zend_hash_num_elements(Z_ARRVAL(request->parameters)));
+				request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r',
+				entry->uri, zend_hash_num_elements(request->parameters));
 
 		if (!transport->send(transport, request, &msg)) {
 			php_yar_client_trigger_error(1, YAR_ERR_TRANSPORT, msg);
@@ -495,7 +599,8 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 		transport->calldata(transport, entry);
 		multi->add(multi, transport);
 		php_yar_request_destroy(request);
-	} ZEND_HASH_FOREACH_END();
+		entry = entry->next;
+	}
 
 	if (!multi->exec(multi, php_yar_concurrent_client_callback)) {
 		multi->close(multi);
@@ -506,65 +611,171 @@ int php_yar_concurrent_client_handle(zval *callstack) /* {{{ */ {
 	return 1;
 } /* }}} */
 
+static void yar_client_object_free(zend_object *object) /* {{{ */ {
+	yar_client_object *client = php_yar_client_fetch_object(object);
+
+	if (client->parameters) {
+		if (GC_DELREF(client->parameters) == 0) {
+			GC_REMOVE_FROM_BUFFER(client->parameters);
+			zend_array_destroy(client->parameters);
+		}
+	}
+
+	if (client->uri) {
+		zend_string_release(client->uri);
+	}
+
+	if (client->options) {
+		php_yar_options_dtor(client->options);
+	}
+
+	if (client->properties) {
+		if (GC_DELREF(client->properties) == 0) {
+			GC_REMOVE_FROM_BUFFER(client->properties);
+			zend_array_destroy(client->properties);
+		}
+	}
+
+	zend_object_std_dtor(object);
+}
+/* }}} */
+
+static HashTable *yar_client_get_properties(void *object) /* {{{ */ {
+	zval rv;
+	HashTable *ht;
+#if PHP_VERSION_ID < 80000
+	yar_client_object *client = php_yar_client_fetch_object(Z_OBJ_P((zval*)object));
+#else
+	yar_client_object *client = php_yar_client_fetch_object(((zend_object*)object));
+#endif
+
+	if (!client->properties) {
+		ALLOC_HASHTABLE(client->properties);
+		zend_hash_init(client->properties, 8, NULL, ZVAL_PTR_DTOR, 0);
+	}
+
+	ht = client->properties;
+
+	ZVAL_LONG(&rv, client->protocol);
+	zend_hash_str_update(ht, "_protocol", sizeof("_protocol") - 1, &rv);
+
+	ZVAL_STR_COPY(&rv, client->uri);
+	zend_hash_str_update(ht, "_uri", sizeof("_uri") - 1, &rv);
+
+	if (client->options) {
+		unsigned int i;
+		zval zv;
+
+		array_init(&rv);
+		for (i = 0; i < YAR_OPT_MAX; i++) {
+			if (client->options[i]) {
+				if (php_yar_client_get_opt(client->options, i, &zv)) {
+					zend_hash_index_update(Z_ARRVAL(rv), i, &zv);
+				}
+			}
+		}
+	} else {
+		ZVAL_NULL(&rv);
+	}
+
+	zend_hash_str_update(ht, "_options", sizeof("_options") - 1, &rv);
+
+	ZVAL_BOOL(&rv, client->running);
+	zend_hash_str_update(ht, "_running", sizeof("_running") - 1, &rv);
+
+	return ht;
+}
+/* }}} */
+
+static HashTable *yar_client_get_gc(zend_object *object, zval **table, int *n) /* {{{ */ {
+	yar_client_object *client = php_yar_client_fetch_object(object);
+
+	*table = NULL;
+	*n = 0;
+
+	return client->parameters;
+}
+/* }}} */
+
+static zend_object *yar_client_new(zend_class_entry *ce) /* {{{ */ {
+	yar_client_object *client = emalloc(sizeof(yar_client_object) + zend_object_properties_size(ce));
+
+	memset(client, 0, XtOffsetOf(yar_client_object, std));
+	zend_object_std_init(&client->std, ce);
+
+	if (ce->default_properties_count) {
+		object_properties_init(&client->std, ce);
+	}
+	client->std.handlers = &yar_client_obj_handlers;
+
+	return &client->std;
+}
+/* }}} */
+
 /* {{{ proto Yar_Client::__construct($uri[, array $options = NULL]) */
 PHP_METHOD(yar_client, __construct) {
 	zend_string *url;
 	zval *options = NULL;
-#if PHP_VERSION_ID < 80000
-	zval *this_ptr = getThis();
-#else
-	zend_object *this_ptr = Z_OBJ_P(getThis());
-#endif
+	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
     if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "S|a!", &url, &options) == FAILURE) {
         return;
     }
 
-    zend_update_property_str(yar_client_ce, this_ptr, ZEND_STRL("_uri"), url);
-
-	if (strncasecmp(ZSTR_VAL(url), "http://", sizeof("http://") - 1) == 0
-			|| strncasecmp(ZSTR_VAL(url), "https://", sizeof("https://") - 1) == 0) {
+	if (strncasecmp(ZSTR_VAL(url), "http://", sizeof("http://") - 1) == 0) {
+		client->protocol = YAR_CLIENT_PROTOCOL_HTTP;
+	} else if (strncasecmp(ZSTR_VAL(url), "https://", sizeof("https://") - 1) == 0) {
+		client->protocol = YAR_CLIENT_PROTOCOL_HTTP;
 	} else if (strncasecmp(ZSTR_VAL(url), "tcp://", sizeof("tcp://") - 1) == 0) {
-		zend_update_property_long(yar_client_ce, this_ptr, ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_TCP);
+		client->protocol = YAR_CLIENT_PROTOCOL_TCP;
 	} else if (strncasecmp(ZSTR_VAL(url), "unix://", sizeof("unix://") - 1) == 0) {
-		zend_update_property_long(yar_client_ce, this_ptr, ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_UNIX);
+		client->protocol = YAR_CLIENT_PROTOCOL_UNIX;
 	} else {
 		php_yar_client_trigger_error(1, YAR_ERR_PROTOCOL, "unsupported protocol address %s", ZSTR_VAL(url));
 		return;
 	}
 
+	client->uri = zend_string_copy(url);
+
 	if (options) {
-    	zend_update_property(yar_client_ce, this_ptr, ZEND_STRL("_options"), options);
+		zval *zv;
+		zend_long h;
+		ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(options), h, zv) {
+			if (!php_yar_client_validate_option(client->protocol, h)) {
+				continue;
+			}
+			if (client->options == NULL) {
+				client->options = ecalloc(YAR_OPT_MAX, sizeof(void*));
+			}
+            if (!php_yar_client_set_opt(client->options, h, zv)) {
+				php_yar_client_trigger_error(1, YAR_ERR_EXCEPTION, "illegal option");
+				return;
+			}
+		} ZEND_HASH_FOREACH_END();
 	}
 }
 /* }}} */
 
 /* {{{ proto Yar_Client::__call($method, $parameters = NULL) */
 PHP_METHOD(yar_client, __call) {
-	zval *params, *protocol, rv;
+	zval *params;
 	zend_string *method;
-#if PHP_VERSION_ID < 80000
-	zval *this_ptr = getThis();
-#else
-	zend_object *this_ptr = Z_OBJ_P(getThis());
-#endif
+	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "Sa", &method, &params) == FAILURE) {
 		return;
 	}
 
-	protocol = zend_read_property(yar_client_ce, this_ptr, ZEND_STRL("_protocol"), 0, &rv);
-
-	switch (Z_LVAL_P(protocol)) {
+	switch (client->protocol) {
 		case YAR_CLIENT_PROTOCOL_TCP:
 		case YAR_CLIENT_PROTOCOL_UNIX:
 		case YAR_CLIENT_PROTOCOL_HTTP:
-			if ((php_yar_client_handle(Z_LVAL_P(protocol), getThis(), method, params, return_value))) {
+			if ((php_yar_client_handle(client, method, Z_ARRVAL_P(params), return_value))) {
 				return;
 			}
 			break;
 		default:
-			php_error_docref(NULL, E_WARNING, "unsupported protocol %ld", Z_LVAL_P(protocol));
+			php_error_docref(NULL, E_WARNING, "unsupported protocol %d", client->protocol);
 			break;
 	}
 
@@ -581,22 +792,14 @@ PHP_METHOD(yar_client, call) {
 /* {{{ proto Yar_Client::getOpt(int $type) */
 PHP_METHOD(yar_client, getOpt) {
 	long type;
-	zval *value, rv;
-#if PHP_VERSION_ID < 80000
-	zval *this_ptr = getThis();
-#else
-	zend_object *this_ptr = Z_OBJ_P(getThis());
-#endif
+	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &type) == FAILURE) {
 		return;
-	} else {
-		zval *options = zend_read_property(yar_client_ce, this_ptr, ZEND_STRL("_options"), 0, &rv);
-		if (!(value = php_yar_client_get_opt(options, type))) {
-			RETURN_FALSE;
-		}
+	}
 
-		RETURN_ZVAL(value, 1, 0);
+	if (!php_yar_client_get_opt(client->options, type, return_value)) {
+		RETURN_FALSE;
 	}
 }
 /* }}} */
@@ -605,12 +808,21 @@ PHP_METHOD(yar_client, getOpt) {
 PHP_METHOD(yar_client, setOpt) {
 	long type;
 	zval *value;
+	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "lz", &type, &value) == FAILURE) {
 		return;
 	}
 
-	if (!php_yar_client_set_opt(getThis(), type, value)) {
+	if (!php_yar_client_validate_option(client->protocol, type)) {
+		RETURN_FALSE;
+	}
+
+	if (client->options == NULL) {
+		client->options = ecalloc(YAR_OPT_MAX, sizeof(void*));
+	}
+
+	if (!php_yar_client_set_opt(client->options, type, value)) {
 		RETURN_FALSE;
 	}
 
@@ -621,13 +833,13 @@ PHP_METHOD(yar_client, setOpt) {
 /* {{{ proto Yar_Concurrent_Client::call($uri, $method, $parameters = NULL, $callback = NULL, $error_callback = NULL, $options = array()) */
 PHP_METHOD(yar_concurrent_client, call) {
 	zend_string *uri, *method;
-    zend_string *name = NULL;
-	zval *callstack, item, *status;
-	zval *error_callback = NULL, *callback = NULL, *parameters = NULL, *options = NULL;
+	zend_fcall_info callback = {0}, ecallback = {0};
+	zend_fcall_info_cache callbackc, ecallbackc;
+	zval *parameters = NULL, *options = NULL;
 	yar_call_data_t *entry;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "SS|a!z!za",
-				&uri, &method, &parameters, &callback, &error_callback, &options) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "SS|a!f!f!a!", &uri, &method,
+				&parameters, &callback, &callbackc, &ecallback, &ecallbackc, &options) == FAILURE) {
 		return;
 	}
 
@@ -642,34 +854,12 @@ PHP_METHOD(yar_concurrent_client, call) {
 		return;
 	}
 
-	if (UNEXPECTED(!method->len)) {
+	if (UNEXPECTED(!ZSTR_LEN(method))) {
 		php_error_docref(NULL, E_WARNING, "second parameter is expected to be a valid rpc api name");
 		return;
 	}
 
-    if ((callback && !Z_ISNULL_P(callback) && !zend_is_callable(callback, 0, &name))) {
-        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fourth parameter is expected to be a valid callback");
-        zend_string_release(name);
-        RETURN_FALSE;
-    }
-
-	if (name) {
-		zend_string_release(name);
-		name = NULL;
-	}
-
-    if (UNEXPECTED(error_callback && !Z_ISNULL_P(error_callback) && !zend_is_callable(error_callback, 0, &name))) {
-        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "fifth parameter is expected to be a valid error callback");
-        zend_string_release(name);
-        RETURN_FALSE;
-    }
-
-	if (name) {
-        zend_string_release(name);
-	}
-
-	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0);
-	if (UNEXPECTED(Z_TYPE_P(status) == IS_TRUE)) {
+	if (UNEXPECTED(YAR_G(cctx).start)) {
         php_error_docref(NULL, E_WARNING, "concurrent client has already started");
 		RETURN_FALSE;
 	}
@@ -679,33 +869,42 @@ PHP_METHOD(yar_concurrent_client, call) {
 	entry->uri = zend_string_copy(uri);
 	entry->method = zend_string_copy(method);
 
-	if (callback && !Z_ISNULL_P(callback)) {
-		ZVAL_COPY(&entry->callback, callback);
+	if (callback.size) {
+		memcpy(&entry->callback.fci, &callback, sizeof(zend_fcall_info));
+		memcpy(&entry->callback.fcc, &callbackc, sizeof(zend_fcall_info_cache));
+		Z_TRY_ADDREF(entry->callback.fci.function_name);
 	}
-	if (error_callback && !Z_ISNULL_P(error_callback)) {
-		ZVAL_COPY(&entry->ecallback, error_callback);
-	}
-	if (parameters && IS_ARRAY == Z_TYPE_P(parameters)) {
-		ZVAL_COPY(&entry->parameters, parameters);
-	}
-	if (options && IS_ARRAY == Z_TYPE_P(options)) {
-		ZVAL_COPY(&entry->options, options);
+	if (ecallback.size) {
+		memcpy(&entry->ecallback.fci, &ecallback, sizeof(zend_fcall_info));
+		memcpy(&entry->ecallback.fcc, &ecallbackc, sizeof(zend_fcall_info_cache));
+		Z_TRY_ADDREF(entry->ecallback.fci.function_name);
 	}
 
-	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (Z_ISNULL_P(callstack)) {
-	    zval rv;
-		array_init(&rv);
-		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), &rv);
-		ZVAL_ARR(callstack, Z_ARRVAL(rv));
-		Z_DELREF(rv);
+	if (parameters) {
+		entry->parameters = zend_array_dup(Z_ARRVAL_P(parameters));
 	}
 
-	ZVAL_RES(&item, zend_register_resource(entry, le_calldata));
+	if (options) {
+		zval *zv;
+		zend_long h;
 
-	entry->sequence = zend_hash_num_elements(Z_ARRVAL_P(callstack)) + 1;
+		entry->options = ecalloc(YAR_OPT_MAX, sizeof(void*));
+		ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(options), h, zv) {
+            if (!php_yar_client_set_opt(entry->options, h, zv)) {
+				php_yar_client_trigger_error(1, YAR_ERR_EXCEPTION, "illegal option");
+				return;
+			}
+		} ZEND_HASH_FOREACH_END();
+	}
 
-	zend_hash_next_index_insert(Z_ARRVAL_P(callstack), &item);
+	entry->next = YAR_G(cctx).clist;
+	YAR_G(cctx).clist = entry;
+
+	if (entry->next) {
+		entry->sequence = entry->next->sequence + 1;
+	} else {
+		entry->sequence = 1;
+	}
 
 	RETURN_LONG(entry->sequence);
 }
@@ -713,71 +912,51 @@ PHP_METHOD(yar_concurrent_client, call) {
 
 /* {{{ proto Yar_Concurrent_Client::reset(void) */
 PHP_METHOD(yar_concurrent_client, reset) {
-	zval *callstack;
-
-	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (Z_ISNULL_P(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
-		RETURN_TRUE;
+	if (YAR_G(cctx).start) {
+        php_error_docref(NULL, E_WARNING, "cannot reset while client is running");
+		RETURN_FALSE;
 	}
-	zend_hash_clean(Z_ARRVAL_P(callstack));
+	php_yar_calllist_dtor();
 	RETURN_TRUE;
 }
 /* }}} */
 
 /* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback = NULL) */
 PHP_METHOD(yar_concurrent_client, loop) {
-	zend_string *name = NULL;
-	zval *callstack;
-	zval *callback = NULL, *error_callback = NULL;
-	zval *status;
-	unsigned ret = 0;
+	int ret;
+	zend_fcall_info callback = {0}, ecallback = {0};
+	zend_fcall_info_cache callbackc, ecallbackc;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|zz", &callback, &error_callback) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!", &callback, &callbackc, &ecallback, &ecallbackc) == FAILURE) {
 		return;
 	}
 
-	status = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_start"), 0);
-	if (UNEXPECTED(Z_TYPE_P(status) == IS_TRUE)) {
-        php_error_docref(NULL, E_WARNING, "concurrent client has already started");
+	if (UNEXPECTED(YAR_G(cctx).start)) {
+        php_error_docref(NULL, E_WARNING, "concurrent client has already been started");
 		RETURN_FALSE;
 	}
 
-    if (UNEXPECTED(callback && !Z_ISNULL_P(callback) && !zend_is_callable(callback, 0, &name))) {
-        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "first argument is expected to be a valid callback");
-        zend_string_release(name);
-        RETURN_FALSE;
-    }
-
-	if (name) {
-		zend_string_release(name);
-		name = NULL;
-	}
-
-    if (UNEXPECTED(error_callback && !Z_ISNULL_P(error_callback) && !zend_is_callable(error_callback, 0, &name))) {
-        php_error_docref1(NULL, ZSTR_VAL(name), E_ERROR, "second argument is expected to be a valid error callback");
-        zend_string_release(name);
-        RETURN_FALSE;
-    }
-	if (name) {
-		zend_string_release(name);
-	}
-
-	callstack = zend_read_static_property(yar_concurrent_client_ce, ZEND_STRL("_callstack"), 0);
-	if (Z_ISNULL_P(callstack) || zend_hash_num_elements(Z_ARRVAL_P(callstack)) == 0) {
+	if (UNEXPECTED(YAR_G(cctx).clist == NULL)) {
 		RETURN_TRUE;
 	}
 
-	if (callback && !Z_ISNULL_P(callback)) {
-		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_callback"), callback);
+	if (callback.size) {
+		memcpy(&YAR_G(cctx).callback.fci, &callback, sizeof(zend_fcall_info));
+		memcpy(&YAR_G(cctx).callback.fcc, &callbackc, sizeof(zend_fcall_info_cache));
+	} else {
+		YAR_G(cctx).callback.fci.size = 0;
+	}
+	if (ecallback.size) {
+		memcpy(&YAR_G(cctx).ecallback.fci, &ecallback, sizeof(zend_fcall_info));
+		memcpy(&YAR_G(cctx).ecallback.fcc, &ecallbackc, sizeof(zend_fcall_info_cache));
+	} else {
+		YAR_G(cctx).ecallback.fci.size = 0;
 	}
 
-	if (error_callback && !Z_ISNULL_P(error_callback)) {
-		zend_update_static_property(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), error_callback);
-	}
+	YAR_G(cctx).start = 1;
+	ret = php_yar_concurrent_client_handle((yar_call_data_t*)YAR_G(cctx).clist);
+	YAR_G(cctx).start = 0;
 
-	ZVAL_BOOL(status, 1);
-	ret = php_yar_concurrent_client_handle(callstack);
-	ZVAL_BOOL(status, 0);
 	RETURN_BOOL(ret);
 }
 /* }}} */
@@ -807,18 +986,17 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 
     INIT_CLASS_ENTRY(ce, "Yar_Client", yar_client_methods);
     yar_client_ce = zend_register_internal_class(&ce);
+	yar_client_ce->create_object = yar_client_new;
 
-	zend_declare_property_long(yar_client_ce, ZEND_STRL("_protocol"), YAR_CLIENT_PROTOCOL_HTTP, ZEND_ACC_PROTECTED);
-	zend_declare_property_null(yar_client_ce, ZEND_STRL("_uri"), ZEND_ACC_PROTECTED);
-	zend_declare_property_null(yar_client_ce, ZEND_STRL("_options"),  ZEND_ACC_PROTECTED);
-	zend_declare_property_null(yar_client_ce, ZEND_STRL("_running"),  ZEND_ACC_PROTECTED);
+	memcpy(&yar_client_obj_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	yar_client_obj_handlers.offset = XtOffsetOf(yar_client_object, std);
+	yar_client_obj_handlers.free_obj = yar_client_object_free;
+	yar_client_obj_handlers.get_properties = (zend_object_get_properties_t)yar_client_get_properties;
+	yar_client_obj_handlers.get_gc = yar_client_get_gc;
+	yar_client_obj_handlers.clone_obj = NULL;
 
 	INIT_CLASS_ENTRY(ce, "Yar_Concurrent_Client", yar_concurrent_client_methods);
     yar_concurrent_client_ce = zend_register_internal_class(&ce);	
-	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_callstack"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC);
-	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_callback"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC);
-	zend_declare_property_null(yar_concurrent_client_ce, ZEND_STRL("_error_callback"), ZEND_ACC_PROTECTED|ZEND_ACC_STATIC);
-	zend_declare_property_bool(yar_concurrent_client_ce, ZEND_STRL("_start"), 0, ZEND_ACC_PROTECTED|ZEND_ACC_STATIC);
 
 	REGISTER_LONG_CONSTANT("YAR_CLIENT_PROTOCOL_HTTP", YAR_CLIENT_PROTOCOL_HTTP, CONST_PERSISTENT | CONST_CS);
 	REGISTER_LONG_CONSTANT("YAR_CLIENT_PROTOCOL_TCP", YAR_CLIENT_PROTOCOL_TCP, CONST_PERSISTENT | CONST_CS);
@@ -828,7 +1006,10 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 }
 /* }}} */
 
-YAR_SHUTDOWN_FUNCTION(client) /* {{{ */ {
+YAR_DEACTIVATE_FUNCTION(client) /* {{{ */ {
+	if (YAR_G(cctx).clist) {
+		php_yar_calllist_dtor();
+	}
 	return SUCCESS;
 } /* }}} */
 

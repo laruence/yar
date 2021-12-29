@@ -53,18 +53,24 @@ typedef struct _yar_socket_data_t {
 	php_stream *stream;
 } yar_socket_data_t;
 
-int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, long options, char **err_msg) /* {{{ */ {
+int php_yar_socket_open(yar_transport_interface_t *self, zend_string *address, long flags, char **err_msg) /* {{{ */ {
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	struct timeval tv;
 	php_stream *stream = NULL;
 	zend_string *errstr = NULL;
 	char *persistent_key = NULL;
+	void **options = (void**)*err_msg;
 	int err;
 
-	tv.tv_sec = (zend_ulong)(YAR_G(connect_timeout) / 1000);
-	tv.tv_usec = (zend_ulong)(YAR_G(connect_timeout) % 1000);
+	if (options && options[YAR_OPT_CONNECT_TIMEOUT]) {
+		tv.tv_sec = (zend_ulong)(((zend_ulong)options[YAR_OPT_CONNECT_TIMEOUT]) / 1000);
+		tv.tv_usec = (zend_ulong)((((zend_ulong)options[YAR_OPT_CONNECT_TIMEOUT]) % 1000) * 1000);
+	} else {
+		tv.tv_sec = (zend_ulong)(YAR_G(connect_timeout) / 1000);
+		tv.tv_usec = (zend_ulong)((YAR_G(connect_timeout) % 1000) * 1000);
+	}
 
-	if (options & YAR_PROTOCOL_PERSISTENT) {
+	if (flags & YAR_PROTOCOL_PERSISTENT) {
 		data->persistent = 1;
 		spprintf(&persistent_key, 0, "yar_%s", ZSTR_VAL(address));
 	} else {
@@ -133,8 +139,13 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		return response;
 	}
 
-	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+	if (request->options && request->options[YAR_OPT_TIMEOUT]) {
+		tv.tv_sec = (zend_ulong)(((zend_ulong)request->options[YAR_OPT_TIMEOUT]) / 1000);
+		tv.tv_usec = (zend_ulong)((((zend_ulong)request->options[YAR_OPT_TIMEOUT]) % 1000) * 1000);
+	} else {
+		tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+		tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+	}
 
 wait_io:
 	retval = php_select(fd+1, &rfds, NULL, NULL, &tv);
@@ -229,9 +240,10 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	char buf[SEND_BUF_SIZE];
 	yar_header_t header = {0};
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
+	size_t bytes_left = 0, bytes_sent = 0;
 
 	FD_ZERO(&rfds);
-	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
+	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT|PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
 		PHP_SAFE_FD_SET(fd, &rfds);
 	} else {
 		spprintf(msg, 0, "Unable cast socket fd form stream (%s)", strerror(errno));
@@ -266,8 +278,6 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	}
 
 	if (PHP_SAFE_FD_ISSET(fd, &rfds)) {
-		size_t bytes_left = 0, bytes_sent = 0;
-
 		if (ZSTR_LEN(payload) > (sizeof(buf) - sizeof(yar_header_t))) {
 			memcpy(buf + sizeof(yar_header_t), ZSTR_VAL(payload), sizeof(buf) - sizeof(yar_header_t));
 			if ((ret = php_stream_xport_sendto(data->stream, buf, sizeof(buf), 0, NULL, 0)) < 0) {

@@ -161,7 +161,7 @@ After Yar 2.1.0, if Yar runs on HTTP protocol, YAR_OPT_RESOLVE could be used to 
 <?php
 $client = new Yar_Client("http://host/api/");
 
-$client->SetOpt(YAR_OPT_RESOLVE, "host:80:127.0.0.1");
+$client->SetOpt(YAR_OPT_RESOLVE, array("host:80:127.0.0.1"));
 
 /* call goes to 127.0.0.1 */
 $result = $client->some_method("parameter");

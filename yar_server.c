@@ -543,7 +543,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		zval retval;
 		HashTable *func_params_ht;
 
-		func_params_ht = Z_ARRVAL(request->parameters);
+		func_params_ht = request->parameters;
 		count = zend_hash_num_elements(func_params_ht);
 
 		if (count) {

@@ -24,12 +24,12 @@ Warning: Yar_Client::setOpt(): expects a string packager name in %s004.php on li
 bool(false)
 Yar_Client Object
 (
-    [_protocol:protected] => 1
-    [_uri:protected] => http://www.laruence.com/yar/
-    [_options:protected] => Array
+    [_protocol] => 1
+    [_uri] => http://www.laruence.com/yar/
+    [_options] => Array
         (
             [%d] => php
         )
 
-    [_running:protected] => 
+    [_running] => 
 )

@@ -178,6 +178,7 @@ PHP_RINIT_FUNCTION(yar)
  */
 PHP_RSHUTDOWN_FUNCTION(yar)
 {
+	YAR_DEACTIVATE(client);
 	return SUCCESS;
 }
 /* }}} */
