@@ -864,7 +864,7 @@ PHP_METHOD(yar_concurrent_client, call) {
 	}
 
 	if (UNEXPECTED(YAR_G(cctx).start)) {
-        php_error_docref(NULL, E_WARNING, "concurrent client has already started");
+        php_error_docref(NULL, E_WARNING, "concurrent client has already been started");
 		RETURN_FALSE;
 	}
 
