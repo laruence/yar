@@ -40,7 +40,7 @@ Yar_Concurrent_Client::loop("callback", "error_callback");
 ksort($sequence);
 print_r($sequence);
 --EXPECTF--
-Warning: Yar_Concurrent_Client::call(): concurrent client has already started in %s013.php on line %d
+Warning: Yar_Concurrent_Client::call(): concurrent client has already been started in %s013.php on line %d
 Array
 (
     [1] => 3.8

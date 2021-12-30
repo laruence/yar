@@ -102,8 +102,8 @@ void php_yar_debug(int server_side, const char *format, ...) {
 */
 PHP_GINIT_FUNCTION(yar)
 {
-	YAR_G(cctx).start = 0;
-	YAR_G(cctx).clist = NULL;
+	yar_globals->cctx.start = 0;
+	yar_globals->cctx.clist = NULL;
 }
 /* }}} */
 
