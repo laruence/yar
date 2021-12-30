@@ -373,7 +373,7 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
 
 static void php_yar_server_response_header(size_t content_lenth, void *packager_info) /* {{{ */ {
 	sapi_header_line ctr = {0};
-	char header_line[512];
+	char header_line[64];
 
 	ctr.line_len = snprintf(header_line, sizeof(header_line), "Content-Length: %ld", content_lenth);
 	ctr.line = header_line;
