@@ -49,9 +49,9 @@ yar_request_t *php_yar_request_instance(zend_string *method, zend_array *paramet
 /* }}} */
 
 yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
+	zval *v;
+	zend_string *k;
 	yar_request_t *req;
-	zval *pzval;
-	HashTable *ht;
 
 	req = (yar_request_t *)ecalloc(sizeof(yar_request_t), 1);
 
@@ -59,27 +59,31 @@ yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
 		return req;
 	}
 
-	ht = Z_ARRVAL_P(body);
-	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('i'))) != NULL) {
-		req->id = zval_get_long(pzval);
-	}
-
-	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('m'))) != NULL) {
-		req->method = zval_get_string(pzval);
-	}
-
-	if ((pzval = zend_hash_find(ht, ZSTR_CHAR('p'))) != NULL) {
-		if (IS_ARRAY == Z_TYPE_P(pzval)) {
-			req->parameters = zend_array_dup(Z_ARRVAL_P(pzval));
-		} else {
+	ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(body), k, v) {
+		if (EXPECTED(k && ZSTR_LEN(k) == 1)) {
+			switch (*ZSTR_VAL(k)) {
+				case 'i':
+					req->id = zval_get_long(v);
+				break;
+				case 'm':
+					req->method = zval_get_string(v);
+				break;
+				case 'p':
+					if (Z_TYPE_P(v) == IS_ARRAY) {
+						req->parameters = zend_array_dup(Z_ARRVAL_P(v));
+					} else {
 #if PHP_VERSION_ID < 70300
-			ALLOC_HASHTABLE(req->parameters);
-			zend_hash_init(req->parameters, 0, NULL, NULL, 0);
+						ALLOC_HASHTABLE(req->parameters);
+						zend_hash_init(req->parameters, 0, NULL, NULL, 0);
 #else
-			req->parameters = (zend_array*)&zend_empty_array;
+						req->parameters = (zend_array*)&zend_empty_array;
 #endif
+					}
+				default:
+				break;
+			}
 		}
-	}
+	} ZEND_HASH_FOREACH_END();
 
 	return req;
 } /* }}} */

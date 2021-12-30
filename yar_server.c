@@ -455,9 +455,9 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	size_t payload_len;
 	zend_bool bailout = 0;
 	zend_string *method;
-	zval *post_data = NULL, rv;
+	zval *post_data, rv;
 	zend_class_entry *ce;
-	yar_request_t  *request = NULL;
+	yar_request_t *request;
 	yar_header_t *header;
 	smart_str raw_data = {0};
 	size_t len = 0;
