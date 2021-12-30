@@ -1,5 +1,5 @@
 --TEST--
-Check for yar concurrent client with exit in callback
+Check for yar concurrent client with exit in callbacks
 --SKIPIF--
 <?php 
 if (!extension_loaded("yar")) {
@@ -13,19 +13,31 @@ include "yar.inc";
 yar_server_start();
 
 function callback($return, $callinfo) {
-    global $sequence;
+    static $count = 0;
+	if (++$count == 4) {
+		exit("exit");
+	}
+}
 
-    if ($callinfo) {
-        exit("exit");
+class Invoke {
+   public function __invoke($return, $callinfo) {
+       callback($return, $callinfo);
+   }
+}
+
+class Callback {
+    public static function exec($return, $callinfo) {
+         callback($return, $callinfo);
     }
 }
 
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), array("Callback", "exec"));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), new Invoke());
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), array(new Invoke(), "__invoke"));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
 
 try {
-    Yar_Concurrent_Client::loop("callback");
+    Yar_Concurrent_Client::loop("callback", function() { exit("error"); });
 } catch (Exception $e) {
     var_dump($e->getMessage());
 }
