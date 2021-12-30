@@ -29,6 +29,11 @@
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280
 
+extern int le_plink;
+/* forward declaration */
+struct _yar_request;
+struct _yar_response;
+
 typedef struct _yar_persistent_le {
 	void *ptr;
 	void (*dtor)(void *ptr);
@@ -80,8 +85,6 @@ typedef struct _yar_transport {
 	void (*destroy)(yar_transport_interface_t *self);
 	yar_transport_multi_t *multi;
 } yar_transport_t;
-
-extern int le_plink;
 
 PHP_YAR_API const yar_transport_t * php_yar_transport_get(char *name, int nlen);
 PHP_YAR_API int php_yar_transport_register(const yar_transport_t *transport);

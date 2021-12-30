@@ -81,9 +81,6 @@ YAR_STARTUP_FUNCTION(transport) /* {{{ */ {
 } /* }}} */
 
 YAR_ACTIVATE_FUNCTION(transport) /* {{{ */ {
-
-	YAR_G(transport) = &yar_transport_curl;
-
 	return SUCCESS;
 } /* }}} */
 

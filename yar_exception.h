@@ -32,6 +32,8 @@
 #define YAR_ERR_EXCEPTION 		0x40
 #define YAR_ERR_EMPTY_RESPONSE 	0x80
 
+struct _yar_response;
+
 extern zend_class_entry *yar_server_exception_ce;
 extern zend_class_entry *yar_server_request_exception_ce;
 extern zend_class_entry *yar_server_protocol_exception_ce;

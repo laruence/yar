@@ -26,6 +26,8 @@
 #define YAR_RESPONSE_APPEND  1
 #define YAR_RESPONSE_PREPEND 2
 
+struct _yar_request;
+
 typedef struct _yar_response {
 	long id;
 	int  status;

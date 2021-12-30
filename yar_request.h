@@ -22,6 +22,8 @@
 #ifndef PHP_YAR_REQUEST_H
 #define PHP_YAR_REQUEST_H
 
+struct _yar_response;
+
 typedef struct _yar_request {
 	zend_ulong id;
 	zend_string *method;
