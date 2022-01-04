@@ -24,6 +24,6 @@ $client->normal("dummy");
 --EXPECTF--
 Warning: [Debug Yar_Client %s]: %d: call api 'normal' at (r)'%s' with '1' parameters in %s040.php on line %d
 
-Warning: [Debug Yar_Client %s]: %d: pack request by 'JSON', result len '%d', content: '{"i":%d,"m":"normal"%s' in %s040.php on line %d
+Warning: [Debug Yar_Client %s]: %d: pack request by 'JSON', result len '%d', content: '{"i":%s,"m":"normal"%s' in %s040.php on line %d
 
-Warning: [Debug Yar_Client %s]: %d: server response content packaged by 'JSON', len '%d', content '{"i":%d,"s":0,"r"%s' in %s040.php on line %d
+Warning: [Debug Yar_Client %s]: %d: server response content packaged by 'JSON', len '%d', content '{"i":%s,"s":0,"r"%s' in %s040.php on line %d
