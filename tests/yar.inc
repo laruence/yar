@@ -255,6 +255,8 @@ persistent:
 				fclose($conn);
 				continue;
 			}
+			/* _conn is only used for testing (check persistent) */
+			$header["_conn"] = (int)$conn;
 			$content_len = $header["body_len"];
 			$total_byte = $content_len + YAR_HEADER_SIZE;
 			$byte_read = YAR_HEADER_SIZE;
