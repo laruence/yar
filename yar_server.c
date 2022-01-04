@@ -450,6 +450,8 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 } /* }}} */
 
 static void php_yar_server_handle(zval *obj) /* {{{ */ {
+	size_t len = 0;
+	char buf[RECV_BUF_SIZE];
 	char *payload, *err_msg;
 	char *pkg_name = NULL;
 	size_t payload_len;
@@ -457,17 +459,15 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	zend_string *method;
 	zval *post_data, rv;
 	zend_class_entry *ce;
-	yar_request_t *request;
 	yar_header_t *header;
+	yar_request_t *request = NULL;
 	smart_str raw_data = {0};
-	size_t len = 0;
-	char buf[RECV_BUF_SIZE];
 
 	yar_response_t *response = php_yar_response_instance();
 	if (EXPECTED(SG(request_info.request_body))) {
 		php_stream *s = SG(request_info).request_body;
 
-		if (UNEXPECTED( FAILURE == php_stream_rewind(s))) {
+		if (UNEXPECTED(FAILURE == php_stream_rewind(s))) {
 			php_yar_error(response, YAR_ERR_PACKAGER, "empty request");
 			DEBUG_S("0: empty request");
 			goto response_no_output;
@@ -480,6 +480,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 			}
 		}
 		if (len) {
+			buf[len] = '\0'; /* json seems require tail zero-byte */
 			payload = buf;
 			payload_len = len;
 		} else if (raw_data.s) {

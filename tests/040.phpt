@@ -5,7 +5,6 @@ Check for YAR_OPT_PACKAGER on curl
 if (!extension_loaded("yar") || !extension_loaded("json")) {
     print "skip";
 }
-die("skip fails on CI"); /* skip for now */
 ?>
 --INI--
 yar.debug=1

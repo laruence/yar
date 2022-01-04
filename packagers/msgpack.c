@@ -41,7 +41,7 @@ zval * php_yar_packager_msgpack_unpack(const yar_packager_t *self, char *content
 	ZVAL_NULL(ret);
 	php_msgpack_unserialize(ret, content, len);
 	if (Z_TYPE_P(ret) != IS_ARRAY) {
-		spprintf(msg, 0, "unpack error");
+		spprintf(msg, 0, "msgpack unpack error");
 		return NULL;
 	}
 	return ret;

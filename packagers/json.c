@@ -39,9 +39,10 @@ int php_yar_packager_json_pack(const yar_packager_t *self, zval *pzval, smart_st
 } /* }}} */
 
 zval * php_yar_packager_json_unpack(const yar_packager_t *self, char *content, size_t len, char **msg, zval *ret) /* {{{ */ {
+	ZVAL_NULL(ret);
 	php_json_decode(ret, content, len, 1, 512);
 	if (Z_TYPE_P(ret) != IS_ARRAY) {
-		spprintf(msg, 0, "unpack error");
+		spprintf(msg, 0, "json unpack error");
 		return NULL;
 	}
 	return ret;
