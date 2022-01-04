@@ -241,6 +241,7 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	yar_header_t header = {0};
 	yar_socket_data_t *data = (yar_socket_data_t *)self->data;
 	size_t bytes_left = 0, bytes_sent = 0;
+	char *provider, *token;
 
 	FD_ZERO(&rfds);
 	if (SUCCESS == php_stream_cast(data->stream, PHP_STREAM_AS_FD_FOR_SELECT|PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) && fd >= 0) {
@@ -257,13 +258,30 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
+	if (request->options && request->options[YAR_OPT_PROVIDER]) {
+		provider = (char*)(ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROVIDER]));
+	} else {
+		provider = "Yar TCP Client";
+	}
+
+	if (request->options && request->options[YAR_OPT_TOKEN]) {
+		token = (char*)ZSTR_VAL((zend_string*)request->options[YAR_OPT_TOKEN]);
+	} else {
+		token = NULL;
+	}
+
 	/* for tcp/unix RPC, we need another way to supports auth */
-	php_yar_protocol_render(&header, request->id, "Yar TCP Client", NULL, ZSTR_LEN(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
+	php_yar_protocol_render(&header, request->id, provider, token, ZSTR_LEN(payload), data->persistent? YAR_PROTOCOL_PERSISTENT : 0);
 
 	memcpy(buf, (char *)&header, sizeof(yar_header_t));
 
-	tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-	tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+	if (request->options && request->options[YAR_OPT_TIMEOUT]) {
+		tv.tv_sec = (zend_ulong)(((zend_ulong)request->options[YAR_OPT_TIMEOUT]) / 1000);
+		tv.tv_usec = (zend_ulong)((((zend_ulong)request->options[YAR_OPT_TIMEOUT]) % 1000) * 1000);
+	} else {
+		tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+		tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+	}
 
 	retval = php_select(fd+1, NULL, &rfds, NULL, &tv);
 
