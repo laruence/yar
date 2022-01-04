@@ -464,7 +464,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	char buf[RECV_BUF_SIZE];
 
 	yar_response_t *response = php_yar_response_instance();
-	if (SG(request_info.request_body)) {
+	if (EXPECTED(SG(request_info.request_body))) {
 		php_stream *s = SG(request_info).request_body;
 
 		if (UNEXPECTED( FAILURE == php_stream_rewind(s))) {
@@ -491,6 +491,10 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 			DEBUG_S("0: empty request '%s'");
 			goto response_no_output;
 		}
+	} else {
+		php_yar_error(response, YAR_ERR_PACKAGER, "empty request");
+		DEBUG_S("0: empty request");
+		goto response_no_output;
 	}
 
 	if (UNEXPECTED(!(header = php_yar_protocol_parse(payload)))) {
