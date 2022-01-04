@@ -55,10 +55,7 @@ yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
 
 	req = (yar_request_t *)ecalloc(sizeof(yar_request_t), 1);
 
-	if (IS_ARRAY != Z_TYPE_P(body)) {
-		return req;
-	}
-
+	ZEND_ASSERT(Z_TYPE_P(body) == IS_ARRAY);
 	ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(body), k, v) {
 		if (EXPECTED(k && ZSTR_LEN(k) == 1)) {
 			switch (*ZSTR_VAL(k)) {

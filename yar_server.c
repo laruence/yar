@@ -512,11 +512,6 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	pkg_name = payload;
-	if (UNEXPECTED(Z_TYPE_P(post_data) != IS_ARRAY)) {
-		php_yar_error(response, YAR_ERR_PACKAGER, "unpack request failed '%s'", payload);
-		goto response_no_output;
-	}
-
 	request = php_yar_request_unpack(post_data);
 	zval_ptr_dtor(post_data);
 
