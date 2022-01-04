@@ -402,7 +402,7 @@ static int php_yar_client_handle(yar_client_object *client, zend_string *method,
 	}
 
 	DEBUG_C(ZEND_ULONG_FMT": call api '%s' at (%c)'%s' with '%d' parameters",
-			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', uri, 
+			request->id, ZSTR_VAL(request->method), (flags & YAR_PROTOCOL_PERSISTENT)? 'p' : 'r', ZSTR_VAL(uri),
 			zend_hash_num_elements(request->parameters));
 
 	if (UNEXPECTED(!transport->send(transport, request, &msg))) {

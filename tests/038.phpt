@@ -28,6 +28,6 @@ try {
 	var_dump($e->getMessage());
 }
 ?>
---EXPECTF--
+--EXPECT--
 NULL
 string(28) "select timeout 100ms reached"

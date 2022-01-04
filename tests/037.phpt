@@ -20,6 +20,6 @@ $client->setOpt(YAR_OPT_PERSISTENT, true);
 
 var_dump($client->info("_conn") == $client->info("_conn"));
 ?>
---EXPECTF--
+--EXPECT--
 bool(false)
 bool(true)
