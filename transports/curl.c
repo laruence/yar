@@ -519,24 +519,34 @@ int php_yar_curl_send(yar_transport_interface_t* self, yar_request_t *request, c
 	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
-	if (request->options && request->options[YAR_OPT_PROVIDER]) {
-		provider = (char*)(ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROVIDER]));
-	} else {
+	if (request->options == NULL) {
 #if PHP_VERSION_ID < 70300
 		provider = data->host->user;
-#else
-		provider = data->host->user? ZSTR_VAL(data->host->user) : NULL;
-#endif
-	}
-
-	if (request->options && request->options[YAR_OPT_TOKEN]) {
-		token = (char*)ZSTR_VAL((zend_string*)request->options[YAR_OPT_TOKEN]);
-	} else {
-#if PHP_VERSION_ID < 70300
 		token = data->host->pass;
 #else
+		provider = data->host->user? ZSTR_VAL(data->host->user) : NULL;
 		token = data->host->pass? ZSTR_VAL(data->host->pass) : NULL;
 #endif
+	} else {
+		if (request->options[YAR_OPT_PROVIDER]) {
+			provider = (char*)(ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROVIDER]));
+		} else {
+#if PHP_VERSION_ID < 70300
+			provider = data->host->user;
+#else
+			provider = data->host->user? ZSTR_VAL(data->host->user) : NULL;
+#endif
+		}
+
+		if (request->options[YAR_OPT_TOKEN]) {
+			token = (char*)ZSTR_VAL((zend_string*)request->options[YAR_OPT_TOKEN]);
+		} else {
+#if PHP_VERSION_ID < 70300
+			token = data->host->pass;
+#else
+			token = data->host->pass? ZSTR_VAL(data->host->pass) : NULL;
+#endif
+		}
 	}
 
 	php_yar_protocol_render(&header, request->id, provider, token, ZSTR_LEN(payload), 0);

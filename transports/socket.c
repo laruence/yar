@@ -140,10 +140,10 @@ yar_response_t * php_yar_socket_exec(yar_transport_interface_t* self, yar_reques
 		return response;
 	}
 
-	if (request->options && request->options[YAR_OPT_TIMEOUT]) {
-		timeout = (zend_ulong)request->options[YAR_OPT_TIMEOUT];
-	} else {
+	if (request->options == NULL || request->options[YAR_OPT_TIMEOUT] == NULL) {
 		timeout = YAR_G(timeout);
+	} else {
+		timeout = (zend_ulong)request->options[YAR_OPT_TIMEOUT];
 	}
 
 	tv.tv_sec = (zend_ulong)(timeout / 1000);
@@ -260,7 +260,11 @@ int php_yar_socket_send(yar_transport_interface_t* self, yar_request_t *request,
 	DEBUG_C(ZEND_ULONG_FMT": pack request by '%.*s', result len '%ld', content: '%.32s'", 
 			request->id, 7, ZSTR_VAL(payload), ZSTR_LEN(payload), ZSTR_VAL(payload) + 8);
 
-	if (request->options) {
+	if (request->options == NULL) {
+		provider = "Yar TCP Client";
+		token = NULL;
+		timeout = (zend_ulong)(YAR_G(timeout));
+	} else {
 		if (request->options[YAR_OPT_PROVIDER]) {
 			provider = (char*)(ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROVIDER]));
 		} else {
