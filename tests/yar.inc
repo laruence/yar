@@ -22,7 +22,6 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs") {
 	} else {
 		$cmd_args .= " -d extension=" . dirname(__DIR__) . "/modules/yar.so";
 		$cmd = "exec {$php_executable} -t {$doc_root} -n -d extension=json.so {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
-		echo $cmd;
 	}
 
 	return yar_server_run($cmd);
