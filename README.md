@@ -48,6 +48,10 @@ first you should install msgpack-ext
 ```
 pecl install msgpack
 ```
+or for ubuntu user
+```
+apt-get install msgpack-php
+```
 or , you can get the github source here: https://github.com/msgpack/msgpack-php
 
 then:
@@ -56,6 +60,7 @@ $phpize
 $configure --with-php-config=/path/to/php-config/ --enable-msgpack
 $make && make install
 ```
+
 ## Runtime Configure
 - yar.timeout  //default 5000 (ms)
 - yar.connect_timeout  //default 1000 (ms)
