@@ -179,7 +179,7 @@ wait_io:
 					return response;
 				}
 
-				payload = emalloc(header->body_len);
+				payload = emalloc(header->body_len + 1);
 				len = header->body_len;
 				total_recvd  = recvd - sizeof(yar_header_t);
 
@@ -209,6 +209,7 @@ wait_io:
 		}
 
 		if (len) {
+			payload[len] = '\0';
 			if (!(retval = php_yar_packager_unpack(payload, len, &msg, &ret))) {
 				php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 				efree(payload);

@@ -681,13 +681,13 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 
-						if (!f(data->calldata, YAR_ERR_TRANSPORT, response)) {
+						if (UNEXPECTED(!f(data->calldata, YAR_ERR_TRANSPORT, response))) {
 							/* if f return zero, means user call exit/die explicitly */
 							handle->close(handle);
 							php_yar_response_destroy(response);
 							return -1;
 						}
-						if (EG(exception)) {
+						if (UNEXPECTED(EG(exception))) {
 							/* uncaught exception */
 							handle->close(handle);
 							php_yar_response_destroy(response);
@@ -715,7 +715,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 								/* skip over the leading header */
 								payload += sizeof(yar_header_t);
 								payload_len -= sizeof(yar_header_t);
-								if (!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &ret))) {
+								if (UNEXPECTED(!(retval = php_yar_packager_unpack(payload, payload_len, &msg, &ret)))) {
 									php_yar_response_set_error(response, YAR_ERR_PACKAGER, msg, strlen(msg));
 								} else {
 									php_yar_response_map_retval(response, retval);
@@ -730,12 +730,12 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 							php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 						}
 
-						if (!f(data->calldata, response->status, response)) {
+						if (UNEXPECTED(!f(data->calldata, response->status, response))) {
 							handle->close(handle);
 							php_yar_response_destroy(response);
 							return -1;
 						}
-						if (EG(exception)) {
+						if (UNEXPECTED(EG(exception))) {
 							handle->close(handle);
 							php_yar_response_destroy(response);
 							return 0;
@@ -744,12 +744,12 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 				} else {
 					char *err = (char *)curl_easy_strerror(msg->data.result);
 					php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err));
-					if (!f(data->calldata, YAR_ERR_TRANSPORT, response)) {
+					if (UNEXPECTED(!f(data->calldata, YAR_ERR_TRANSPORT, response))) {
 						handle->close(handle);
 						php_yar_response_destroy(response);
 						return -1;
 					}
-					if (EG(exception)) {
+					if (UNEXPECTED(EG(exception))) {
 						handle->close(handle);
 						php_yar_response_destroy(response);
 						return 0;
@@ -795,12 +795,12 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 	/* let's kick off everything */
 	curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
-	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
+	if (UNEXPECTED(!f(NULL, YAR_ERR_OKEY, NULL))) {
 		close(g.epfd);
 		close(g.tfd);
 		goto bailout;
 	}
-	if (EG(exception)) {
+	if (UNEXPECTED(EG(exception))) {
 		close(g.epfd);
 		close(g.tfd);
 		goto onerror;
@@ -870,11 +870,11 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 #else
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 
-	if (!f(NULL, YAR_ERR_OKEY, NULL)) {
+	if (UNEXPECTED(!f(NULL, YAR_ERR_OKEY, NULL))) {
 		goto bailout;
 	}
 
-	if (EG(exception)) {
+	if (UNEXPECTED(EG(exception))) {
 		goto onerror;
 	}
 
