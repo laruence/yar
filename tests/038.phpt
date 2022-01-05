@@ -10,6 +10,7 @@ if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
 --INI--
 yar.connect_timeout=1000
 yar.timeout=1000
+yar.packager=php
 --FILE--
 <?php
 include "yar.inc";

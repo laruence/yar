@@ -18,10 +18,19 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs") {
 	}
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
-		$cmd = "{$php_executable} -t {$doc_root} -n -d extension=php_json.dll {$cmd_args} -S " . YAR_API_HOST;
+		$cmd_args = "-d extension=php_json.dll " . $cmd_args;
+		if (YAR_HAS_MSGPACK) {
+			$cmd_args = "-d extension=php_msgpack.dll " . $cmd_args;
+		}
+		$cmd_args .= " -d extension=php_yar.dll";
+		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
 	} else {
+		$cmd_args = "-d extension=json.so " . $cmd_args;
+		if (YAR_HAS_MSGPACK) {
+			$cmd_args = "-d extension=msgpack.so " . $cmd_args;
+		}
 		$cmd_args .= " -d extension=" . dirname(__DIR__) . "/modules/yar.so";
-		$cmd = "exec {$php_executable} -t {$doc_root} -n -d extension=json.so {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
+		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
 	}
 
 	return yar_server_run($cmd);

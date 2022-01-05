@@ -6,8 +6,6 @@ if (!extension_loaded("yar")) {
     print "skip";
 }
 ?>
---INI--
-yar.packager=php
 --FILE--
 <?php 
 echo "yar extension is available";
