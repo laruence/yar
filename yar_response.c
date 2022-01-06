@@ -113,13 +113,12 @@ void php_yar_response_map_retval(yar_response_t *response, zval *ret) /* {{{ */ 
 		if ((zv = zend_hash_find(ht, ZSTR_CHAR('o'))) != NULL) {
 			ZEND_ASSERT(Z_TYPE_P(zv) == IS_STRING);
 			response->out = Z_STR_P(zv);
-			ZVAL_NULL(zv);
 		}
 		if ((zv = zend_hash_find(ht, ZSTR_CHAR('r'))) != NULL) {
-			ZVAL_COPY(&response->retval, zv);
+			ZVAL_COPY_VALUE(&response->retval, zv);
 		}
 	} else if ((zv = zend_hash_find(ht, ZSTR_CHAR('e'))) != NULL) {
-		ZVAL_COPY(&response->err, zv);
+		ZVAL_COPY_VALUE(&response->err, zv);
 	}
 }
 /* }}} */
