@@ -459,7 +459,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 	} else {
 		long http_code;
 
-		if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+		if (curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
 			len = spprintf(&msg, 0, "server responsed non-200 code '%ld'", http_code);
 			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, msg, len);
 			efree(msg);
@@ -612,8 +612,8 @@ yar_transport_interface_t *php_yar_curl_init() /* {{{ */ {
 	self->close  	= php_yar_curl_close;
 
 
-	smart_str_alloc((&data->buf), YAR_PACKAGER_BUFFER_SIZE /* 1M */, 0);
-	smart_str_alloc((&data->postfield), YAR_PACKAGER_BUFFER_SIZE /* 1M */, 0);
+	smart_str_alloc((&data->buf), YAR_PACKAGER_BUFFER_SIZE /* 1K */, 0);
+	smart_str_alloc((&data->postfield), YAR_PACKAGER_BUFFER_SIZE /* 1K */, 0);
 
 
 	return  self;

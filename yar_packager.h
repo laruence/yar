@@ -28,7 +28,7 @@
 #define	YAR_PACKAGER_JSON     "JSON"
 #define	YAR_PACKAGER_MSGPACK "MSGPACK"
 
-#define YAR_PACKAGER_BUFFER_SIZE  5120
+#define YAR_PACKAGER_BUFFER_SIZE  1024 /* 1K */
 
 typedef struct _yar_packager {
 	const char *name;
