@@ -496,8 +496,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 		php_yar_response_map_retval(response, retval);
 		DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'",
 				response->id, 7, payload, header->body_len, payload + 8);
-
-		ZEND_ASSERT(retval == &ret);
+		zval_ptr_dtor(retval);
 	} else {
 		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 	}	
@@ -719,7 +718,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 								} else {
 									php_yar_response_map_retval(response, retval);
 									DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 7, payload, header->body_len, payload + 8);
-									ZEND_ASSERT(retval == &ret);
+									zval_ptr_dtor(retval);
 								}
 								if (msg) {
 									efree(msg);

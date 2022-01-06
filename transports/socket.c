@@ -223,7 +223,7 @@ wait_io:
 		DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'",
 				response->id, 7, payload, header->body_len, payload + 8);
 		efree(payload);
-		ZEND_ASSERT(retval == &zv);
+		zval_ptr_dtor(retval);
 	} else {
 		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 	}
