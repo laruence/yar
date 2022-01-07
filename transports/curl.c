@@ -639,7 +639,7 @@ int php_yar_curl_multi_add_handle(yar_transport_multi_interface_t *self, yar_tra
 	return 1;
 } /* }}} */
 
-static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *f) /* {{{ */ {
+static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
 	int msg_in_sequence;
 	CURLMsg *msg;
 
@@ -673,13 +673,13 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 				if (msg->data.result == CURLE_OK) {
 					curl_multi_remove_handle(multi->cm, data->cp);
 
-					if(curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
-						char buf[128];
+					if (curl_easy_getinfo(data->cp, CURLINFO_RESPONSE_CODE, &http_code) == CURLE_OK && http_code != 200) {
+						char buf[64];
 						unsigned len = snprintf(buf, sizeof(buf), "server responsed non-200 code '%ld'", http_code);
 
 						php_yar_response_set_error(response, YAR_ERR_TRANSPORT, buf, len);
 
-						if (UNEXPECTED(!f(data->calldata, YAR_ERR_TRANSPORT, response))) {
+						if (UNEXPECTED(!cb(data->calldata, YAR_ERR_TRANSPORT, response))) {
 							/* if f return zero, means user call exit/die explicitly */
 							handle->close(handle);
 							php_yar_response_destroy(response);
@@ -728,7 +728,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 							php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 						}
 
-						if (UNEXPECTED(!f(data->calldata, response->status, response))) {
+						if (UNEXPECTED(!cb(data->calldata, response->status, response))) {
 							handle->close(handle);
 							php_yar_response_destroy(response);
 							return -1;
@@ -742,7 +742,7 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 				} else {
 					char *err = (char *)curl_easy_strerror(msg->data.result);
 					php_yar_response_set_error(response, YAR_ERR_TRANSPORT, err, strlen(err));
-					if (UNEXPECTED(!f(data->calldata, YAR_ERR_TRANSPORT, response))) {
+					if (UNEXPECTED(!cb(data->calldata, YAR_ERR_TRANSPORT, response))) {
 						handle->close(handle);
 						php_yar_response_destroy(response);
 						return -1;
@@ -876,7 +876,7 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 
 		/* we can not respect YAR_OPT_TIMEOUT here */
 		while ((rest_count = running_count)) {
-			int max_fd, return_code;
+			int max_fd, ret;
 			fd_set readfds;
 			fd_set writefds;
 			fd_set exceptfds;
@@ -895,30 +895,30 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 #if LIBCURL_VERSION_NUM >= 0x070f04
 				/* Available in 7.15.4 */
 				curl_multi_timeout(multi->cm, &timeout);
-				if (timeout == 0) {
-					while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-					continue;
-				} else if (timeout == -1) {
-					tv.tv_sec = 0;
-					tv.tv_usec = 5000;
-				} else {
-					tv.tv_sec = timeout / 1000;
-					tv.tv_usec = (timeout % 1000) * 1000;
+				if (timeout) {
+					if (timeout == -1) {
+						tv.tv_sec = 0;
+						tv.tv_usec = 5000;
+					} else {
+						tv.tv_sec = timeout / 1000;
+						tv.tv_usec = (timeout % 1000) * 1000;
+					}
+					select(1, &readfds, &writefds, &exceptfds, &tv);
 				}
 #else
 				tv.tv_sec = 0;
 				tv.tv_usec = 5000;
-#endif
 				select(1, &readfds, &writefds, &exceptfds, &tv);
+#endif
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 			}
 
 			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
 			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
-			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
-			if (return_code > 0) {
+			ret = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
+			if (ret > 0) {
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-			} else if (return_code == -1) {
+			} else if (ret == -1) {
 				php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
 				return 0;
 			} else {
@@ -927,8 +927,8 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 			}
 
 			if (rest_count > running_count) {
-				int ret = php_yar_curl_multi_parse_response(multi, cb);
-				if (ret <= 0) {
+				if ((ret = php_yar_curl_multi_parse_response(multi, cb)) <= 0) {
+					/* -1 means bailout, 0 means error */
 					return ret;
 				}
 			}
