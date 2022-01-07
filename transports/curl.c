@@ -895,7 +895,10 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 #if LIBCURL_VERSION_NUM >= 0x070f04
 				/* Available in 7.15.4 */
 				curl_multi_timeout(multi->cm, &timeout);
-				if (timeout == 0 || timeout == -1) {
+				if (timeout == 0) {
+					while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+					continue;
+				} else if (timeout == -1) {
 					tv.tv_sec = 0;
 					tv.tv_usec = 5000;
 				} else {
