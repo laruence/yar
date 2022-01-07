@@ -25,6 +25,7 @@
 #if HAVE_EPOLL
 #define ENABLE_EPOLL
 #endif
+#undef ENABLE_EPOLL
 
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280

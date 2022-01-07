@@ -899,31 +899,34 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 					break;
 				} else if (timeout == -1) {
 					tv.tv_sec = 0;
-					tv.tv_usec = 50000;
+					tv.tv_usec = 5000;
 				} else {
 					tv.tv_sec = timeout / 1000;
 					tv.tv_usec = (timeout % 1000) * 1000;
 				}
 #else
 				tv.tv_sec = 0;
-				tv.tv_usec = 50000;
+				tv.tv_usec = 5000;
 #endif
 				select(1, &readfds, &writefds, &exceptfds, &tv);
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 			}
 
-			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
-			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
-			if (return_code > 0) {
-				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-			} else if (return_code == -1) {
-				php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
-				return 0;
-			} else {
-				php_error_docref(NULL, E_WARNING, "select timeout '%ldms' reached", YAR_G(timeout));
-				return 0;
+			if (max_fd) {
+				tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
+				tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+				return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
+				if (return_code > 0) {
+					while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
+				} else if (return_code == -1) {
+					php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
+					return 0;
+				} else {
+					php_error_docref(NULL, E_WARNING, "select timeout '%ldms' reached", YAR_G(timeout));
+					return 0;
+				}
 			}
+
 			if (rest_count > running_count) {
 				int ret = php_yar_curl_multi_parse_response(multi, cb);
 				if (ret <= 0) {
