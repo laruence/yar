@@ -96,7 +96,7 @@ static int php_yar_start_timer(yar_curl_multi_gdata *g) /* {{{ */ {
 		close(g->epfd);
 		return 0;
 	}
-	its.it_value.tv_nsec = 1;
+	its.it_value.tv_nsec = 1; /* 1ns */
 	timerfd_settime(g->tfd, 0, &its, NULL);
 
 	ev.events = EPOLLIN;
@@ -765,11 +765,9 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 }
 /* }}} */
 
-int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *f) /* {{{ */ {
-	int running_count, rest_count;
-	yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
-
 #ifdef ENABLE_EPOLL
+static inline int php_yar_curl_epoll_io(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
+	int running_count, rest_count;
 	struct epoll_event events[8];
 	yar_curl_multi_gdata g;
 
@@ -793,20 +791,20 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 	/* let's kick off everything */
 	curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
-	if (UNEXPECTED(!f(NULL, YAR_ERR_OKEY, NULL))) {
+	if (UNEXPECTED(!cb(NULL, YAR_ERR_OKEY, NULL))) {
 		close(g.epfd);
 		close(g.tfd);
-		goto bailout;
+		return -1;
 	}
 	if (UNEXPECTED(EG(exception))) {
 		close(g.epfd);
 		close(g.tfd);
-		goto onerror;
+		return 0;
 	}
 
 	if (running_count) {
 		rest_count = running_count;
-		do {
+		while ((rest_count = running_count)) {
 			int idx;
 			int ret = epoll_wait(g.epfd, events, sizeof(events)/sizeof(struct epoll_event), YAR_G(timeout));
 			if (ret == -1) {
@@ -816,7 +814,7 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 					php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
 					close(g.epfd);
 					close(g.tfd);
-					goto onerror;
+					return 0;
 				}
 			}
 
@@ -836,136 +834,123 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 			}
 
 			if (rest_count > running_count) {
-				ret  = php_yar_curl_multi_parse_response(multi, f);
-				if (ret == -1) {
+				ret  = php_yar_curl_multi_parse_response(multi, cb);
+				if (ret <= 0) {
 					close(g.epfd);
 					close(g.tfd);
-					goto bailout;
-				} else if (ret == 0) {
-					close(g.epfd);
-					close(g.tfd);
-					goto onerror;
+					return ret;
 				}
-				rest_count = running_count;
 			}
-		} while (running_count);
-	} else {
-		int ret = php_yar_curl_multi_parse_response(multi, f);
-		if (ret == -1) {
-			close(g.epfd);
-			close(g.tfd);
-			goto bailout;
-		} else if (ret == 0) {
-			close(g.epfd);
-			close(g.tfd);
-			goto onerror;
 		}
-
+	} else {
+		int ret = php_yar_curl_multi_parse_response(multi, cb);
+		if (ret <= 0) {
+			close(g.epfd);
+			close(g.tfd);
+			return ret;
+		}
 	}
 	close(g.tfd);
 	close(g.epfd);
+	return 1;
+}
+/* }}} */
+#endif
 
-#else
+static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
+	int running_count;
+
 	while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 
-	if (UNEXPECTED(!f(NULL, YAR_ERR_OKEY, NULL))) {
-		goto bailout;
+	if (UNEXPECTED(!cb(NULL, YAR_ERR_OKEY, NULL))) {
+		return -1;
 	}
 
 	if (UNEXPECTED(EG(exception))) {
-		goto onerror;
+		return 0;
 	}
 
 	if (running_count) {
-		rest_count = running_count;
-		do {
+		int rest_count;
+		struct timeval tv;
+
+		/* we can not respect YAR_OPT_TIMEOUT here */
+		while ((rest_count = running_count)) {
 			int max_fd, return_code;
-			struct timeval tv;
 			fd_set readfds;
 			fd_set writefds;
 			fd_set exceptfds;
 
-			FD_ZERO(&readfds);
-			FD_ZERO(&writefds);
-			FD_ZERO(&exceptfds);
-
-			curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
-			if (max_fd == -1) {
+			while (1) {
 				long timeout;
+
+				FD_ZERO(&readfds);
+				FD_ZERO(&writefds);
+				FD_ZERO(&exceptfds);
+
+				curl_multi_fdset(multi->cm, &readfds, &writefds, &exceptfds, &max_fd);
+				if (max_fd != -1) {
+					break;
+				}
 #if LIBCURL_VERSION_NUM >= 0x070f04
 				/* Available in 7.15.4 */
 				curl_multi_timeout(multi->cm, &timeout);
-				if (timeout < 0) {
-					timeout = 50;
-				}
-				if (timeout) {
+				if (timeout == 0) {
+					break;
+				} else if (timeout == -1) {
+					tv.tv_sec = 0;
+					tv.tv_usec = 50000;
+				} else {
 					tv.tv_sec = timeout / 1000;
 					tv.tv_usec = (timeout % 1000) * 1000;
-					select(1, &readfds, &writefds, &exceptfds, &tv);
 				}
 #else
 				tv.tv_sec = 0;
-				tv.tv_usec = 5000;
-				select(1, &readfds, &writefds, &exceptfds, &tv);
+				tv.tv_usec = 50000;
 #endif
-				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-				goto process;
+				select(1, &readfds, &writefds, &exceptfds, &tv);
 			}
 
-			/* maybe we should use curl_multi_timeout like:
-			 * curl_multi_timeout(curlm, (long *)&curl_timeout);
-			 * if (curl_timeout == 0) {
-			 * 	  continue;
-			 * } else if (curl_timeout == -1) {
-			 *	  tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-			 *    tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) & 1000) * 1000 : 0);
-			 * } else {
-			 *    tv.tv_sec  =  curl_timeout / 1000;
-			 * 	  tv.tv_usec = (curl_timeout % 1000) * 1000;
-			 * }
-			 */
 			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
-			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000)? (YAR_G(timeout) % 1000) * 1000 : 0);
-
+			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
 			return_code = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (return_code > 0) {
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
-			} else if (-1 == return_code) {
+			} else if (return_code == -1) {
 				php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
-				goto onerror;
+				return 0;
 			} else {
-				/* timeout */
-				php_error_docref(NULL, E_WARNING, "select timeout %ldms reached", YAR_G(timeout));
-				goto onerror;
+				php_error_docref(NULL, E_WARNING, "select timeout '%ldms' reached", YAR_G(timeout));
+				return 0;
 			}
-process:
 			if (rest_count > running_count) {
-				int ret = php_yar_curl_multi_parse_response(multi, f);
-				if (ret == -1) {
-					goto bailout;
-				} else if (ret == 0) {
-					goto onerror;
+				int ret = php_yar_curl_multi_parse_response(multi, cb);
+				if (ret <= 0) {
+					return ret;
 				}
-				rest_count = running_count;
 			}
-		} while (running_count);
-	} else {
-		int ret = php_yar_curl_multi_parse_response(multi, f);
-		if (ret == -1) {
-			goto bailout;
-		} else if (ret == 0) {
-			goto onerror;
 		}
+		return 1;
+	} else {
+		return php_yar_curl_multi_parse_response(multi, cb);
 	}
-#endif
+}
+/* }}} */
 
-	return 1;
-onerror:
-	return 0;
-bailout:
-	self->close(self);
-	zend_bailout();
-	return 0;
+int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurrent_client_callback *cb) /* {{{ */ {
+	int ret;
+	yar_curl_multi_data_t *multi = (yar_curl_multi_data_t *)self->data;
+
+#ifdef ENABLE_EPOLL
+	ret = php_yar_curl_epoll_io(multi, cb);
+#else
+	ret = php_yar_curl_select_io(multi, cb);
+#endif
+	if (ret == -1) {
+		self->close(self);
+		zend_bailout();
+	}
+	return ret;
 } /* }}} */
 
 void php_yar_curl_multi_close(yar_transport_multi_interface_t *self) /* {{{ */ {

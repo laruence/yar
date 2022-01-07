@@ -32,9 +32,9 @@ class Callback {
 }
 
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), array("Callback", "exec"));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), new Invoke());
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"), array(new Invoke(), "__invoke"));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(str_pad("x", 1024, "x"), "3.8"), new Invoke());
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(str_pad("x", 10240, "x"), "3.8"), array(new Invoke(), "__invoke"));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array(str_pad("x", 102400, "x"), "3.8"));
 
 try {
     Yar_Concurrent_Client::loop("callback", function() { exit("error"); });
