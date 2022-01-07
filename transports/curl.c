@@ -909,6 +909,7 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 				tv.tv_usec = 50000;
 #endif
 				select(1, &readfds, &writefds, &exceptfds, &tv);
+				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 			}
 
 			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
