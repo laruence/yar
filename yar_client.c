@@ -868,6 +868,13 @@ PHP_METHOD(yar_concurrent_client, call) {
 		RETURN_FALSE;
 	}
 
+	if (YAR_G(cctx).clist) {
+		if (UNEXPECTED(((yar_call_data_t*)YAR_G(cctx).clist)->sequence == YAR_MAX_CALLS)) {
+			php_error_docref(NULL, E_WARNING, "too many calls, maximum '%d' are allowed", YAR_MAX_CALLS);
+			RETURN_FALSE;
+		}
+	}
+
 	entry = ecalloc(1, sizeof(yar_call_data_t));
 
 	entry->uri = zend_string_copy(uri);

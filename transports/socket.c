@@ -41,11 +41,6 @@
 #include "yar_exception.h"
 #include "ext/standard/php_var.h" /* for serialize */
 
-#ifdef ENABLE_EPOLL
-#include <sys/epoll.h>
-#define YAR_EPOLL_MAX_SIZE 128
-#endif
-
 #define MAX_BODY_LEN 1024 * 1024 * 10 /* 10 M */
 
 typedef struct _yar_socket_data_t {

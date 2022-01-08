@@ -28,6 +28,11 @@ class Service_Provider {
 		return isset($_SERVER[$key])? $_SERVER[$key] : NULL;
 	}
 
+	public function usleep($usec) {
+		usleep($usec);
+		return 1;
+	}
+
     protected function invisible() {
     }
 }

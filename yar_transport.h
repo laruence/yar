@@ -25,7 +25,8 @@
 #if HAVE_EPOLL
 #define ENABLE_EPOLL
 #endif
-#undef ENABLE_EPOLL
+
+#define YAR_MAX_CALLS 128
 
 #define SEND_BUF_SIZE 1280
 #define RECV_BUF_SIZE 1280

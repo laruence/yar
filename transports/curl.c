@@ -43,7 +43,6 @@
 
 #ifdef ENABLE_EPOLL
 #include <sys/epoll.h>
-#define YAR_EPOLL_MAX_SIZE 64
 #include <sys/timerfd.h>
 #endif
 
@@ -108,7 +107,7 @@ static int php_yar_start_timer(yar_curl_multi_gdata *g) /* {{{ */ {
 
 static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
 	struct itimerspec its = {0};
-	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
+	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
 
 	if (timeout_ms > 0) {
 		its.it_value.tv_sec = timeout_ms / 1000;
@@ -120,14 +119,14 @@ static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
 		its.it_value.tv_nsec = 1;
 	}
 
-	timerfd_settime(g->tfd, 0, &its, NULL);
+	timerfd_settime(gdata->tfd, 0, &its, NULL);
 	return 0;
 }
 /* }}} */
 
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
 	struct epoll_event ev = {0};
-	yar_curl_multi_gdata *g = (yar_curl_multi_gdata *) cbp;
+	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
 	yar_curl_multi_sockinfo *fdp = (yar_curl_multi_sockinfo *) sockp;
 	/* const char *whatstr[]={ "none", "IN", "OUT", "INOUT", "REMOVE" };
 	fprintf(stderr, "socket callback: s=%d e=%p what=%s\n", s, e, whatstr[what]); */
@@ -137,7 +136,7 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 		if (fdp) {
 			efree(fdp);
 		}
-		epoll_ctl(g->epfd, EPOLL_CTL_DEL, s, &ev);
+		epoll_ctl(gdata->epfd, EPOLL_CTL_DEL, s, &ev);
 	} else {
 		/* EPOLLET does not work normally with libcurl */
 		if (what == CURL_POLL_IN) {
@@ -152,10 +151,10 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 			fdp->fd = s;
 			fdp->cp = e;
 
-			epoll_ctl(g->epfd, EPOLL_CTL_ADD, s, &ev);	
-			curl_multi_assign(g->cm, s, fdp);
+			epoll_ctl(gdata->epfd, EPOLL_CTL_ADD, s, &ev);	
+			curl_multi_assign(gdata->cm, s, fdp);
 		} else {
-			epoll_ctl(g->epfd, EPOLL_CTL_MOD, s, &ev);	
+			epoll_ctl(gdata->epfd, EPOLL_CTL_MOD, s, &ev);	
 		}
 	}
 	return 0;
@@ -767,91 +766,96 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 
 #ifdef ENABLE_EPOLL
 static inline int php_yar_curl_epoll_io(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
-	int running_count, rest_count;
 	struct epoll_event events[8];
-	yar_curl_multi_gdata g;
+	int ret, running_count, rest_count;
+	yar_curl_multi_gdata gdata;
 
-	g.epfd = epoll_create(YAR_EPOLL_MAX_SIZE);
-	if (g.epfd == -1) {
+	gdata.epfd = epoll_create(YAR_MAX_CALLS);
+	if (gdata.epfd == -1) {
 		php_error_docref(NULL, E_WARNING, "epoll_create failed '%s'", strerror(errno));
 		return 0;
 	}
 
-	if (!php_yar_start_timer(&g)) {
-		close(g.epfd);
+	if (!php_yar_start_timer(&gdata)) {
+		close(gdata.epfd);
 		return 0;
 	}
 
-	g.cm = multi->cm;
+	gdata.cm = multi->cm;
 	/* setup the generic multi interface options we want */
-	curl_multi_setopt(g.cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
-	curl_multi_setopt(g.cm, CURLMOPT_SOCKETDATA, &g);
-	curl_multi_setopt(g.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
-	curl_multi_setopt(g.cm, CURLMOPT_TIMERDATA, &g);
+	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
+	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETDATA, &gdata);
+	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
+	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERDATA, &gdata);
 
 	/* let's kick off everything */
-	curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+	curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
 	if (UNEXPECTED(!cb(NULL, YAR_ERR_OKEY, NULL))) {
-		close(g.epfd);
-		close(g.tfd);
+		close(gdata.epfd);
+		close(gdata.tfd);
 		return -1;
 	}
 	if (UNEXPECTED(EG(exception))) {
-		close(g.epfd);
-		close(g.tfd);
+		close(gdata.epfd);
+		close(gdata.tfd);
 		return 0;
 	}
 
 	if (running_count) {
-		rest_count = running_count;
 		while ((rest_count = running_count)) {
 			int idx;
-			int ret = epoll_wait(g.epfd, events, sizeof(events)/sizeof(struct epoll_event), YAR_G(timeout));
+
+			ret = epoll_wait(gdata.epfd, events, sizeof(events)/sizeof(struct epoll_event), YAR_G(timeout));
 			if (ret == -1) {
 				if (errno == EINTR) {
 					continue;
 				} else {
 					php_error_docref(NULL, E_WARNING, "epoll_wait error '%s'", strerror(errno));
-					close(g.epfd);
-					close(g.tfd);
+					close(gdata.epfd);
+					close(gdata.tfd);
 					return 0;
 				}
+			} else if (ret == 0) {
+				php_error_docref(NULL, E_WARNING, "epoll_wait timeout '%ldms' reached", YAR_G(timeout));
+				close(gdata.epfd);
+				close(gdata.tfd);
+				return 0;
 			}
 
 			for (idx = 0; idx < ret; ++idx) {
-				if (events[idx].data.fd == g.tfd) {
+				if (events[idx].data.fd == gdata.tfd) {
 					size_t count;
-					count = read(g.tfd, &count, sizeof(size_t));
-					curl_multi_socket_action(g.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+					count = read(gdata.tfd, &count, sizeof(size_t));
+					curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
 				} else {
 					if (events[idx].events & EPOLLOUT) {
-						curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_OUT, &running_count);
+						curl_multi_socket_action(gdata.cm, events[idx].data.fd, CURL_CSELECT_OUT, &running_count);
 					} 
 					if (events[idx].events & EPOLLIN) {
-						curl_multi_socket_action(g.cm, events[idx].data.fd, CURL_CSELECT_IN, &running_count);
+						curl_multi_socket_action(gdata.cm, events[idx].data.fd, CURL_CSELECT_IN, &running_count);
 					}
 				}
 			}
 
 			if (rest_count > running_count) {
-				ret  = php_yar_curl_multi_parse_response(multi, cb);
+				ret = php_yar_curl_multi_parse_response(multi, cb);
 				if (ret <= 0) {
-					close(g.epfd);
-					close(g.tfd);
+					close(gdata.epfd);
+					close(gdata.tfd);
 					return ret;
 				}
 			}
 		}
 	} else {
-		int ret = php_yar_curl_multi_parse_response(multi, cb);
+		ret = php_yar_curl_multi_parse_response(multi, cb);
 		if (ret <= 0) {
-			close(g.epfd);
-			close(g.tfd);
+			close(gdata.epfd);
+			close(gdata.tfd);
 			return ret;
 		}
 	}
-	close(g.tfd);
-	close(g.epfd);
+	close(gdata.tfd);
+	close(gdata.epfd);
 	return 1;
 }
 /* }}} */
@@ -915,12 +919,16 @@ static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concu
 
 			tv.tv_sec = (zend_ulong)(YAR_G(timeout) / 1000);
 			tv.tv_usec = (zend_ulong)((YAR_G(timeout) % 1000) * 1000);
+
+			/* since curl are only socket fds, so use select here directly*/
 			ret = select(max_fd + 1, &readfds, &writefds, &exceptfds, &tv);
 			if (ret > 0) {
 				while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(multi->cm, &running_count));
 			} else if (ret == -1) {
-				php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
-				return 0;
+				if (errno != EINTR) {
+					php_error_docref(NULL, E_WARNING, "select error '%s'", strerror(errno));
+					return 0;
+				}
 			} else {
 				php_error_docref(NULL, E_WARNING, "select timeout '%ldms' reached", YAR_G(timeout));
 				return 0;
