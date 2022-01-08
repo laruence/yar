@@ -2,7 +2,6 @@
 Check for yar server __auth
 --SKIPIF--
 <?php 
-echo "skip"; //auth is not supported any more
 if (!extension_loaded("yar")) {
     print "skip";
 }
@@ -11,18 +10,24 @@ if (!extension_loaded("yar")) {
 <?php 
 include "yar.inc";
 
-$client = new Yar_Client(YAR_API_ADDRESS . 'auth.php');
+yar_server_start();
+$client = new Yar_Client(YAR_API_ADDRESS . '/auth.php');
 
 try {
     var_dump($client->normal("dummy"));
-} catch (Yar_Server_Exception $e) {
+} catch (Exception $e) {
     var_dump($e->getMessage());
 }
 
+$client = new Yar_Client("http://dummy:dummy@" . YAR_API_HOST . '/auth.php');
+var_dump($client->normal("dummy"));
 
-$client = new Yar_Client("http://dummy:dummy@" . YAR_API_HOST . YAR_API_URI . 'auth.php');
+$client = new Yar_Client(YAR_API_ADDRESS . '/auth.php');
+$client->setOpt(YAR_OPT_PROVIDER, "dummy");
+$client->setOpt(YAR_OPT_TOKEN, "dummy");
 var_dump($client->normal("dummy"));
 ?>
 --EXPECTF--
-string(39) "Service_Provider::__auth() return false"
+string(21) "authentication failed"
+string(3) "3.6"
 string(3) "3.6"

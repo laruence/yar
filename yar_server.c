@@ -532,6 +532,46 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	ce = Z_OBJCE_P(obj);
+	if (zend_hash_str_exists(&ce->function_table, "__auth", sizeof("__auth") - 1)) {
+		zval ret;
+
+		zend_try {
+			zval func;
+			zval auth_params[2];
+
+			ZVAL_STRING(&auth_params[0], header->provider);
+			ZVAL_STRING(&auth_params[1], header->token);
+
+			ZVAL_STRING(&func, "__auth");
+			if (FAILURE == call_user_function(NULL, obj, &func, &ret, 2, auth_params)) {
+				php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::__auth() failed", ZSTR_VAL(ce->name));
+				zend_string_release(Z_STR(auth_params[0]));
+				zend_string_release(Z_STR(auth_params[1]));
+				zend_string_release(Z_STR(func));
+				goto response;
+			}
+			zend_string_release(Z_STR(auth_params[0]));
+			zend_string_release(Z_STR(auth_params[1]));
+			zend_string_release(Z_STR(func));
+		} zend_catch {
+		} zend_end_try();
+
+		if (EG(exception)) {
+			zend_object *exception = EG(exception);
+			php_yar_response_set_exception(response, exception);
+			EG(exception) = NULL; /* exception may have __destruct will be called */
+			OBJ_RELEASE(exception);
+			zend_clear_exception();
+			goto response;
+		}
+
+		if (Z_TYPE(ret) == IS_FALSE) {
+			php_yar_error(response, YAR_ERR_FORBIDDEN, "authentication failed");
+			goto response;
+		}
+		zval_ptr_dtor(&ret);
+	}
+
 	method = zend_string_tolower(request->method);
 	if (!zend_hash_exists(&ce->function_table, method)) {
 		zend_string_release(method);
