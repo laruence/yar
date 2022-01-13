@@ -175,7 +175,7 @@ $result = $client->some_method("parameter");
 ### Use http proxy
 After Yar 2.2.1, if Yar runs on HTTP protocol, YAR_OPT_PROXY could be used to define http proxy , such as fidder or charles.
 
-```
+```php
 <?php
 $client = new Yar_Client("http://host/api/");
 
