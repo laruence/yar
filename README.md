@@ -111,7 +111,7 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 
 
 ### Custom server info
-Since 2.3.0, Yar also allows you to custom the output in the above example:
+Since 2.3.0, Yar allows you to custom the output in above example by defining "__info" magic method:
 ```php
 <?php
 class API {
@@ -123,7 +123,7 @@ class API {
 then If a HTTP GET request is issued, "hello world" will be sent instead
 
 ### Authentication
-Since 2.3.0, Yar allows server to authentic client request by Provider/Token fileds in header, for achieve this, you should define a protected method named "__auth":
+Since 2.3.0, Yar allows server to authentic client request by Provider/Token fileds in header, for achieve this, you should define a protected magic method named "__auth":
 ```php
 <?php
 class API {
