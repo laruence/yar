@@ -469,7 +469,12 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 		ZVAL_STRING(&auth_params[0], header->provider);
 		ZVAL_STRING(&auth_params[1], header->token);
 
-		if (zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]) == NULL) {
+#if PHP_VERSION_ID < 80000
+		if (zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]) == NULL) 
+#else
+		if (zend_call_method_with_2_params(Z_OBJ_P(obj), ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]) == NULL) 
+#endif
+		{
 			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::__auth() failed", ZSTR_VAL(ce->name));
 			zend_string_release(Z_STR(auth_params[0]));
 			zend_string_release(Z_STR(auth_params[1]));
@@ -509,7 +514,12 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
 		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
 		zend_try {
-			if (zend_call_method_with_0_params(obj, ce, NULL, "__info", &ret) == NULL) {
+#if PHP_VERSION_ID < 80000
+			if (zend_call_method_with_0_params(obj, ce, NULL, "__info", &ret) == NULL)
+#else
+			if (zend_call_method_with_0_params(Z_OBJ_P(obj), ce, NULL, "__info", &ret) == NULL)
+#endif
+			{
 				php_error_docref(NULL, E_WARNING, "call to api %s::__info() failed", ZSTR_VAL(ce->name));
 				ZVAL_EMPTY_STRING(&ret);
 			}
