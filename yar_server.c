@@ -28,6 +28,7 @@
 #include "ext/standard/head.h" /* for php_header */
 #include "php_yar.h"
 #include "Zend/zend_exceptions.h"
+#include "Zend/zend_interfaces.h" /* for zend_call_method */
 #include "yar_exception.h"
 #include "yar_packager.h"
 #include "yar_server.h"
@@ -449,6 +450,102 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
 } /* }}} */
 
+static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_response_t *response) /* {{{ */ {
+	zval ret;
+	zend_function *fbc;
+	zend_class_entry *ce = Z_OBJCE_P(obj);
+
+	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__auth", sizeof("__auth") - 1)) == NULL) {
+		return 1;
+	}
+
+	if (!(fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
+		return 1;
+	}
+
+	zend_try {
+		zval auth_params[2];
+
+		ZVAL_STRING(&auth_params[0], header->provider);
+		ZVAL_STRING(&auth_params[1], header->token);
+
+		if (zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]) == NULL) {
+			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::__auth() failed", ZSTR_VAL(ce->name));
+			zend_string_release(Z_STR(auth_params[0]));
+			zend_string_release(Z_STR(auth_params[1]));
+			return 0;
+		}
+		zend_string_release(Z_STR(auth_params[0]));
+		zend_string_release(Z_STR(auth_params[1]));
+	} zend_catch {
+	} zend_end_try();
+
+	if (EG(exception)) {
+		zend_object *exception = EG(exception);
+		php_yar_response_set_exception(response, exception);
+		EG(exception) = NULL; /* exception may have __destruct will be called */
+		OBJ_RELEASE(exception);
+		zend_clear_exception();
+		return 0;
+	}
+
+	if (Z_TYPE(ret) == IS_FALSE) {
+		php_yar_error(response, YAR_ERR_FORBIDDEN, "authentication failed");
+		return 0;
+	}
+
+	zval_ptr_dtor(&ret);
+	return 1;
+}
+/* }}} */
+
+static void php_yar_server_info(zval *obj) /* {{{ */ {
+	zval ret;
+	char buf[1024];
+	zend_string *info;
+	zend_function *fbc;
+	zend_class_entry *ce = Z_OBJCE_P(obj);
+
+	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
+		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
+		zend_try {
+			if (zend_call_method_with_0_params(obj, ce, NULL, "__info", &ret) == NULL) {
+				php_error_docref(NULL, E_WARNING, "call to api %s::__info() failed", ZSTR_VAL(ce->name));
+				ZVAL_EMPTY_STRING(&ret);
+			}
+		} zend_catch {
+			ZVAL_EMPTY_STRING(&ret);
+		} zend_end_try();
+
+		if (EG(exception)) {
+			return;
+		}
+
+		if (Z_TYPE(ret) != IS_FALSE) {
+			info = zval_get_string(&ret);
+			PHPWRITE(ZSTR_VAL(info), ZSTR_LEN(info));
+			zend_string_release(info);
+			return;
+		}
+	}
+
+	/* fallback to original implementation */
+	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
+	PHPWRITE(buf, strlen(buf));
+
+	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
+	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
+
+	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
+	PHPWRITE(buf, strlen(buf));
+
+	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(ce));
+
+	PHPWRITE(HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
+	return;
+}
+/* }}} */
+
 static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	size_t len = 0;
 	char buf[RECV_BUF_SIZE];
@@ -531,47 +628,11 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		goto response_no_output;
 	}
 
-	ce = Z_OBJCE_P(obj);
-	if (zend_hash_str_exists(&ce->function_table, "__auth", sizeof("__auth") - 1)) {
-		zval ret;
-
-		zend_try {
-			zval func;
-			zval auth_params[2];
-
-			ZVAL_STRING(&auth_params[0], header->provider);
-			ZVAL_STRING(&auth_params[1], header->token);
-
-			ZVAL_STRING(&func, "__auth");
-			if (FAILURE == call_user_function(NULL, obj, &func, &ret, 2, auth_params)) {
-				php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::__auth() failed", ZSTR_VAL(ce->name));
-				zend_string_release(Z_STR(auth_params[0]));
-				zend_string_release(Z_STR(auth_params[1]));
-				zend_string_release(Z_STR(func));
-				goto response;
-			}
-			zend_string_release(Z_STR(auth_params[0]));
-			zend_string_release(Z_STR(auth_params[1]));
-			zend_string_release(Z_STR(func));
-		} zend_catch {
-		} zend_end_try();
-
-		if (EG(exception)) {
-			zend_object *exception = EG(exception);
-			php_yar_response_set_exception(response, exception);
-			EG(exception) = NULL; /* exception may have __destruct will be called */
-			OBJ_RELEASE(exception);
-			zend_clear_exception();
-			goto response;
-		}
-
-		if (Z_TYPE(ret) == IS_FALSE) {
-			php_yar_error(response, YAR_ERR_FORBIDDEN, "authentication failed");
-			goto response;
-		}
-		zval_ptr_dtor(&ret);
+	if (!php_yar_server_auth(obj, header, response)) {
+		goto response;
 	}
 
+	ce = Z_OBJCE_P(obj);
 	method = zend_string_tolower(request->method);
 	if (!zend_hash_exists(&ce->function_table, method)) {
 		zend_string_release(method);
@@ -665,25 +726,6 @@ response_no_output: {
 	return;
 } /* }}} */
 
-static void php_yar_server_info(zval *obj) /* {{{ */ {
-	char buf[1024];
-	zend_class_entry *ce = Z_OBJCE_P(obj);
-
-	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
-	PHPWRITE(buf, strlen(buf));
-
-	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
-	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
-
-	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
-	PHPWRITE(buf, strlen(buf));
-
-    zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(ce));
-
-    PHPWRITE(HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
-}
-/* }}} */
-
 /* {{{ proto Yar_Server::__construct($obj)
    initizing an Yar_Server object */
 PHP_METHOD(yar_server, __construct) {
@@ -698,6 +740,13 @@ PHP_METHOD(yar_server, __construct) {
 #else
     zend_update_property(yar_server_ce, Z_OBJ_P(getThis()), "_executor", sizeof("_executor")-1, obj);
 #endif
+}
+/* }}} */
+
+/* {{{ proto Yar_Server::setOpt(int $type, mixed $value)
+   set options */
+PHP_METHOD(yar_server, setOpt)
+{
 }
 /* }}} */
 
@@ -748,7 +797,7 @@ zend_function_entry yar_server_methods[] = {
 };
 /* }}} */
 
-YAR_STARTUP_FUNCTION(service) /* {{{ */ {
+YAR_STARTUP_FUNCTION(server) /* {{{ */ {
     zend_class_entry ce;
 
     INIT_CLASS_ENTRY(ce, "Yar_Server", yar_server_methods);
@@ -759,7 +808,7 @@ YAR_STARTUP_FUNCTION(service) /* {{{ */ {
 }
 /* }}} */
 
-YAR_SHUTDOWN_FUNCTION(service) /* {{{ */ {
+YAR_SHUTDOWN_FUNCTION(server) /* {{{ */ {
 	return SUCCESS;
 } /* }}} */
 

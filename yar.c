@@ -144,7 +144,7 @@ PHP_MINIT_FUNCTION(yar)
 	}
 #endif
 
-	YAR_STARTUP(service);
+	YAR_STARTUP(server);
 	YAR_STARTUP(client);
 	YAR_STARTUP(packager);
 	YAR_STARTUP(transport);
@@ -168,7 +168,7 @@ PHP_MSHUTDOWN_FUNCTION(yar)
 		}
 	}
 #endif
-	YAR_SHUTDOWN(service);
+	YAR_SHUTDOWN(server);
 	YAR_SHUTDOWN(packager);
 
 	YAR_SHUTDOWN(transport);

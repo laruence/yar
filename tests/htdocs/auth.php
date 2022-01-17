@@ -1,7 +1,7 @@
 <?php
 error_reporting(-1);
 class Service_Provider {
-    public function __auth($provider, $token) {
+    protected function __auth($provider, $token) {
         if (!$provider || $provider !== $token) {
             return false;
         } else {
