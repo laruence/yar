@@ -500,6 +500,94 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 }
 /* }}} */
 
+static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_response_t *response) /* {{{ */ {
+	zend_class_entry *ce = Z_OBJCE_P(obj);
+	zend_bool bailout = 0;
+
+#if PHP_VERSION_ID < 80000
+	zend_string *method = zend_string_tolower(request->method);
+	if (!zend_hash_exists(&ce->function_table, method)) {
+		zend_string_release(method);
+		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
+		return 0;
+	}
+	zend_string_release(method);
+#else
+	zend_function *fbc;
+	if ((fbc = zend_hash_find_ptr_lc(&ce->function_table, request->method)) == NULL) {
+		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
+		return 0;
+	}
+#endif
+
+	zend_try {
+		int count;
+		zval *func_params;
+		zval retval;
+#if PHP_VERSION_ID < 80000
+		zval func;
+#endif
+		HashTable *func_params_ht;
+
+		func_params_ht = request->parameters;
+		if ((count = zend_hash_num_elements(func_params_ht))) {
+			int i = 0;
+			zval *zv;
+
+			func_params = safe_emalloc(count, sizeof(zval), 0);
+			ZEND_HASH_FOREACH_VAL(func_params_ht, zv) {
+				ZVAL_COPY(&func_params[i++], zv);
+			} ZEND_HASH_FOREACH_END();
+		} else {
+			func_params = NULL;
+		}
+
+#if PHP_VERSION_ID < 80000
+		ZVAL_STR(&func, request->method);
+		if (FAILURE == call_user_function(NULL, obj, &func, &retval, count, func_params)) {
+			if (count) {
+				int i = 0;
+				for (; i < count; i++) {
+					zval_ptr_dtor(&func_params[i]);
+				}
+				efree(func_params);
+			}
+			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
+			return 0;
+		}
+#else
+		zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &retval, count, func_params);
+#endif
+
+		if (!Z_ISUNDEF(retval)) {
+			php_yar_response_set_retval(response, &retval);
+			zval_ptr_dtor(&retval);
+		}
+
+		if (count) {
+			int i = 0;
+			for (; i < count; i++) {
+				zval_ptr_dtor(&func_params[i]);
+			}
+			efree(func_params);
+		}
+	} zend_catch {
+		bailout = 1;
+	} zend_end_try();
+
+	if (UNEXPECTED(EG(exception))) {
+		zend_object *exception = EG(exception);
+		php_yar_response_set_exception(response, exception);
+		EG(exception) = NULL; /* exception may have __destruct will be called */
+		OBJ_RELEASE(exception);
+		zend_clear_exception();
+		return 0;
+	}
+
+	return bailout? -1 : 1;
+}
+/* }}} */
+
 static void php_yar_server_info(zval *obj) /* {{{ */ {
 	zval ret;
 	smart_str out = {0};
@@ -560,15 +648,13 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 /* }}} */
 
 static void php_yar_server_handle(zval *obj) /* {{{ */ {
+	int ret = 0;
 	size_t len = 0;
 	char buf[RECV_BUF_SIZE];
 	char *payload, *err_msg;
 	char *pkg_name = NULL;
 	size_t payload_len;
-	zend_bool bailout = 0;
-	zend_string *method;
 	zval *post_data, rv;
-	zend_class_entry *ce;
 	yar_header_t *header;
 	yar_request_t *request = NULL;
 	smart_str raw_data = {0};
@@ -642,75 +728,10 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	}
 
 	if (!php_yar_server_auth(obj, header, response)) {
-		goto response;
+		goto response_no_output;
 	}
 
-	ce = Z_OBJCE_P(obj);
-	method = zend_string_tolower(request->method);
-	if (!zend_hash_exists(&ce->function_table, method)) {
-		zend_string_release(method);
-		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
-		goto response;
-	}
-	zend_string_release(method);
-
-	zend_try {
-		int count;
-		zval *func_params;
-		zval func, retval;
-		HashTable *func_params_ht;
-
-		func_params_ht = request->parameters;
-		if ((count = zend_hash_num_elements(func_params_ht))) {
-			int i = 0;
-			zval *zv;
-
-			func_params = safe_emalloc(count, sizeof(zval), 0);
-			ZEND_HASH_FOREACH_VAL(func_params_ht, zv) {
-				ZVAL_COPY(&func_params[i++], zv);
-			} ZEND_HASH_FOREACH_END();
-		} else {
-			func_params = NULL;
-		}
-
-		ZVAL_STR(&func, request->method);
-		if (FAILURE == call_user_function(NULL, obj, &func, &retval, count, func_params)) {
-			if (count) {
-				int i = 0;
-				for (; i < count; i++) {
-					zval_ptr_dtor(&func_params[i]);
-				}
-				efree(func_params);
-			}
-			php_yar_error(response, YAR_ERR_REQUEST, "call to api %s::%s() failed", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
-			goto response;
-		}
-
-		if (!Z_ISUNDEF(retval)) {
-			php_yar_response_set_retval(response, &retval);
-			zval_ptr_dtor(&retval);
-		}
-
-		if (count) {
-			int i = 0;
-			for (; i < count; i++) {
-				zval_ptr_dtor(&func_params[i]);
-			}
-			efree(func_params);
-		}
-	} zend_catch {
-		bailout = 1;
-	} zend_end_try();
-
-	if (UNEXPECTED(EG(exception))) {
-		zend_object *exception = EG(exception);
-		php_yar_response_set_exception(response, exception);
-		EG(exception) = NULL; /* exception may have __destruct will be called */
-		OBJ_RELEASE(exception);
-		zend_clear_exception();
-	}
-
-response: {
+    if ((ret = php_yar_server_call(obj, request, response)) == 1) {
 		zval output;
 		if (php_output_get_contents(&output) == FAILURE) {
 			php_output_end();
@@ -722,21 +743,19 @@ response: {
 		php_yar_response_alter_body(response, Z_STR(output), YAR_RESPONSE_REPLACE);
 	}
 
-response_no_output: {
-		php_yar_server_response(request, response, pkg_name);
-		if (request) {
-			php_yar_request_destroy(request);
-		}
-
-		smart_str_free(&raw_data);
-
-		php_yar_response_destroy(response);
-
-		if (bailout) {
-			zend_bailout();
-		}
+response_no_output: 
+	php_yar_server_response(request, response, pkg_name);
+	if (request) {
+		php_yar_request_destroy(request);
 	}
-	return;
+
+	smart_str_free(&raw_data);
+
+	php_yar_response_destroy(response);
+
+	if (ret == -1) {
+		zend_bailout();
+	}
 } /* }}} */
 
 /* {{{ proto Yar_Server::__construct($obj)
