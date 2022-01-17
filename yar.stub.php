@@ -5,7 +5,7 @@
 class Yar_Server {
 
 	/* properties */
-	protected object $_executor = NULL;
+	/* protected object $_executor = NULL; */
 
 	/* methods */
 	public function __construct(object $executor) {}
@@ -35,9 +35,9 @@ class Yar_Concurrent_Client {
 	/* properties */
 
 	/* methods */
-	public static function call(string $uri, string $method, array $arguments = NULL, callable $callback = NULL, callable $error_callback = NULL, array $options = NULL):null|int|bool {}
+	public static function call(string $uri, string $method, ?array $arguments = NULL, ?callable $callback = NULL, ?callable $error_callback = NULL, ?array $options = NULL):null|int|bool {}
 
-	public static function loop(callable $callback = NULL, callable $error_callback = NULL):?bool {}
+	public static function loop(?callable $callback = NULL, ?callable $error_callback = NULL):?bool {}
 
 	public static function reset():bool {}
 }
