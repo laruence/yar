@@ -80,6 +80,9 @@ $make && make install
 - YAR_OPT_CONNECT_TIMEOUT
 - YAR_OPT_HEADER // Since 2.0.4
 - YAR_OPT_PROXY //Since 2.2.0
+- YAR_OPT_PROVIDER //Since 2.3.0
+- YAR_OPT_TOKEN //Since 2.3.0
+
 ## Server
 
 It's very easy to setup a Yar HTTP RPC Server
@@ -106,6 +109,38 @@ Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is i
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
 
+
+### Custom server info
+Since 2.3.0, Yar also allows you to custom the output in the above example:
+```php
+<?php
+class API {
+    protected function __info($markup) {
+         return "Hello world";
+    }
+}
+```
+then If a HTTP GET request is issued, "hello world" will be sent instead
+
+### Authentication
+Since 2.3.0, Yar allows server to authentic client request by Provider/Token fileds in header, for achieve this, you should define a protected method named "__auth":
+```php
+<?php
+class API {
+     protected function __auth($provider, $token) {
+          return verify($provider, $token);
+     }
+
+```
+in clent side, you can specific the provider/token by:
+```php
+<?php
+    $client->setOpt(YAR_OPT_PROVIDER, "provider");
+    $client->setOpt(YAR_OPT_TOKEN, "token");
+    $client->call();
+```
+
+if the method return true, then the request will be processed further, otherwise the request will be finished by an error of "authentication failed"
 
 ## Client
 It's very simple for a PHP client to call remote RPC:
