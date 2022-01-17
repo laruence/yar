@@ -1,11 +1,10 @@
 <?php
 error_reporting(-1);
 class Service_Provider {
-	private $result = "okay";
-    protected function __info() {
-		return <<<HTML
-{$this->result}
-HTML;
+    protected function __info($markup) {
+		if (strpos($markup, "Service_Provider")) {
+			return "okay";
+		}
     }
 }
 

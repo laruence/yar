@@ -347,6 +347,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 
 static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
     zend_function *f = Z_FUNC_P(ptr);
+	smart_str *out = (smart_str *)argument;
 
     if (f->common.fn_flags & ZEND_ACC_PUBLIC 
 		&& f->common.function_name && *(ZSTR_VAL(f->common.function_name)) != '_') {
@@ -364,7 +365,7 @@ static int php_yar_print_info(zval *ptr, void *argument) /* {{{ */ {
 				spprintf(&buf, 0, HTML_MARKUP_ENTRY_N, prototype);
 			}
 			efree(prototype);
-			PHPWRITE(buf, strlen(buf));
+			smart_str_appendl(out, buf, strlen(buf));
             efree(buf);
 		}
     }
@@ -466,8 +467,8 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 	zend_try {
 		zval auth_params[2];
 
-		ZVAL_STRING(&auth_params[0], header->provider);
-		ZVAL_STRING(&auth_params[1], header->token);
+		ZVAL_STRING(&auth_params[0], (char*)header->provider);
+		ZVAL_STRING(&auth_params[1], (char*)header->token);
 
 #if PHP_VERSION_ID < 80000
 		if (zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]) == NULL) 
@@ -506,52 +507,63 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 
 static void php_yar_server_info(zval *obj) /* {{{ */ {
 	zval ret;
-	char buf[1024];
-	zend_string *info;
+	smart_str out = {0};
 	zend_function *fbc;
 	zend_class_entry *ce = Z_OBJCE_P(obj);
 
+	/* build html markup */
+	size_t len = sizeof(HTML_MARKUP_HEADER) + ZSTR_LEN(ce->name)
+	   	+ sizeof(HTML_MARKUP_CSS) + sizeof(HTML_MARKUP_SCRIPT) + sizeof(HTML_MARKUP_TITLE) + ZSTR_LEN(ce->name) - 4;
+
+	smart_str_alloc(&out, len, 0);
+	ZSTR_LEN(out.s) = sprintf(ZSTR_VAL(out.s), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
+	smart_str_appendl(&out, HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
+	smart_str_appendl(&out, HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
+	ZSTR_LEN(out.s) += sprintf(ZSTR_VAL(out.s), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
+
+	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(&out));
+
+	smart_str_erealloc(&out, ZSTR_LEN(out.s) + sizeof(HTML_MARKUP_FOOTER) - 1); /* include tailing zero byte */
+	smart_str_appendl(&out, HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
+	smart_str_0(&out);
+
 	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
 		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
+		zval html;
+
+		ZVAL_STR_COPY(&html, out.s);
 		zend_try {
 #if PHP_VERSION_ID < 80000
-			if (zend_call_method_with_0_params(obj, ce, NULL, "__info", &ret) == NULL)
+			if (zend_call_method_with_1_params(obj, ce, NULL, "__info", &ret, &html) == NULL)
 #else
-			if (zend_call_method_with_0_params(Z_OBJ_P(obj), ce, NULL, "__info", &ret) == NULL)
+			if (zend_call_method_with_1_params(Z_OBJ_P(obj), ce, NULL, "__info", &ret, &html) == NULL)
 #endif
 			{
 				php_error_docref(NULL, E_WARNING, "call to api %s::__info() failed", ZSTR_VAL(ce->name));
-				ZVAL_EMPTY_STRING(&ret);
 			}
+			zval_ptr_dtor(&html);
 		} zend_catch {
-			ZVAL_EMPTY_STRING(&ret);
+			zval_ptr_dtor(&html);
 		} zend_end_try();
 
 		if (EG(exception)) {
+			smart_str_free(&out);
+			zval_ptr_dtor(&ret);
 			return;
 		}
 
-		if (Z_TYPE(ret) != IS_FALSE) {
-			info = zval_get_string(&ret);
-			PHPWRITE(ZSTR_VAL(info), ZSTR_LEN(info));
-			zend_string_release(info);
+		if (Z_TYPE(ret) == IS_STRING) {
+			PHPWRITE(Z_STRVAL(ret), Z_STRLEN(ret));
+			smart_str_free(&out);
+			zval_ptr_dtor(&ret);
 			return;
+		} else {
+			zval_ptr_dtor(&ret);
 		}
 	}
 
-	/* fallback to original implementation */
-	snprintf(buf, sizeof(buf), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
-	PHPWRITE(buf, strlen(buf));
-
-	PHPWRITE(HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
-	PHPWRITE(HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
-
-	snprintf(buf, sizeof(buf), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
-	PHPWRITE(buf, strlen(buf));
-
-	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(ce));
-
-	PHPWRITE(HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
+	PHPWRITE(ZSTR_VAL(out.s), ZSTR_LEN(out.s));
+	smart_str_free(&out);
 	return;
 }
 /* }}} */
