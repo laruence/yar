@@ -86,7 +86,7 @@ typedef struct _yar_curl_multi_sockinfo {
 
 static int php_yar_start_timer(yar_curl_multi_gdata *g) /* {{{ */ {
 	struct epoll_event ev = {0};
-	struct itimerspec its = {0};
+	struct itimerspec its = {{0}, {0}};
 
 	g->tfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
 
@@ -106,7 +106,7 @@ static int php_yar_start_timer(yar_curl_multi_gdata *g) /* {{{ */ {
 /* }}} */
 
 static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
-	struct itimerspec its = {0};
+	struct itimerspec its = {{0}, {0}};
 	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
 
 	if (timeout_ms > 0) {

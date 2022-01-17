@@ -175,7 +175,7 @@ wait_io:
 
 			payload = emalloc(header->body_len + 1);
 			len = header->body_len;
-			total_recvd  = recvd - sizeof(yar_header_t);
+			total_recvd = recvd - sizeof(yar_header_t);
 
 			memcpy(payload, buf + sizeof(yar_header_t), total_recvd);
 			if (recvd < (sizeof(yar_header_t) + len)) {
@@ -186,6 +186,7 @@ wait_io:
 			return response;
 		} else {
 			/* this should never happen */
+			ZEND_ASSERT(0);
 			goto wait_io;
 		}
 	} else {
