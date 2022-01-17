@@ -19,6 +19,11 @@ class Service_Provider {
         return "success";
 	}
 
+    public function output_exit() {
+        echo "output";
+		exit(1);
+	}
+
 	public function strlen($str) {
 		return strlen($str);
 	}

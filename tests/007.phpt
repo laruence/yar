@@ -15,6 +15,9 @@ yar_server_start();
 $client = new Yar_Client(YAR_API_ADDRESS);
 
 var_dump($client->output());
+
+var_dump($client->output_exit());
 ?>
 --EXPECT--
 outputstring(7) "success"
+outputNULL

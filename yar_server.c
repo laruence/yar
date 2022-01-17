@@ -502,7 +502,7 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 
 static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_response_t *response) /* {{{ */ {
 	zend_class_entry *ce = Z_OBJCE_P(obj);
-	zend_bool bailout = 0;
+	int bailout = 0;
 
 #if PHP_VERSION_ID < 80000
 	zend_string *method = zend_string_tolower(request->method);
@@ -577,14 +577,19 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 
 	if (UNEXPECTED(EG(exception))) {
 		zend_object *exception = EG(exception);
-		php_yar_response_set_exception(response, exception);
+#if PHP_VERSION_ID >= 80000
+		if (!zend_is_unwind_exit(exception)) {
+			php_yar_response_set_exception(response, exception);
+		} else {
+			bailout = 1;
+		}
+#endif
 		EG(exception) = NULL; /* exception may have __destruct will be called */
 		OBJ_RELEASE(exception);
 		zend_clear_exception();
-		return 0;
 	}
 
-	return bailout? -1 : 1;
+	return bailout;
 }
 /* }}} */
 
@@ -648,8 +653,8 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 /* }}} */
 
 static void php_yar_server_handle(zval *obj) /* {{{ */ {
-	int ret = 0;
 	size_t len = 0;
+	int bailout = 0;
 	char buf[RECV_BUF_SIZE];
 	char *payload, *err_msg;
 	char *pkg_name = NULL;
@@ -666,7 +671,7 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		if (UNEXPECTED(FAILURE == php_stream_rewind(s))) {
 			php_yar_error(response, YAR_ERR_PACKAGER, "empty request");
 			DEBUG_S("0: empty request");
-			goto response_no_output;
+			goto response;
 		}
 		while (!php_stream_eof(s)) {
 			len += php_stream_read(s, buf + len, sizeof(buf) - len);
@@ -686,18 +691,18 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		} else {
 			php_yar_error(response, YAR_ERR_PACKAGER, "empty request body");
 			DEBUG_S("0: empty request '%s'");
-			goto response_no_output;
+			goto response;
 		}
 	} else {
 		php_yar_error(response, YAR_ERR_PACKAGER, "empty request");
 		DEBUG_S("0: empty request");
-		goto response_no_output;
+		goto response;
 	}
 
 	if (UNEXPECTED(!(header = php_yar_protocol_parse(payload)))) {
 		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
-		goto response_no_output;
+		goto response;
 	}
 
 	DEBUG_S("%ld: accpect rpc request form '%s'",
@@ -709,41 +714,37 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 	if (UNEXPECTED(!(post_data = php_yar_packager_unpack(payload, payload_len, &err_msg, &rv)))) {
         php_yar_error(response, YAR_ERR_PACKAGER, err_msg);
 		efree(err_msg);
-		goto response_no_output;
+		goto response;
 	}
 
 	pkg_name = payload;
 	request = php_yar_request_unpack(post_data);
 	zval_ptr_dtor(post_data);
 
-	if (!php_yar_request_valid(request, response, &err_msg)) {
+	if (UNEXPECTED(!php_yar_request_valid(request, response, &err_msg))) {
 		php_yar_error(response, YAR_ERR_REQUEST, "%s", err_msg);
 		efree(err_msg);
-		goto response_no_output;
-	}
-
-	if (php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE) {
-		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
-		goto response_no_output;
+		goto response;
 	}
 
 	if (!php_yar_server_auth(obj, header, response)) {
-		goto response_no_output;
+		goto response;
 	}
 
-    if ((ret = php_yar_server_call(obj, request, response)) == 1) {
-		zval output;
-		if (php_output_get_contents(&output) == FAILURE) {
-			php_output_end();
-			php_yar_error(response, YAR_ERR_OUTPUT, "unable to get ob content");
-			goto response_no_output;
-		}
+	if (UNEXPECTED(php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE)) {
+		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
+		goto response;
+	}
 
+	bailout = php_yar_server_call(obj, request, response);
+	if (UNEXPECTED(php_output_get_contents(&rv) == FAILURE)) {
 		php_output_discard();
-		php_yar_response_alter_body(response, Z_STR(output), YAR_RESPONSE_REPLACE);
+		goto response;
 	}
+	php_yar_response_alter_body(response, Z_STR(rv), YAR_RESPONSE_REPLACE);
+	php_output_discard();
 
-response_no_output: 
+response:
 	php_yar_server_response(request, response, pkg_name);
 	if (request) {
 		php_yar_request_destroy(request);
@@ -753,8 +754,12 @@ response_no_output:
 
 	php_yar_response_destroy(response);
 
-	if (ret == -1) {
+	if (bailout) {
+#if PHP_VERSION_ID < 80000
 		zend_bailout();
+#else
+		zend_throw_unwind_exit();
+#endif
 	}
 } /* }}} */
 

@@ -427,7 +427,12 @@ static int php_yar_client_handle(yar_client_object *client, zend_string *method,
 		if (response->out && ZSTR_LEN(response->out)) {
 			PHPWRITE(ZSTR_VAL(response->out), ZSTR_LEN(response->out));
 		}
-		ZVAL_COPY(retval, &response->retval);
+		if (!Z_ISUNDEF(response->retval)) {
+			ZVAL_COPY(retval, &response->retval);
+		} else {
+			/* Sever called exit */
+			ZVAL_NULL(retval);
+		}
 		php_yar_request_destroy(request);
 		php_yar_response_destroy(response);
 		transport->close(transport);

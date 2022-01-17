@@ -28,7 +28,7 @@ class Yar_Client {
     /**
      * @implementation-alias Yar_Client::call
      */
-	public function __call(string $method, array $arguments):mixed;
+	public function __call(string $method, array $arguments):mixed {}
 }
 
 class Yar_Concurrent_Client {
