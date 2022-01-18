@@ -38,7 +38,7 @@ jobs:
           extensions: json
       - name: Install
         run: |
-          sudo apt-get install -y \
+          sudo apt-get --fix-broken install -y \
           libcurl-ocaml-dev \
           re2c
       - name: Prepare
