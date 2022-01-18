@@ -583,6 +583,8 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 		} else {
 			bailout = 1;
 		}
+#else
+		php_yar_response_set_exception(response, exception);
 #endif
 		EG(exception) = NULL; /* exception may have __destruct will be called */
 		OBJ_RELEASE(exception);
