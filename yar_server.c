@@ -474,9 +474,9 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 		ZVAL_STRING(&auth_params[1], (char*)header->token);
 
 #if PHP_VERSION_ID < 80000
-		zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, &auth_params[0], &auth_params[1]);
+		zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, auth_params, auth_params + 1);
 #else
-		zend_call_known_instance_method_with_2_params(fbc, Z_OBJ_P(obj), &ret, &auth_params[0], &auth_params[1]);
+		zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &ret, 2, auth_params);
 #endif
 		zend_string_release(Z_STR(auth_params[0]));
 		zend_string_release(Z_STR(auth_params[1]));
@@ -639,7 +639,7 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 #if PHP_VERSION_ID < 80000
 			zend_call_method_with_1_params(obj, ce, NULL, "__info", &ret, &html);
 #else
-			zend_call_known_instance_method_with_1_params(fbc, Z_OBJ_P(obj), &ret, &html);
+			zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &ret, 1, &html);
 #endif
 			zval_ptr_dtor(&html);
 		}
