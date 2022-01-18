@@ -464,7 +464,10 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 		return 1;
 	}
 
-	zend_try {
+#if PHP_VERSION_ID < 80000
+	zend_try
+#endif
+	{
 		zval auth_params[2];
 
 		ZVAL_STRING(&auth_params[0], (char*)header->provider);
@@ -477,9 +480,12 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 #endif
 		zend_string_release(Z_STR(auth_params[0]));
 		zend_string_release(Z_STR(auth_params[1]));
-	} zend_catch {
+	}
+#if PHP_VERSION_ID < 80000
+	zend_catch {
 		/* auth_params memleak */
 	} zend_end_try();
+#endif
 
 	if (EG(exception)) {
 		zend_object *exception = EG(exception);
@@ -519,8 +525,10 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 		return 0;
 	}
 #endif
-
-	zend_try {
+#if PHP_VERSION_ID < 80000
+	zend_try
+#endif
+	{
 		int count;
 		zval *func_params;
 		zval retval;
@@ -571,9 +579,12 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 			}
 			efree(func_params);
 		}
-	} zend_catch {
+	}
+#if PHP_VERSION_ID < 80000
+	  zend_catch {
 		bailout = 1;
 	} zend_end_try();
+#endif
 
 	if (UNEXPECTED(EG(exception))) {
 		zend_object *exception = EG(exception);
@@ -619,7 +630,10 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 
 	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
 		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
-		zend_try {
+#if PHP_VERSION_ID < 80000
+		zend_try
+#endif
+		{
 			zval html;
 			ZVAL_STR_COPY(&html, out.s);
 #if PHP_VERSION_ID < 80000
@@ -628,9 +642,12 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 			zend_call_known_instance_method_with_1_params(fbc, Z_OBJ_P(obj), &ret, &html);
 #endif
 			zval_ptr_dtor(&html);
-		} zend_catch {
+		}
+#if PHP_VERSION_ID < 80000
+		zend_catch {
 			/* html memleak */
 		} zend_end_try();
+#endif
 
 		if (EG(exception)) {
 			smart_str_free(&out);
