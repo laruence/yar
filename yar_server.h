@@ -22,6 +22,14 @@
 #ifndef PHP_YAR_SERVER_H
 #define PHP_YAR_SERVER_H
 
+#if PHP_VERSION_ID < 80000
+#define YAR_TRY         zend_try
+#define YAR_CATCH(x)    zend_catch { x; } zend_end_try()
+#else
+#define YAR_TRY
+#define YAR_CATCH(x)
+#endif
+
 YAR_STARTUP_FUNCTION(server);
 YAR_SHUTDOWN_FUNCTION(server);
 
