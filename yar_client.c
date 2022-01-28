@@ -430,6 +430,7 @@ static int php_yar_client_handle(yar_client_object *client, zend_string *method,
 		if (!Z_ISUNDEF(response->retval)) {
 			ZVAL_COPY(retval, &response->retval);
 		} else {
+			/* server return nothing, probably called exit */
 			ZVAL_NULL(retval);
 		}
 		php_yar_request_destroy(request);

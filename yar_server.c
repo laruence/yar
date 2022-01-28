@@ -786,36 +786,36 @@ PHP_METHOD(yar_server, setOpt)
    start service */
 PHP_METHOD(yar_server, handle)
 {
-    if (SG(headers_sent)) {
+	const char *method;
+	zval *executor, rv;
+
+    if (UNEXPECTED(SG(headers_sent))) {
 		php_error_docref(NULL, E_WARNING, "headers already has been sent");
         RETURN_FALSE;
-    } else {
-		const char *method;
-        zval *executor, rv;
+    }
 
 #if PHP_VERSION_ID < 80000
-		executor = zend_read_property(yar_server_ce, getThis(), ZEND_STRL("_executor"), 0, &rv);
+	executor = zend_read_property(yar_server_ce, getThis(), ZEND_STRL("_executor"), 0, &rv);
 #else
-		executor = zend_read_property(yar_server_ce, Z_OBJ_P(getThis()), ZEND_STRL("_executor"), 0, &rv);
+	executor = zend_read_property(yar_server_ce, Z_OBJ_P(getThis()), ZEND_STRL("_executor"), 0, &rv);
 #endif
-		if (IS_OBJECT != Z_TYPE_P(executor)) {
-			php_error_docref(NULL, E_WARNING, "executor is not a valid object");
-			RETURN_FALSE;
-		}
-
-		method = SG(request_info).request_method;
-		if (!method || strncasecmp(method, "POST", 4)) {
-			if (YAR_G(expose_info)) {
-				php_yar_server_info(executor);
-                RETURN_TRUE;
-			} else {
-				zend_throw_exception(yar_server_exception_ce, "server info is not allowed to access", YAR_ERR_FORBIDDEN);
-				return;
-			}
-		}
-
-		php_yar_server_handle(executor);
+	if (IS_OBJECT != Z_TYPE_P(executor)) {
+		php_error_docref(NULL, E_WARNING, "executor is not a valid object");
+		RETURN_FALSE;
 	}
+
+	method = SG(request_info).request_method;
+	if (!method || strncasecmp(method, "POST", 4)) {
+		if (YAR_G(expose_info)) {
+			php_yar_server_info(executor);
+			RETURN_TRUE;
+		} else {
+			zend_throw_exception(yar_server_exception_ce, "server info is not allowed to access", YAR_ERR_FORBIDDEN);
+			return;
+		}
+	}
+
+	php_yar_server_handle(executor);
 
 	RETURN_TRUE;
 }
