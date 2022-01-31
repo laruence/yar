@@ -72,6 +72,11 @@ Yar_Concurrent_Client::loop(function($ret, $callinfo) {
 
 ksort($sequence);
 print_r($sequence);
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Sequence 4 calling reset
 

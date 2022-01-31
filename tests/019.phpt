@@ -10,7 +10,16 @@ if (!extension_loaded("yar")) {
 <?php 
 include "yar.inc";
 
-yar_server_start();
+yar_server_start(<<<'PHP'
+<?php
+error_reporting(-1);
+class Service_Provider Extends SplFixedArray {
+}
+
+$yar = new Yar_Server(new Service_Provider());
+$yar->handle();
+PHP
+);
 
 $host = YAR_API_HOSTNAME;
 $port = YAR_API_PORT;
@@ -24,7 +33,7 @@ if (!$fp) {
   die("connect failed");
 }
 
-$uri = YAR_API_URI . "/internal.php";
+$uri = YAR_API_URI;
 
 if(fwrite($fp, <<<HEADER
 GET /{$uri} HTTP/1.1
@@ -41,6 +50,11 @@ HEADER
         }   
     }
 }
+?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
 ?>
 --EXPECT--
 okey

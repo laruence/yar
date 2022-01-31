@@ -18,6 +18,11 @@ var_dump($client->output());
 
 var_dump($client->output_exit());
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 outputstring(7) "success"
 outputNULL

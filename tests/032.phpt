@@ -20,6 +20,11 @@ var_dump($client->strlen(str_pad("dummy", 10000, "y")));
 var_dump($client->strlen(str_pad("dummy", 100000, "y")));
 var_dump($client->strlen(str_pad("dummy", 1000000, "y")));
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 int(500)
 int(1000)

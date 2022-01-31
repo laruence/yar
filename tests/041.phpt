@@ -20,5 +20,10 @@ for ($i = 0; $i < 8; $i++) {
 
 Yar_Concurrent_Client::loop(function() {});
 
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Warning: Yar_Concurrent_Client::loop(): %rselect|epoll_wait%r timeout '100ms' reached in %s041.php on line %d

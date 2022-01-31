@@ -22,6 +22,11 @@ $tcpClient = new Yar_Client("tcp://127.0.0.1:7690");
 var_dump($tcpClient->setOpt(YAR_OPT_PROXY, "127.0.0.1:8888"));
 print_r($tcpClient)
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 int(6)
 

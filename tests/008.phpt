@@ -10,9 +10,13 @@ if (!extension_loaded("yar")) {
 <?php 
 include "yar.inc";
 
-yar_server_start();
+yar_server_start(<<<'PHP'
+<?php
+echo "hello world";
+PHP
+);
 
-$client = new Yar_Client(YAR_API_ADDRESS . 'rest.php');
+$client = new Yar_Client(YAR_API_ADDRESS);
 
 try {
     $client->fatal();
@@ -20,5 +24,10 @@ try {
     var_dump($exceptin->getMessage());
 }
 
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 string(39) "malformed response header 'hello world'"

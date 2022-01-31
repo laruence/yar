@@ -18,6 +18,11 @@ var_dump($client->header("connection"));
 $client->setOpt(YAR_OPT_PERSISTENT, 1);
 var_dump($client->header("connection"));
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 string(5) "close"
 string(10) "Keep-Alive"

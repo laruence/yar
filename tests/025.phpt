@@ -52,6 +52,11 @@ try {
 	var_dump($e->getMessage());
 }
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 string(34) "malformed response header '(null)'"
 string(%d) "response body too large %d"

@@ -22,6 +22,11 @@ $client->setOpt(YAR_OPT_RESOLVE, array("doesnotexists.com:" . YAR_API_PORT.  ":1
 var_dump($client->header("hostname"));
 var_dump($client->header("user_agent"));
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 string(17) "doesnotexists.com"
 string(%d) "PHP Yar RPC-%s"

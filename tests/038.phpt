@@ -29,6 +29,11 @@ try {
 	var_dump($e->getMessage());
 }
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 NULL
 string(28) "select timeout 100ms reached"

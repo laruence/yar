@@ -26,6 +26,11 @@ Yar_Concurrent_Client::call("unix:///tmp/yar.sock", "normal", array("xxx", "3.8"
 
 Yar_Concurrent_Client::loop("callback");
 
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Warning: Yar_Concurrent_Client::call(): only http protocol is supported in concurrent client for now in %s017.php on line %d
 

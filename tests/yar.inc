@@ -9,10 +9,12 @@ define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 
-function yar_server_start($doc_root = __DIR__ . "/htdocs") {
+function yar_server_start($code = NULL) {
+	$doc_root = dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs";
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$cmd_args = NULL;
 
+	yar_server_build($doc_root, $code);
 	if (!(bool)getenv('TRAVIS') && !(bool)getenv('GITHUB')) { /* --show-diff break tests after PHP-7.2 */
 		$cmd_args = getenv('TEST_PHP_ARGS');
 	}
@@ -34,6 +36,82 @@ function yar_server_start($doc_root = __DIR__ . "/htdocs") {
 	}
 
 	return yar_server_run($cmd);
+}
+
+function yar_server_build($dir, $content = NULL) {
+	if (!file_exists($dir)) {
+		mkdir($dir, 0755, true);
+		chmod($dir, 0755);
+	}
+
+	if (!$content) {
+		$content = <<<'PHP'
+<?php
+class Service_Provider {
+	/**
+	 * @param interge $uid
+	 * @param string $version
+	 * @return string
+	 */
+	public function normal($uid, $version = "3.6") {
+		return $version;
+	}
+
+	public function exception() {
+		throw new Exception("server exceptin");
+	}
+
+	public function output() {
+		echo "output";
+		return "success";
+	}
+
+	public function output_exit() {
+		echo "output";
+		exit(1);
+	}
+
+	public function strlen($str) {
+		return strlen($str);
+	}
+
+	public function header($name) {
+		$key = "HTTP_" . strtoupper($name);
+		return isset($_SERVER[$key])? $_SERVER[$key] : NULL;
+	}
+
+	public function usleep($usec) {
+		usleep($usec);
+		return 1;
+	}
+
+	protected function invisible() {
+	}
+}
+
+$yar = new Yar_Server(new Service_Provider());
+$yar->handle();
+PHP;
+	}
+
+	$file = $dir . DIRECTORY_SEPARATOR . "index.php";
+	file_put_contents($file, $content);
+	return true;
+}
+
+function yar_server_cleanup() {
+	$dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs";
+	$dp = opendir($dir);
+	while (($f = readdir($dp))) {
+		if (in_array($f, array('.', '..'))) {
+			continue;
+		}
+		$path = $dir . DIRECTORY_SEPARATOR . $f;
+		if (is_file($path)) {
+			unlink($path);
+		}
+	}
+	rmdir($dir);
 }
 
 /* For TCP */

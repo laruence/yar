@@ -42,5 +42,10 @@ HEADER
     }
 }
 ?>
+--CLEAN--
+<?php
+include "yar.inc";
+yar_server_cleanup();
+?>
 --EXPECT--
 okey

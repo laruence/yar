@@ -92,6 +92,17 @@
     <file name="030.phpt" role="test" />
     <file name="031.phpt" role="test" />
     <file name="032.phpt" role="test" />
+    <file name="033.phpt" role="test" />
+    <file name="034.phpt" role="test" />
+    <file name="035.phpt" role="test" />
+    <file name="036.phpt" role="test" />
+    <file name="037.phpt" role="test" />
+    <file name="038.phpt" role="test" />
+    <file name="039.phpt" role="test" />
+    <file name="040.phpt" role="test" />
+    <file name="041.phpt" role="test" />
+    <file name="042.phpt" role="test" />
+    <file name="043.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
     <dir name="htdocs">

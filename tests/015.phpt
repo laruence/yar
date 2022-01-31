@@ -30,5 +30,10 @@ try {
     var_dump($e->getMessage());
 }
 
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 string(21) "exception in callback"

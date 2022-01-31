@@ -22,5 +22,10 @@ $yar->setOpt(YAR_OPT_PERSISTENT, true);
 $yar->output();
 $yar->output();
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 outputoutput

@@ -24,6 +24,11 @@ var_dump($client->header("foo"));
 var_dump($client->header("test"));
 
 
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Warning: Yar_Client::setOpt(): header only works with HTTP protocol in %s020.php on line %d
 

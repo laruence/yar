@@ -32,6 +32,11 @@ Yar_Concurrent_Client::loop(function($return, $callinfo) {
 
 ksort($sequence);
 print_r($sequence);
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Warning: Yar_Concurrent_Client::loop(): concurrent client has already been started in %s014.php on line %d
 Array

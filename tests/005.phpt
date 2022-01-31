@@ -19,6 +19,11 @@ try {
     var_dump($e->getType());
 }
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECT--
 string(15) "server exceptin"
 string(9) "Exception"

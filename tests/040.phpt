@@ -21,6 +21,11 @@ $client->setOpt(YAR_OPT_PACKAGER, "json");
 
 $client->normal("dummy");
 ?>
+--CLEAN--
+<?php
+include 'yar.inc';
+yar_server_cleanup();
+?>
 --EXPECTF--
 Warning: [Debug Yar_Client %s]: %d: call api 'normal' at (r)'%s' with '1' parameters in %s040.php on line %d
 
