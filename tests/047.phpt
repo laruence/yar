@@ -32,10 +32,16 @@ Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("wrong")));
 
 Yar_Concurrent_Client::loop(function($return, $callinfo) {
       echo $return;
+}, function($type, $error, $callinfo) {
+      if ($error != "authentication failed") {
+          echo "error";
+          return;
+      }
+      echo "okay";
 });
 ?>
 --CLEAN--
