@@ -105,13 +105,6 @@
     <file name="043.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
-    <dir name="htdocs">
-     <file name="index.php" role="test"/>
-     <file name="auth.php" role="test"/>
-     <file name="302.php" role="test"/>
-     <file name="rest.php" role="test"/>
-     <file name="internal.php" role="test"/>
-    </dir>
    </dir>
    <dir name="tools">
     <file name="yar_debug.inc" role="script"/>
