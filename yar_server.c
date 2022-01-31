@@ -467,8 +467,8 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 	YAR_TRY {
 		zval auth_params[2];
 
-		ZVAL_STRING(&auth_params[0], (char*)header->provider);
-		ZVAL_STRING(&auth_params[1], (char*)header->token);
+		ZVAL_STRINGL(&auth_params[0], (char*)header->provider, MIN(strlen(header->provider), 32));
+		ZVAL_STRINGL(&auth_params[1], (char*)header->token, MIN(strlen(header->token), 32));
 
 #if PHP_VERSION_ID < 80000
 		zend_call_method_with_2_params(obj, ce, NULL, "__auth", &ret, auth_params, auth_params + 1);
