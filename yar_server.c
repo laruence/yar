@@ -630,7 +630,7 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 			zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &ret, 1, &html);
 #endif
 			zval_ptr_dtor(&html);
-		} YAR_CATCH(/*html memleak? */);
+		} YAR_CATCH(smart_str_free(&out);return);
 
 		if (EG(exception)) {
 			smart_str_free(&out);
