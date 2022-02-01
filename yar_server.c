@@ -478,7 +478,7 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 #endif
 		zend_string_release(Z_STR(auth_params[0]));
 		zend_string_release(Z_STR(auth_params[1]));
-	} YAR_CATCH();
+	} YAR_CATCH(return 0);
 
 	if (EG(exception)) {
 		zend_object *exception = EG(exception);
