@@ -48,7 +48,7 @@ yar_request_t *php_yar_request_instance(zend_string *method, zend_array *paramet
 }
 /* }}} */
 
-yar_request_t * php_yar_request_unpack(zval *body) /* {{{ */ {
+yar_request_t* php_yar_request_unpack(zval *body) /* {{{ */ {
 	zval *v;
 	zend_string *k;
 	yar_request_t *req;

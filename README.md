@@ -12,9 +12,7 @@ Light, concurrent RPC framework for PHP(see also: [Yar C framework](https://gith
 
 ## Introduction
 
-Yar is a RPC framework which aims to provide a simple and easy way to do communication between PHP applications
-
-It has the ability to concurrently call multiple remote services.
+Yar is a RPC framework which provides a simple and easy way to do communication between PHP applications, it also offers an ability to concurrently call multiple remote services.
 
 ## Features
 - Fast, Easy, Simple
@@ -26,7 +24,7 @@ It has the ability to concurrently call multiple remote services.
 ## Install
 
 ### Install Yar 
-Yar is an PECL extension, thus you can simply install it by:
+Yar is an PECL extension, you can simply install it by:
 ```
 pecl install yar
 ```
@@ -70,7 +68,7 @@ $make && make install
 - yar.content_type // default "application/octet-stream"
 - yar.allow_persistent // default Off 
 
-*NOTE* yar.connect_time is a value in milliseconds, and was measured in seconds in 1.2.1 and before.
+*NOTE* yar.connect_time is a value in milliseconds, which was measured in seconds before 1.2.1.
 
 ## Constants
 - YAR_VERSION
@@ -105,7 +103,9 @@ $service = new Yar_Server(new API());
 $service->handle();
 ?>
 ```
-Usual RPC calls will be issued as HTTP POST requests. If a HTTP GET request is issued to the uri, the service information (commented section above) will be printed on the page:
+Usual RPC calls are issued as HTTP POST requests. 
+
+If a HTTP GET request is issued to the uri(access the api address directly via a browser), the service information (commented section above) will be returned, like:
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
 
@@ -120,10 +120,10 @@ class API {
     }
 }
 ```
-then If a HTTP GET request is issued, "hello world" will be sent instead
+then If a HTTP GET request is issued, "hello world" will be sent instead.
 
 ### Authentication
-Since 2.3.0, Yar allows server to authentic client request by Provider/Token fileds in header, for achieve this, you should define a protected magic method named "__auth":
+Since 2.3.0, Yar allows server to authentic client request by Provider/Token fileds in header, for achieve this, you should define a protected magic method named "__auth" in server side:
 ```php
 <?php
 class API {
@@ -132,6 +132,12 @@ class API {
      }
 
 ```
+*NOTE* __auth method should always be defined as protected
+
+if a Yar server has __auth defined, then __auth will be called at the very first time for any request,
+
+if __auth method return true, the request will be processed further, otherwise the request will be terminated by an error of "authentication failed"
+
 in clent side, you can specific the provider/token by:
 ```php
 <?php
@@ -139,8 +145,6 @@ in clent side, you can specific the provider/token by:
     $client->setOpt(YAR_OPT_TOKEN, "token");
     $client->call();
 ```
-
-if the method return true, then the request will be processed further, otherwise the request will be finished by an error of "authentication failed"
 
 ## Client
 It's very simple for a PHP client to call remote RPC:
@@ -222,7 +226,10 @@ $result = $client->some_method("parameter");
 
 ## Protocols
 ### Yar Header
-   Since Yar will support multi transfer protocols, so there is a Header struct, I call it Yar Header
+
+Yar is no only designed for PHP only, all RPC request and response are transferred by binary data stream.
+
+Key messages are exchanged by a struct called "Yar Header":
 ```C
 #ifdef PHP_WIN32
 #pragma pack(push)
@@ -246,10 +253,10 @@ yar_header_t;
 #endif
 ````
 ### Packager Header
-   Since Yar also supports multi packager protocol, so there is a char[8] at the begining of body, to identicate which packager the body is packaged by.
+Yar also supports multi packager protocols,  which is a char[8] before the header struct, to identicate which packager the body is packaged by.
 
 ### Request 
-   When a Client request a remote server,  it will send a struct (in PHP):
+When a Client do an RPC request ,  the request is sent as an array(in PHP) like:
 ```php
 <?php
 array(
@@ -260,7 +267,7 @@ array(
 ```
 
 ### Server
-When a server response a result,  it will send a struct (in PHP):
+When a server responses,  the response is sent also as an array (in PHP) like:
 ```php
 <?php
 array(
