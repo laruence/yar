@@ -106,6 +106,12 @@
     <file name="045.phpt" role="test" />
     <file name="046.phpt" role="test" />
     <file name="047.phpt" role="test" />
+    <file name="049.phpt" role="test" />
+    <file name="050.phpt" role="test" />
+    <file name="051.phpt" role="test" />
+    <file name="052.phpt" role="test" />
+    <file name="053.phpt" role="test" />
+    <file name="054.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="yar.inc" role="test" />
    </dir>

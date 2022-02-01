@@ -482,7 +482,13 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 
 	if (EG(exception)) {
 		zend_object *exception = EG(exception);
+#if PHP_VERSION_ID < 80000
 		php_yar_response_set_exception(response, exception);
+#else
+		if (!zend_is_unwind_exit(exception)) {
+			php_yar_response_set_exception(response, exception);
+		}
+#endif
 		EG(exception) = NULL; /* exception may have __destruct will be called */
 		OBJ_RELEASE(exception);
 		zend_clear_exception();
@@ -723,12 +729,14 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		goto response;
 	}
 
-	if (!php_yar_server_auth(obj, header, response)) {
+	if (UNEXPECTED(php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE)) {
+		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
 		goto response;
 	}
 
-	if (UNEXPECTED(php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS) == FAILURE)) {
-		php_yar_error(response, YAR_ERR_OUTPUT, "start output buffer failed");
+	if (!php_yar_server_auth(obj, header, response)) {
+		/* __auth may have exit with output called */
+		php_output_discard();
 		goto response;
 	}
 
