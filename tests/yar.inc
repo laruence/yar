@@ -19,21 +19,21 @@ function yar_server_start($code = NULL) {
 		$cmd_args = getenv('TEST_PHP_ARGS');
 	}
 
-	$cmd_args .= "-d yar.expose_info=" . ini_get("yar.expose_info") ." ";
-	$cmd_args .= "-d yar.content_type=" . ini_get("yar.content_type") . " ";
-	$cmd_args .= "-d yar.allow_persistent=" . ini_get("yar.allow_persistent") . " ";
+	$cmd_args .= " -d yar.expose_info=" . ini_get("yar.expose_info");
+	$cmd_args .= " -d yar.content_type=" . ini_get("yar.content_type");
+	$cmd_args .= " -d yar.allow_persistent=" . ini_get("yar.allow_persistent");
 
 	if (substr(PHP_OS, 0, 3) == 'WIN') {
-		$cmd_args = "-d extension=php_json.dll " . $cmd_args;
+		$cmd_args = " -d extension=php_json.dll " . $cmd_args;
 		if (YAR_HAS_MSGPACK) {
-			$cmd_args = "-d extension=php_msgpack.dll " . $cmd_args;
+			$cmd_args = " -d extension=php_msgpack.dll " . $cmd_args;
 		}
 		$cmd_args .= " -d extension=php_yar.dll";
 		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
 	} else {
-		$cmd_args = "-d extension=json.so " . $cmd_args;
+		$cmd_args = " -d extension=json.so " . $cmd_args;
 		if (YAR_HAS_MSGPACK) {
-			$cmd_args = "-d extension=msgpack.so " . $cmd_args;
+			$cmd_args = " -d extension=msgpack.so " . $cmd_args;
 		}
 		$cmd_args .= " -d extension=" . dirname(__DIR__) . "/modules/yar.so";
 		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
