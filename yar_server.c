@@ -451,6 +451,63 @@ static void php_yar_server_response(yar_request_t *request, yar_response_t *resp
 
 } /* }}} */
 
+static void php_yar_server_info(zval *obj) /* {{{ */ {
+	zval ret;
+	smart_str out = {0};
+	zend_function *fbc;
+	zend_class_entry *ce = Z_OBJCE_P(obj);
+
+	/* build html markup */
+	size_t len = sizeof(HTML_MARKUP_HEADER) + ZSTR_LEN(ce->name)
+	   	+ sizeof(HTML_MARKUP_CSS) + sizeof(HTML_MARKUP_SCRIPT) + sizeof(HTML_MARKUP_TITLE) + ZSTR_LEN(ce->name) - 4;
+
+	smart_str_alloc(&out, len, 0);
+	ZSTR_LEN(out.s) = sprintf(ZSTR_VAL(out.s), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
+	smart_str_appendl(&out, HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
+	smart_str_appendl(&out, HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
+	ZSTR_LEN(out.s) += sprintf(ZSTR_VAL(out.s), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
+
+	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(&out));
+
+	smart_str_erealloc(&out, ZSTR_LEN(out.s) + sizeof(HTML_MARKUP_FOOTER) - 1); /* include tailing zero byte */
+	smart_str_appendl(&out, HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
+	smart_str_0(&out);
+
+	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
+		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
+		YAR_TRY {
+			zval html;
+			ZVAL_STR_COPY(&html, out.s);
+#if PHP_VERSION_ID < 80000
+			zend_call_method_with_1_params(obj, ce, NULL, "__info", &ret, &html);
+#else
+			zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &ret, 1, &html);
+#endif
+			zval_ptr_dtor(&html);
+		} YAR_CATCH(smart_str_free(&out);return);
+
+		if (EG(exception)) {
+			smart_str_free(&out);
+			zval_ptr_dtor(&ret);
+			return;
+		}
+
+		if (Z_TYPE(ret) == IS_STRING) {
+			PHPWRITE(Z_STRVAL(ret), Z_STRLEN(ret));
+			smart_str_free(&out);
+			zval_ptr_dtor(&ret);
+			return;
+		} else {
+			zval_ptr_dtor(&ret);
+		}
+	}
+
+	PHPWRITE(ZSTR_VAL(out.s), ZSTR_LEN(out.s));
+	smart_str_free(&out);
+	return;
+}
+/* }}} */
+
 static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_response_t *response) /* {{{ */ {
 	zval ret;
 	zend_function *fbc;
@@ -594,63 +651,6 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 	}
 
 	return bailout;
-}
-/* }}} */
-
-static void php_yar_server_info(zval *obj) /* {{{ */ {
-	zval ret;
-	smart_str out = {0};
-	zend_function *fbc;
-	zend_class_entry *ce = Z_OBJCE_P(obj);
-
-	/* build html markup */
-	size_t len = sizeof(HTML_MARKUP_HEADER) + ZSTR_LEN(ce->name)
-	   	+ sizeof(HTML_MARKUP_CSS) + sizeof(HTML_MARKUP_SCRIPT) + sizeof(HTML_MARKUP_TITLE) + ZSTR_LEN(ce->name) - 4;
-
-	smart_str_alloc(&out, len, 0);
-	ZSTR_LEN(out.s) = sprintf(ZSTR_VAL(out.s), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
-	smart_str_appendl(&out, HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
-	smart_str_appendl(&out, HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
-	ZSTR_LEN(out.s) += sprintf(ZSTR_VAL(out.s), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
-
-	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(&out));
-
-	smart_str_erealloc(&out, ZSTR_LEN(out.s) + sizeof(HTML_MARKUP_FOOTER) - 1); /* include tailing zero byte */
-	smart_str_appendl(&out, HTML_MARKUP_FOOTER, sizeof(HTML_MARKUP_FOOTER) - 1);
-	smart_str_0(&out);
-
-	if ((fbc = zend_hash_str_find_ptr(&ce->function_table, "__info", sizeof("__info") - 1))
-		&& (fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
-		YAR_TRY {
-			zval html;
-			ZVAL_STR_COPY(&html, out.s);
-#if PHP_VERSION_ID < 80000
-			zend_call_method_with_1_params(obj, ce, NULL, "__info", &ret, &html);
-#else
-			zend_call_known_instance_method(fbc, Z_OBJ_P(obj), &ret, 1, &html);
-#endif
-			zval_ptr_dtor(&html);
-		} YAR_CATCH(smart_str_free(&out);return);
-
-		if (EG(exception)) {
-			smart_str_free(&out);
-			zval_ptr_dtor(&ret);
-			return;
-		}
-
-		if (Z_TYPE(ret) == IS_STRING) {
-			PHPWRITE(Z_STRVAL(ret), Z_STRLEN(ret));
-			smart_str_free(&out);
-			zval_ptr_dtor(&ret);
-			return;
-		} else {
-			zval_ptr_dtor(&ret);
-		}
-	}
-
-	PHPWRITE(ZSTR_VAL(out.s), ZSTR_LEN(out.s));
-	smart_str_free(&out);
-	return;
 }
 /* }}} */
 
