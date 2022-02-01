@@ -460,6 +460,7 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 		return 1;
 	}
 
+	/* Only protected magic method counts */
 	if (!(fbc->common.fn_flags & ZEND_ACC_PROTECTED)) {
 		return 1;
 	}

@@ -15,7 +15,7 @@ yar_server_start(<<<'PHP'
 error_reporting(-1);
 class Service_Provider {
 	protected function __auth($provider, $token) {
-        return ($provider == "Yar" && $token == md5("yar"));
+        return ($provider == "Yar" && ($token == md5("yar") || $token == substr(md5("yar"), 0, 18)));
 	}
    
     public function info() {
@@ -31,13 +31,13 @@ PHP
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("wrong")));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>substr(md5("yar"), 0, 18)));
 
 Yar_Concurrent_Client::loop(function($return, $callinfo) {
       echo $return;
 }, function($type, $error, $callinfo) {
-      if ($error != "authentication failed") {
+      if ($error != "authentication failed" || $callinfo["sequence"] != 4) {
           echo "error";
           return;
       }
