@@ -37,4 +37,4 @@ include 'yar.inc';
 yar_server_cleanup();
 ?>
 --EXPECT--
-NULL
+nothingNULL

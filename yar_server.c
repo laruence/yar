@@ -734,13 +734,10 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		goto response;
 	}
 
-	if (!php_yar_server_auth(obj, header, response)) {
-		/* __auth may have exit with output called */
-		php_output_discard();
-		goto response;
+	if (EXPECTED(php_yar_server_auth(obj, header, response))) {
+		bailout = php_yar_server_call(obj, request, response);
 	}
 
-	bailout = php_yar_server_call(obj, request, response);
 	if (UNEXPECTED(php_output_get_contents(&rv) == FAILURE)) {
 		php_output_discard();
 		goto response;
