@@ -12,7 +12,7 @@ Light, concurrent RPC framework for PHP(see also: [Yar C framework](https://gith
 
 ## Introduction
 
-Yar is a RPC framework which provides a simple and easy way to do communication between PHP applications, it also offers an ability to concurrently call multiple remote services.
+Yar is a RPC framework which provides a simple and easy way to do communication between PHP applications, it also offers an ability of doing multiple calls to remote services concurrently.
 
 ## Features
 - Fast, Easy, Simple
@@ -24,7 +24,7 @@ Yar is a RPC framework which provides a simple and easy way to do communication 
 ## Install
 
 ### Install Yar 
-Yar is an PECL extension, you can simply install it by:
+Yar is an PECL extension, could be installed simply by:
 ```
 pecl install yar
 ```
@@ -42,7 +42,8 @@ Available instructions to configure are
 ```
 
 ### Install Yar with msgpack 
-first you should install msgpack-ext
+
+1. Install msgpack for PHP extension:
 ```
 pecl install msgpack
 ```
@@ -52,7 +53,7 @@ apt-get install msgpack-php
 ```
 or , you can get the github source here: https://github.com/msgpack/msgpack-php
 
-then:
+2. configuration:
 ```
 $phpize
 $configure --with-php-config=/path/to/php-config/ --enable-msgpack

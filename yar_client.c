@@ -940,10 +940,11 @@ PHP_METHOD(yar_concurrent_client, reset) {
 /* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback = NULL) */
 PHP_METHOD(yar_concurrent_client, loop) {
 	int ret;
+	zval *options;
 	zend_fcall_info callback = {0}, ecallback = {0};
 	zend_fcall_info_cache callbackc, ecallbackc;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!", &callback, &callbackc, &ecallback, &ecallbackc) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!a!", &callback, &callbackc, &ecallback, &ecallbackc, &options) == FAILURE) {
 		return;
 	}
 
@@ -954,6 +955,25 @@ PHP_METHOD(yar_concurrent_client, loop) {
 
 	if (UNEXPECTED(YAR_G(cctx).clist == NULL)) {
 		RETURN_TRUE;
+	}
+
+	if (options) {
+		void *coptions[YAR_OPT_MAX];
+		yar_call_data_t *entry = (yar_call_data_t*)YAR_G(cctx).clist;
+		ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(options), h, zv) {
+            if (!php_yar_client_set_opt(coptions, h, zv)) {
+				php_yar_client_trigger_error(1, YAR_ERR_EXCEPTION, "illegal option");
+				RETURN_FALSE;
+			}
+		} ZEND_HASH_FOREACH_END();
+
+		while (entry) {
+			if (entry->options) {
+				int i = 0;
+				for (i; i < YAR_OPT_MAX; i++) {
+				}
+			}
+		}
 	}
 
 	if (callback.size) {
