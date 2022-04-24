@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2021-12-18</date>
- <time>16:00:00</time>
+ <date>2022-04-24</date>
+ <time>15:15:00</time>
  <version>
-  <release>2.2.1</release>
-  <api>2.2.1</api>
+  <release>2.3.0</release>
+  <api>2.3.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,11 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-  - Fixed build with PHP8.1
+  - Added ::__info() magic method for custom server info
+  - Support __auth(by introduced YAR_OPT_PROVIDER/TOKEN)
+  - Respect provider/token on tcp transportor
+  - Fixed package/unpack with json/serialize
+  - refactor struct for better performance(ABI break?)
  </notes>
  <contents> 
   <dir name="/"> 
@@ -143,6 +147,41 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2022-04-24</date> 
+   <version> 
+    <release>2.3.0</release> 
+    <api>2.3.0</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - Added ::__info() magic method for custom server info
+    - Support __auth(by introduced YAR_OPT_PROVIDER/TOKEN)
+    - Respect provider/token on tcp transportor
+    - Fixed package/unpack with json/serialize
+    - refactor struct for better performance(ABI break?)
+   </notes> 
+  </release>
+
+  <release> 
+   <date>2021-12-18</date> 
+   <version> 
+    <release>2.2.1</release> 
+    <api>2.2.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+    - PHP8.1 Supported
+   </notes> 
+  </release> 
+  <release> 
    <date>2021-01-05</date> 
    <version> 
     <release>2.2.0</release> 
@@ -157,7 +196,6 @@
     - PHP8 Supported
    </notes> 
   </release> 
-
   <release> 
    <date>2021-12-18</date> 
    <version> 
@@ -529,6 +567,3 @@
   </release> 
  </changelog> 
 </package> 
-<!--
-vim:et:ts=1:sw=1
---> 
