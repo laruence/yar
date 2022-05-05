@@ -37,6 +37,7 @@ jobs:
           extensions: json
       - name: Install
         run: |
+          sudo apt-get update && \
           sudo apt --fix-broken install && \
           sudo apt-get install -y \
           libcurl-ocaml-dev \
