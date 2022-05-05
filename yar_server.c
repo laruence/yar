@@ -523,15 +523,16 @@ static inline int php_yar_server_auth(zval *obj, yar_header_t *header, yar_respo
 	}
 
 	YAR_TRY {
+		char *null_byte;
 		zval auth_params[2];
 
-		if (memchr(header->provider, 0, 32)) {
-			ZVAL_STRINGL(&auth_params[0], (char*)header->provider, strlen((char *)header->provider));
+		if ((null_byte = memchr(header->provider, 0, 32))) {
+			ZVAL_STRINGL(&auth_params[0], (char*)header->provider, null_byte - (char*)header->provider);
 		} else {
 			ZVAL_STRINGL(&auth_params[0], (char*)header->provider, 32);
 		}
-		if (memchr(header->token, 0, 32)) {
-			ZVAL_STRINGL(&auth_params[1], (char*)header->token, strlen((char*)header->token));
+		if ((null_byte = memchr(header->token, 0, 32))) {
+			ZVAL_STRINGL(&auth_params[1], (char*)header->token, null_byte - (char*)header->token);
 		} else {
 			ZVAL_STRINGL(&auth_params[1], (char*)header->token, 32);
 		}
