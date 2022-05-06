@@ -10,8 +10,8 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2022-??-??</date>
- <time>15:15:00</time>
+ <date>2022-05-06</date>
+ <time>14:20:00</time>
  <version>
   <release>2.3.1</release>
   <api>2.3.1</api>
@@ -143,6 +143,22 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2022-05-06</date> 
+   <version> 
+    <release>2.3.1</release> 
+    <api>2.3.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+	   - Fix #172 provider/token may be not nul terminated
+   </notes> 
+  </release>
+
+  <release> 
    <date>2022-04-24</date> 
    <version> 
     <release>2.3.0</release> 
@@ -161,7 +177,6 @@
     - refactor struct for better performance(ABI break?)
    </notes> 
   </release>
-
   <release> 
    <date>2021-12-18</date> 
    <version> 
