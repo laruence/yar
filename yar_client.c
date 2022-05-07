@@ -148,28 +148,33 @@ static inline int php_yar_check_array_values(zend_array *arr) /* {{{ */ {
 }
 /* }}} */
 
-static void php_yar_options_dtor(void **options) /* {{{ */ {
+static inline void php_yar_option_dtor(yar_opt type, void *value) { /* {{{ */
+	switch (type) {
+		case YAR_OPT_PACKAGER:
+		case YAR_OPT_PROXY:
+		case YAR_OPT_PROVIDER:
+		case YAR_OPT_TOKEN: {
+			zend_string *val = (zend_string*)value;
+			zend_string_release(val);
+		}
+		break;
+		case YAR_OPT_HEADER:
+		case YAR_OPT_RESOLVE: {
+			zend_array *val = (zend_array*)value;
+			zend_array_destroy(val);
+		}
+		break;
+		default:
+		break;
+	}
+}
+/* }}} */
+
+static void php_yar_options_destroy(void **options) /* {{{ */ {
 	unsigned int i;
 	for (i = 0; i < YAR_OPT_MAX; i++) {
 		if (options[i]) {
-			switch (i) {
-				case YAR_OPT_PACKAGER:
-				case YAR_OPT_PROXY:
-				case YAR_OPT_PROVIDER:
-				case YAR_OPT_TOKEN: {
-					zend_string *val = (zend_string*)options[i];
-					zend_string_release(val);
-				}
-				break;
-				case YAR_OPT_HEADER:
-				case YAR_OPT_RESOLVE: {
-					zend_array *val = (zend_array*)options[i];
-					zend_array_destroy(val);
-				}
-				break;
-				default:
-				break;
-			}
+			php_yar_option_dtor(i, options[i]);
 		}
 	}
 	efree(options);
@@ -190,7 +195,7 @@ static void php_yar_calldata_dtor(yar_call_data_t *entry) /* {{{ */ {
 	}
 
 	if (entry->options) {
-		php_yar_options_dtor(entry->options);
+		php_yar_options_destroy(entry->options);
 	}
 
 	if (entry->callback.fci.size) {
@@ -358,6 +363,29 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 
 	return 1;
 } /* }}} */
+
+static void php_yar_concurrent_client_options(yar_call_data_t *entry, zval *options) /* {{{ */ {
+	while (entry) {
+		zval *zv;
+		zend_long h;
+		yar_call_data_t *next = entry->next;
+		if (!entry->options) {
+			entry->options = ecalloc(YAR_OPT_MAX, sizeof(void*));
+		}
+		ZEND_HASH_FOREACH_NUM_KEY_VAL(Z_ARRVAL_P(options), h, zv) {
+			if (UNEXPECTED(entry->options[h])) {
+				/* options set by call has high priority */
+				continue;
+			}
+			if (!php_yar_client_set_opt(entry->options, h, zv)) {
+				php_yar_client_trigger_error(1, YAR_ERR_EXCEPTION, "illegal option");
+				return;
+			}
+		} ZEND_HASH_FOREACH_END();
+		entry = next;
+	}
+}
+/* }}} */
 
 static int php_yar_client_handle(yar_client_object *client, zend_string *method, zend_array *params, zval *retval) /* {{{ */ {
 	char *msg;
@@ -631,7 +659,7 @@ static void yar_client_object_free(zend_object *object) /* {{{ */ {
 	}
 
 	if (client->options) {
-		php_yar_options_dtor(client->options);
+		php_yar_options_destroy(client->options);
 	}
 
 	if (client->properties) {
@@ -937,13 +965,14 @@ PHP_METHOD(yar_concurrent_client, reset) {
 }
 /* }}} */
 
-/* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback = NULL) */
+/* {{{ proto Yar_Concurrent_Client::loop($callback = NULL, $error_callback = NULL, $options = NULL) */
 PHP_METHOD(yar_concurrent_client, loop) {
 	int ret;
+	zval *options = NULL;
 	zend_fcall_info callback = {0}, ecallback = {0};
 	zend_fcall_info_cache callbackc, ecallbackc;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!a!", &callback, &callbackc, &ecallback, &ecallbackc) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!a!", &callback, &callbackc, &ecallback, &ecallbackc, &options) == FAILURE) {
 		return;
 	}
 
@@ -967,6 +996,10 @@ PHP_METHOD(yar_concurrent_client, loop) {
 		memcpy(&YAR_G(cctx).ecallback.fcc, &ecallbackc, sizeof(zend_fcall_info_cache));
 	} else {
 		YAR_G(cctx).ecallback.fci.size = 0;
+	}
+
+	if (options) {
+		php_yar_concurrent_client_options((yar_call_data_t*)YAR_G(cctx).clist, options);
 	}
 
 	YAR_G(cctx).start = 1;

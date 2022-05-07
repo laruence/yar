@@ -28,10 +28,10 @@ $yar->handle();
 PHP
 );
 
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("wrong")));
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array());
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array());
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array());
+Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array());
 Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info", array(), NULL, NULL, array(YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>substr(md5("yar"), 0, 18)));
 
 Yar_Concurrent_Client::loop(function($return, $callinfo) {
@@ -42,7 +42,11 @@ Yar_Concurrent_Client::loop(function($return, $callinfo) {
           return;
       }
       echo "okay";
-});
+}, 
+array(
+	YAR_OPT_PROVIDER=>"Yar", YAR_OPT_TOKEN=>md5("yar")
+)
+);
 ?>
 --CLEAN--
 <?php
