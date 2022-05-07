@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2022-05-06</date>
+ <date>2022-??-??</date>
  <time>14:20:00</time>
  <version>
-  <release>2.3.1</release>
-  <api>2.3.1</api>
+  <release>2.3.2</release>
+  <api>2.3.2</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-	 - Fix #172 provider/token may be not nul terminated
+	 - Fix segfault due to zend_empty_array usage
  </notes>
  <contents> 
   <dir name="/"> 
