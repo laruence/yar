@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 7862b4a33978ffa7ac22f0da9ada3452bbd647a8 */
+ * Stub hash: f627ffbe0bc3ace1d517c32646e4a242a7e9d6dc */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_Yar_Server___construct, 0, 0, 1)
 	ZEND_ARG_TYPE_INFO(0, executor, IS_OBJECT, 0)
@@ -41,6 +41,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_Yar_Concurrent_Client_loop, 0, 0, _IS_BOOL, 1)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, callback, IS_CALLABLE, 1, "NULL")
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, error_callback, IS_CALLABLE, 1, "NULL")
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, options, IS_ARRAY, 1, "NULL")
 ZEND_END_ARG_INFO()
 
 #define arginfo_class_Yar_Concurrent_Client_reset arginfo_class_Yar_Server_handle

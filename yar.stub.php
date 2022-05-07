@@ -37,7 +37,7 @@ class Yar_Concurrent_Client {
 	/* methods */
 	public static function call(string $uri, string $method, ?array $arguments = NULL, ?callable $callback = NULL, ?callable $error_callback = NULL, ?array $options = NULL):null|int|bool {}
 
-	public static function loop(?callable $callback = NULL, ?callable $error_callback = NULL):?bool {}
+	public static function loop(?callable $callback = NULL, ?callable $error_callback = NULL, ?array $options = NULL):?bool {}
 
 	public static function reset():bool {}
 }

@@ -589,12 +589,8 @@ int php_yar_concurrent_client_handle(yar_call_data_t *entry) /* {{{ */ {
 
 	while ((entry)) {
 		if (entry->parameters == NULL) {
-#if PHP_VERSION_ID < 70300
 			ALLOC_HASHTABLE(entry->parameters);
 			zend_hash_init(entry->parameters, 0, NULL, NULL, 0);
-#else
-			entry->parameters = (zend_array*)&zend_empty_array;
-#endif
 		} 
 
 		transport = factory->init();
