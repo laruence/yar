@@ -113,6 +113,7 @@
     <file name="053.phpt" role="test" />
     <file name="054.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
+    <file name="issue172.phpt" role="test" />
     <file name="yar.inc" role="test" />
    </dir>
    <dir name="tools">
