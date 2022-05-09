@@ -5,7 +5,10 @@ ISSUE #172 $provider/$token may not be nullbyte-terminated
 if (!extension_loaded("yar")) {
     print "skip";
 }
+if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
 ?>
+--INI--
+yar.tiemout=10000
 --FILE--
 <?php 
 include "yar.inc";
