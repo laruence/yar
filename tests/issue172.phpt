@@ -8,7 +8,7 @@ if (!extension_loaded("yar")) {
 if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
 ?>
 --INI--
-yar.timeout=30000
+yar.timeout=50000
 --FILE--
 <?php 
 include "yar.inc";
