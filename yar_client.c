@@ -645,7 +645,6 @@ static void yar_client_object_free(zend_object *object) /* {{{ */ {
 
 	if (client->parameters) {
 		if (GC_DELREF(client->parameters) == 0) {
-			GC_REMOVE_FROM_BUFFER(client->parameters);
 			zend_array_destroy(client->parameters);
 		}
 	}
@@ -660,7 +659,6 @@ static void yar_client_object_free(zend_object *object) /* {{{ */ {
 
 	if (client->properties) {
 		if (GC_DELREF(client->properties) == 0) {
-			GC_REMOVE_FROM_BUFFER(client->properties);
 			zend_array_destroy(client->properties);
 		}
 	}
