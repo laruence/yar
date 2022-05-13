@@ -20,9 +20,17 @@ function callback($return, $callinfo) {
     }
 }
 
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
-Yar_Concurrent_Client::call(YAR_API_ADDRESS, "normal", array("xxx", "3.8"));
+$arguments = array(
+    YAR_API_ADDRESS,
+    "normal",
+    array(
+      "xxx", "3.8"
+    )
+);
+
+Yar_Concurrent_Client::call(...$arguments);
+Yar_Concurrent_Client::call(...$arguments);
+Yar_Concurrent_Client::call(...$arguments);
 
 try {
     Yar_Concurrent_Client::loop("callback");
