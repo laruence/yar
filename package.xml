@@ -10,8 +10,8 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2022-??-??</date>
- <time>14:20:00</time>
+ <date>2022-05-16</date>
+ <time>10:00:00</time>
  <version>
   <release>2.3.2</release>
   <api>2.3.2</api>
@@ -23,6 +23,7 @@
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
 	 - Fix segfault due to zend_empty_array usage
+	 - Added third (options*) parameters for Yar_Concurrent_call
  </notes>
  <contents> 
   <dir name="/"> 
@@ -159,6 +160,22 @@
    </notes> 
   </release>
 
+  <release> 
+   <date>2022-05-16</date> 
+   <version> 
+    <release>2.3.2</release> 
+    <api>2.3.2</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+	   - Fix segfault due to zend_empty_array usage
+	   - Added third (options*) parameters for Yar_Concurrent_call
+   </notes> 
+  </release>
   <release> 
    <date>2022-04-24</date> 
    <version> 
