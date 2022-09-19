@@ -105,17 +105,19 @@ PHP;
 
 function yar_server_cleanup() {
 	$dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs";
-	$dp = opendir($dir);
-	while (($f = readdir($dp))) {
-		if (in_array($f, array('.', '..'))) {
-			continue;
+	if (is_dir($dir)) {
+		$dp = opendir($dir);
+		while (($f = readdir($dp))) {
+			if (in_array($f, array('.', '..'))) {
+				continue;
+			}
+			$path = $dir . DIRECTORY_SEPARATOR . $f;
+			if (is_file($path)) {
+				unlink($path);
+			}
 		}
-		$path = $dir . DIRECTORY_SEPARATOR . $f;
-		if (is_file($path)) {
-			unlink($path);
-		}
+		rmdir($dir);
 	}
-	rmdir($dir);
 }
 
 /* For TCP */

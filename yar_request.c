@@ -34,7 +34,11 @@
 yar_request_t *php_yar_request_instance(zend_string *method, zend_array *parameters, void **options) /* {{{ */ {
 	yar_request_t *request = emalloc(sizeof(yar_request_t));
 
+#if PHP_VERSION_ID < 80200
 	if (!BG(mt_rand_is_seeded)) {
+#else
+	if (!RANDOM_G(mt19937_seeded)) {
+#endif
 		php_mt_srand(GENERATE_SEED());
 	}
 
