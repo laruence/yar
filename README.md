@@ -1,5 +1,5 @@
 # Yar - Yet Another RPC framework for PHP
-[![Build Status](https://secure.travis-ci.org/laruence/yar.png)](http://travis-ci.org/laruence/yar) [![Build status](https://ci.appveyor.com/api/projects/status/syhw33wlt2nad64i/branch/master?svg=true)](https://ci.appveyor.com/project/laruence/yar/branch/master) [![Build Status](https://github.com/laruence/yar/workflows/integrate/badge.svg?branch=master)](https://github.com/laruence/yar/actions?query=workflow%3Aintegrate)
+[![Build status](https://ci.appveyor.com/api/projects/status/syhw33wlt2nad64i/branch/master?svg=true)](https://ci.appveyor.com/project/laruence/yar/branch/master) [![Build Status](https://github.com/laruence/yar/workflows/integrate/badge.svg?branch=master)](https://github.com/laruence/yar/actions?query=workflow%3Aintegrate)
 
 Light, concurrent RPC framework for PHP(see also: [Yar C framework](https://github.com/laruence/yar-c), [Yar Java framework](https://github.com/weibocom/yar-java))
 
