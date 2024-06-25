@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2022-05-16</date>
- <time>10:00:00</time>
+ <date>2024-06-25</date>
+ <time>11:40:00</time>
  <version>
-  <release>2.3.2</release>
-  <api>2.3.2</api>
+  <release>2.3.3</release>
+  <api>2.3.3</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,8 +22,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-	 - Fix segfault due to zend_empty_array usage
-	 - Added third (options*) parameters for Yar_Concurrent_call
+	 - Fixed build with PHP8.3
  </notes>
  <contents> 
   <dir name="/"> 
@@ -145,10 +144,10 @@
  </extsrcrelease>
  <changelog> 
   <release> 
-   <date>2022-05-06</date> 
+   <date>2024-06-25</date> 
    <version> 
-    <release>2.3.1</release> 
-    <api>2.3.1</api> 
+    <release>2.3.3</release> 
+    <api>2.3.3</api> 
    </version> 
    <stability> 
     <release>stable</release> 
@@ -156,7 +155,7 @@
    </stability> 
    <license uri="http://www.php.net/license">php license</license> 
    <notes>
-	   - Fix #172 provider/token may be not nul terminated
+	   - Fixed build with PHP8.3
    </notes> 
   </release>
 
@@ -174,6 +173,21 @@
    <notes>
 	   - Fix segfault due to zend_empty_array usage
 	   - Added third (options*) parameters for Yar_Concurrent_call
+   </notes> 
+  </release>
+  <release> 
+   <date>2022-05-06</date> 
+   <version> 
+    <release>2.3.1</release> 
+    <api>2.3.1</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+	   - Fix #172 provider/token may be not nul terminated
    </notes> 
   </release>
   <release> 
