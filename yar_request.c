@@ -22,8 +22,11 @@
 #endif
 
 #include "php.h"
-#include "ext/standard/php_lcg.h" /* for php_combined_lcg’ */
+#if PHP_VERSION_ID < 80400
 #include "ext/standard/php_rand.h" /* for php_mt_rand */
+#else
+#include "ext/random/php_random.h"
+#endif
 
 #include "php_yar.h"
 #include "yar_exception.h"
