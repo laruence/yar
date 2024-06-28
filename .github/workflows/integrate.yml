@@ -34,7 +34,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.PHP }}
-          extensions: json
       - name: Install
         run: |
           sudo apt-get update && \
