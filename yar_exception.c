@@ -62,7 +62,7 @@ zend_class_entry * php_yar_get_exception_base(int root) /* {{{ */ {
 	}
 #endif
 
-	return zend_exception_get_default();
+	return zend_ce_exception;
 }
 /* }}} */
 
