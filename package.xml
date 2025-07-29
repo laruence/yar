@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2024-06-25</date>
- <time>11:40:00</time>
+ <date>2025-07-29</date>
+ <time>17:00:00</time>
  <version>
-  <release>2.3.3</release>
-  <api>2.3.3</api>
+  <release>2.3.4</release>
+  <api>2.3.4</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,7 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-	 - Fixed build with PHP8.3
+	 - Fixed build with PHP8.5
  </notes>
  <contents> 
   <dir name="/"> 
@@ -144,6 +144,22 @@
  </extsrcrelease>
  <changelog> 
   <release> 
+   <date>2025-07-29</date> 
+   <version> 
+    <release>2.3.4</release> 
+    <api>2.3.4</api> 
+   </version> 
+   <stability> 
+    <release>stable</release> 
+    <api>stable</api> 
+   </stability> 
+   <license uri="http://www.php.net/license">php license</license> 
+   <notes>
+	   - Fixed build with PHP8.3
+   </notes> 
+  </release>
+
+  <release> 
    <date>2024-06-25</date> 
    <version> 
     <release>2.3.3</release> 
@@ -158,7 +174,6 @@
 	   - Fixed build with PHP8.3
    </notes> 
   </release>
-
   <release> 
    <date>2022-05-16</date> 
    <version> 
