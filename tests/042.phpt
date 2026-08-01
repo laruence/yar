@@ -6,8 +6,6 @@ if (!extension_loaded("yar")) {
     print "skip";
 }
 ?>
---INI--
-report_memleaks=0
 --FILE--
 <?php 
 include "yar.inc";
