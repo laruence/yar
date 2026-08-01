@@ -18,6 +18,10 @@ if (PHP_YAR != "no") {
 		CHECK_LIB("libssh2.lib", "yar") &&
 		CHECK_LIB("nghttp2.lib", "yar")) {
 
+		CHECK_LIB("brotlidec-static.lib;brotlidec.lib", "yar");
+		CHECK_LIB("brotlicommon-static.lib;brotlicommon.lib", "yar");
+		CHECK_LIB("libzstd_a.lib;libzstd.lib", "yar");
+
 		ADD_EXTENSION_DEP("yar", "json");
 
 		ADD_FLAG("CFLAGS_YAR", "/I " + configure_module_dirname);
