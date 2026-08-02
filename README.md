@@ -84,14 +84,14 @@ $ make && make install
 | `yar.debug` | `Off` | Enable debug mode |
 | `yar.expose_info` | `On` | Whether to output the API info page for GET requests |
 | `yar.content_type` | `"application/octet-stream"` | Content-Type sent in responses |
-| `yar.allow_persistent` | `Off` | Whether to allow persistent connections |
 
 > **Note**: `yar.connect_timeout` is in milliseconds. Prior to 1.2.1 it was measured in seconds.
 
 ## Constants
 
+### Option Constants
+
 ```php
-YAR_VERSION
 YAR_OPT_PACKAGER
 YAR_OPT_PERSISTENT
 YAR_OPT_TIMEOUT
@@ -102,6 +102,46 @@ YAR_OPT_RESOLVE         // Since 2.1.0
 YAR_OPT_PROVIDER        // Since 2.3.0
 YAR_OPT_TOKEN           // Since 2.3.0
 ```
+
+### Version & Feature Constants
+
+```php
+YAR_VERSION
+YAR_HAS_MSGPACK   // 1 if compiled with --enable-msgpack, 0 otherwise
+```
+
+### Error Type Constants
+
+Used by `Yar_Server_Exception::getType()` and `Yar_Client_Exception::getType()` to indicate the nature of the error:
+
+```php
+YAR_ERR_OKEY       = 0x00  // No error
+YAR_ERR_PACKAGER   = 0x01  // Packager error
+YAR_ERR_PROTOCOL   = 0x02  // Protocol error
+YAR_ERR_REQUEST    = 0x04  // Request error
+YAR_ERR_OUTPUT     = 0x08  // Output error
+YAR_ERR_TRANSPORT  = 0x10  // Transport error
+YAR_ERR_EXCEPTION  = 0x40  // General exception
+```
+
+## Exception Classes
+
+Yar defines a structured exception hierarchy for both server and client errors:
+
+```
+Exception / RuntimeException
+├── Yar_Server_Exception
+│   ├── Yar_Server_Request_Exception
+│   ├── Yar_Server_Protocol_Exception
+│   ├── Yar_Server_Packager_Exception
+│   └── Yar_Server_Output_Exception
+└── Yar_Client_Exception
+    ├── Yar_Client_Transport_Exception
+    ├── Yar_Client_Protocol_Exception
+    └── Yar_Client_Packager_Exception
+```
+
+Both base exception classes have a `getType()` method that returns the error type constant (e.g. `YAR_ERR_TRANSPORT`).
 
 ## Server
 
@@ -136,6 +176,22 @@ Usual RPC calls are issued as HTTP POST requests.
 If an HTTP GET request is issued to the URI (access the API address directly via a browser), the service info page (generated from the doc comments above) will be returned:
 
 ![yar service info page](https://github.com/laruence/laruence.github.com/raw/master/yar_server.png)
+
+### Yar_Server::__construct
+
+```php
+Yar_Server::__construct(object $executor)
+```
+
+Creates a new Yar server wrapping the given `$executor` object. All public methods of `$executor` are exposed as RPC endpoints.
+
+### Yar_Server::handle
+
+```php
+Yar_Server::handle(): bool
+```
+
+Starts processing the incoming RPC request. Returns `true` on success.
 
 ### Custom Server Info
 
@@ -186,6 +242,58 @@ $client->call();
 ```
 
 ## Client
+
+### Yar_Client::__construct
+
+```php
+Yar_Client::__construct(string $uri[, array $options = null])
+```
+
+Creates a new Yar client. The `$uri` is the server address (e.g. `"http://host/api/"` or `"tcp://host:port"`).
+
+`$options` is an optional array of initial options, e.g.:
+
+```php
+$client = new Yar_Client("http://host/api/", [
+    YAR_OPT_CONNECT_TIMEOUT => 1000,
+    YAR_OPT_PERSISTENT => 1,
+]);
+```
+
+### Yar_Client::setOpt
+
+```php
+Yar_Client::setOpt(int $type, mixed $value): Yar_Client|bool
+```
+
+Set a client option. Returns `$this` on success (for chaining), `false` on failure.
+
+See [Option Constants](#option-constants) for available `$type` values.
+
+### Yar_Client::getOpt
+
+```php
+Yar_Client::getOpt(int $type): mixed
+```
+
+Get the current value of a client option.
+
+### Yar_Client::call
+
+```php
+Yar_Client::call(string $method, array $arguments): mixed
+```
+
+Call a remote method by name. Returns the result on success.
+
+### Magic Method (__call)
+
+`Yar_Client` supports PHP's `__call`, so these are equivalent:
+
+```php
+$client->call("some_method", [$arg1, $arg2]);
+$client->some_method($arg1, $arg2);
+```
 
 ### Synchronous Call
 
@@ -240,9 +348,44 @@ Yar_Concurrent_Client::call("http://host/api/", "some_method", ["parameters"],
 Yar_Concurrent_Client::call("http://host/api/", "some_method", ["parameters"],
     "callback", "error_callback", [YAR_OPT_TIMEOUT => 1]);
 
-// Send all requests. The error_callback is optional.
-Yar_Concurrent_Client::loop("callback", "error_callback");
+// Send all requests. The error_callback and options are optional.
+Yar_Concurrent_Client::loop("callback", "error_callback", [YAR_OPT_PACKAGER => "json"]);
 ```
+
+### Yar_Concurrent_Client::call
+
+```php
+Yar_Concurrent_Client::call(
+    string $uri,
+    string $method,
+    ?array $arguments = null,
+    ?callable $callback = null,
+    ?callable $error_callback = null,
+    ?array $options = null
+): null|int|bool
+```
+
+Registers a concurrent call. Returns `null` on error, or an opaque int ID on success.
+
+### Yar_Concurrent_Client::loop
+
+```php
+Yar_Concurrent_Client::loop(
+    ?callable $callback = null,
+    ?callable $error_callback = null,
+    ?array $options = null
+): ?bool
+```
+
+Sends all registered concurrent calls and waits for responses. Returns `true` on success, `null` on failure.
+
+### Yar_Concurrent_Client::reset
+
+```php
+Yar_Concurrent_Client::reset(): bool
+```
+
+Clears all registered concurrent calls without sending them. Returns `true` on success.
 
 ### Persistent Connections
 
