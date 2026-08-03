@@ -16,6 +16,13 @@ Light, concurrent RPC framework for PHP (see also: [Yar C framework](https://git
 
 Yar is an RPC framework which provides a simple and easy way to do communication between PHP applications. It also offers the ability to make multiple calls to remote services concurrently.
 
+Yar is a **native PHP extension** — not a userland library. It uses a compact binary protocol (`yar_header_t` + packager payload) over HTTP or TCP, with no external runtime dependencies beyond curl. This means no Composer packages, no framework bootstrap, no separate proxy process. It's designed for the "just works" experience: install the extension, write a few lines of PHP, and you have RPC.
+
+### When to use Yar
+
+- **Best for**: RPC between PHP applications (or any combination of PHP, C, Java, and Lua via the respective Yar implementations). Microservices within the same infrastructure. Scenarios where low latency and minimal operational overhead matter more than schema-driven code generation.
+- **Not ideal for**: Public-facing APIs consumed by arbitrary third-party clients (use REST or gRPC with Protobuf instead). Environments that require built-in service discovery, load balancing, or streaming (gRPC is a better fit there).
+
 ## Features
 
 - Fast, easy, simple
@@ -50,6 +57,8 @@ Available configure options:
 --enable-epoll / --disable-epoll (requires Yar 2.1.2)
 ```
 
+`--enable-epoll` replaces the default `select()`-based I/O multiplexing with Linux `epoll`. This can improve performance for `Yar_Concurrent_Client` under high concurrency. It only affects Linux; on other platforms it has no effect.
+
 ### Install Yar with msgpack
 
 1. Install msgpack extension for PHP:
@@ -81,7 +90,7 @@ $ make && make install
 | `yar.timeout` | `5000` | Timeout in milliseconds |
 | `yar.connect_timeout` | `1000` | Connection timeout in milliseconds |
 | `yar.packager` | `"php"` (or `"msgpack"` if built with `--enable-msgpack`) | One of `"php"`, `"json"`, `"msgpack"` |
-| `yar.debug` | `Off` | Enable debug mode |
+| `yar.debug` | `Off` | Enable debug mode. When enabled, Yar emits `E_WARNING` messages with detailed protocol-level information for every request and response, prefixed with `[Debug Yar_Server]` or `[Debug Yar_Client]` and including timestamps. |
 | `yar.expose_info` | `On` | Whether to output the API info page for GET requests |
 | `yar.content_type` | `"application/octet-stream"` | Content-Type sent in responses |
 
@@ -121,6 +130,7 @@ YAR_ERR_PROTOCOL   = 0x02  // Protocol error
 YAR_ERR_REQUEST    = 0x04  // Request error
 YAR_ERR_OUTPUT     = 0x08  // Output error
 YAR_ERR_TRANSPORT  = 0x10  // Transport error
+YAR_ERR_FORBIDDEN  = 0x20  // Forbidden (auth failed or info page disabled)
 YAR_ERR_EXCEPTION  = 0x40  // General exception
 ```
 
@@ -141,9 +151,15 @@ Exception / RuntimeException
     └── Yar_Client_Packager_Exception
 ```
 
-Both base exception classes have a `getType()` method that returns the error type constant (e.g. `YAR_ERR_TRANSPORT`).
+Both `Yar_Server_Exception` and `Yar_Client_Exception` extend `Exception` (or `RuntimeException` if SPL is available).
+
+`Yar_Server_Exception::getType()` returns the error type constant (e.g. `YAR_ERR_TRANSPORT`).
+
+`Yar_Client_Exception::getType()` returns the string `"Yar_Exception_Client"` — this is the exception class name, not an error type constant. If you need the actual error type on the client side, catch the specific sub-exception classes instead (e.g. `Yar_Client_Transport_Exception`, `Yar_Client_Protocol_Exception`, `Yar_Client_Packager_Exception`).
 
 ## Server
+
+> **Note**: `Yar_Server` is a `final` class and cannot be extended.
 
 ### HTTP Server
 
@@ -193,6 +209,10 @@ Yar_Server::handle(): bool
 
 Starts processing the incoming RPC request. Returns `true` on success.
 
+### TCP Server
+
+Yar's PHP extension only provides an HTTP server. For TCP-based RPC servers, use the standalone [Yar C framework](https://github.com/laruence/yar-c). It supports TCP and Unix socket protocols and is fully compatible with Yar PHP clients. The C framework is also the recommended backend for production deployments with high throughput requirements.
+
 ### Custom Server Info
 
 Since 2.3.0, you can customise the output of the service info page by defining a `__info` magic method:
@@ -229,8 +249,8 @@ class API
 
 If `__auth` is defined, it will be called at the very beginning of every request:
 
-- If `__auth` returns `true`, the request proceeds.
-- Otherwise, the request is terminated with an "authentication failed" error.
+- If `__auth` returns `true` (or any truthy value — `1`, a non-empty string, a non-empty array, etc.), the request proceeds.
+- If `__auth` returns `false` (exactly `false`), the request is terminated with an "authentication failed" error (`YAR_ERR_FORBIDDEN`).
 
 On the client side, specify the provider and token via:
 
@@ -242,6 +262,8 @@ $client->call();
 ```
 
 ## Client
+
+> **Note**: `Yar_Client` is a `final` class and cannot be extended.
 
 ### Yar_Client::__construct
 
@@ -313,6 +335,10 @@ $result = $client->some_method("parameter");
 ### Concurrent Call
 
 Yar supports sending multiple calls concurrently and collecting the results via a callback loop.
+
+> **Note**: `Yar_Concurrent_Client` only supports HTTP/HTTPS protocol. TCP and Unix socket concurrent calls are not available — use individual `Yar_Client` instances for those.
+>
+> **Note**: A maximum of **128** concurrent calls can be registered in a single `loop()`. Exceeding this limit triggers a warning.
 
 Each `callback` receives two arguments:
 - `$retval` — the return value of the remote method
