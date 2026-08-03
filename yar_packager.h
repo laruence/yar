@@ -39,9 +39,6 @@ typedef struct _yar_packager {
 PHP_YAR_API int php_yar_packager_register(const yar_packager_t *packager);
 PHP_YAR_API const yar_packager_t * php_yar_packager_get(char *name, int nlen);
 
-YAR_STARTUP_FUNCTION(packager);
-YAR_ACTIVATE_FUNCTION(packager);
-
 extern const yar_packager_t yar_packager_php;
 extern const yar_packager_t yar_packager_json;
 #ifdef ENABLE_MSGPACK
