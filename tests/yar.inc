@@ -3,7 +3,7 @@
 define("YAR_API_USER", "dummy");
 define("YAR_API_PASS", "foo");
 
-define("YAR_API_HOSTNAME", (getenv('YAR_API_HOSTNAME') ?: "localhost"));
+define("YAR_API_HOSTNAME", (getenv('YAR_API_HOSTNAME') ?: "127.0.0.1")); // avoid "localhost" which binds IPv6-only on macOS, breaking YAR_OPT_RESOLVE tests
 define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: "8964"));
 define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
