@@ -465,7 +465,7 @@ static void php_yar_server_info(zval *obj) /* {{{ */ {
 	ZSTR_LEN(out.s) = sprintf(ZSTR_VAL(out.s), HTML_MARKUP_HEADER, ZSTR_VAL(ce->name));
 	smart_str_appendl(&out, HTML_MARKUP_CSS, sizeof(HTML_MARKUP_CSS) - 1);
 	smart_str_appendl(&out, HTML_MARKUP_SCRIPT, sizeof(HTML_MARKUP_SCRIPT) - 1);
-	ZSTR_LEN(out.s) += sprintf(ZSTR_VAL(out.s), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
+	ZSTR_LEN(out.s) += sprintf(ZSTR_VAL(out.s) + ZSTR_LEN(out.s), HTML_MARKUP_TITLE, ZSTR_VAL(ce->name));
 
 	zend_hash_apply_with_argument(&ce->function_table, (apply_func_arg_t)php_yar_print_info, (void *)(&out));
 
