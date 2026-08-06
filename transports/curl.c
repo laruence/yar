@@ -445,7 +445,7 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 			self->setopt(self, YAR_OPT_CONNECT_TIMEOUT, (long *)&request->options[YAR_OPT_CONNECT_TIMEOUT], NULL);
 		}
 		if (request->options[YAR_OPT_PROXY]) {
-			self->setopt(self, YAR_OPT_PROXY, ZSTR_VAL((zend_string*)request->options[YAR_OPT_CONNECT_TIMEOUT]), NULL);
+			self->setopt(self, YAR_OPT_PROXY, ZSTR_VAL((zend_string*)request->options[YAR_OPT_PROXY]), NULL);
 		}
 	}
 
