@@ -10,11 +10,11 @@
   <email>laruence@php.net</email>
   <active>yes</active>
  </lead>
- <date>2025-07-29</date>
- <time>17:00:00</time>
+ <date>2026-08-06</date>
+ <time>22:00:00</time>
  <version>
-  <release>2.3.4</release>
-  <api>2.3.4</api>
+  <release>2.4.0</release>
+  <api>2.4.0</api>
  </version>
  <stability>
   <release>stable</release>
@@ -22,7 +22,14 @@
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>
-	 - Fixed build with PHP8.5
+	 - Added yar.ssl_verify to make TLS certificate verification configurable
+	 - Kept persistent curl connections in the persistent resource list
+	 - Rejected non-public methods in the server dispatcher
+	 - Fixed use-after-free (dangling offset) in REALLOC_BUF_IF_EXCEED
+	 - Fixed size_t underflow when request body is shorter than the protocol header
+	 - Hardened protocol parsing: body length clamping, bounds checks, payload type checks
+	 - Fixed YAR_OPT_PROXY passing the connect timeout to CURLOPT_PROXY
+	 - Fixed issue #175 where Yar_Server::Info returns garbled output.
  </notes>
  <contents> 
   <dir name="/"> 
@@ -103,9 +110,11 @@
     <file name="041.phpt" role="test" />
     <file name="042.phpt" role="test" />
     <file name="043.phpt" role="test" />
+    <file name="044.phpt" role="test" />
     <file name="045.phpt" role="test" />
     <file name="046.phpt" role="test" />
     <file name="047.phpt" role="test" />
+    <file name="048.phpt" role="test" />
     <file name="049.phpt" role="test" />
     <file name="050.phpt" role="test" />
     <file name="051.phpt" role="test" />
@@ -115,6 +124,19 @@
     <file name="055.phpt" role="test" />
     <file name="056.phpt" role="test" />
     <file name="057.phpt" role="test" />
+    <file name="058.phpt" role="test" />
+    <file name="059.phpt" role="test" />
+    <file name="060.phpt" role="test" />
+    <file name="061.phpt" role="test" />
+    <file name="062.phpt" role="test" />
+    <file name="063.phpt" role="test" />
+    <file name="064.phpt" role="test" />
+    <file name="065.phpt" role="test" />
+    <file name="066.phpt" role="test" />
+    <file name="067.phpt" role="test" />
+    <file name="068.phpt" role="test" />
+    <file name="069.phpt" role="test" />
+    <file name="070.phpt" role="test" />
     <file name="bug74867.phpt" role="test" />
     <file name="issue172.phpt" role="test" />
     <file name="issue175.phpt" role="test" />
@@ -146,9 +168,33 @@
    prompt="Enable Msgpack Supports"
    default="no" />
  </extsrcrelease>
- <changelog> 
-  <release> 
-   <date>2025-07-29</date> 
+ <changelog>
+  <release>
+   <date>2026-08-06</date>
+   <version>
+    <release>2.4.0</release>
+    <api>2.4.0</api>
+   </version>
+   <stability>
+    <release>stable</release>
+    <api>stable</api>
+   </stability>
+   <license uri="http://www.php.net/license">php license</license>
+   <notes>
+	   - Added yar.ssl_verify to make TLS certificate verification configurable
+	   - Kept persistent curl connections in the persistent resource list
+	   - Rejected non-public methods in the server dispatcher
+	   - Fixed use-after-free (dangling offset) in REALLOC_BUF_IF_EXCEED
+	   - Fixed size_t underflow when request body is shorter than the protocol header
+	   - Hardened protocol parsing: body length clamping, bounds checks, payload type checks
+	   - Fixed YAR_OPT_PROXY passing the connect timeout to CURLOPT_PROXY
+	   - Fixed build with PHP lower than 7.3
+	   - Fixed ISSUE #175
+   </notes>
+  </release>
+
+  <release>
+   <date>2025-07-29</date>
    <version> 
     <release>2.3.4</release> 
     <api>2.3.4</api> 
