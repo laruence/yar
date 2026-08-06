@@ -710,6 +710,12 @@ static void php_yar_server_handle(zval *obj) /* {{{ */ {
 		goto response;
 	}
 
+	if (UNEXPECTED(payload_len < sizeof(yar_header_t))) {
+		php_yar_error(response, YAR_ERR_PROTOCOL, "malformed request, %d bytes expected at least", (int)sizeof(yar_header_t));
+		DEBUG_S("0: request body is too short, %ld bytes recieved", (long)payload_len);
+		goto response;
+	}
+
 	if (UNEXPECTED(!(header = php_yar_protocol_parse(payload)))) {
 		php_yar_error(response, YAR_ERR_PACKAGER, "malformed request header '%.10s'", payload);
 		DEBUG_S("0: malformed request '%s'", payload);
