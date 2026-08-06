@@ -789,7 +789,11 @@ response:
 PHP_METHOD(yar_server, __construct) {
     zval *obj;
 
+#if PHP_VERSION_ID < 80600
     if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "o", &obj) == FAILURE) {
+#else
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "o", &obj) == FAILURE) {
+#endif
         return;
     }
 
