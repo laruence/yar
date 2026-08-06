@@ -110,8 +110,10 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 
 #define REALLOC_BUF_IF_EXCEED(buf, offset, length, size) \
 	if (offset - buf + size >= length) { 	\
+		ptrdiff_t _off = offset - buf; 		\
 		length += size + 1; 				\
 		buf = erealloc(buf, length); 		\
+		offset = buf + _off; 				\
 	}
 
 	if (!(fptr->common.fn_flags & ZEND_ACC_PUBLIC)) {
@@ -126,6 +128,7 @@ static char * php_yar_get_function_declaration(zend_function *fptr) /* {{{ */ {
 	}
 
 	if (fptr->common.scope) {
+		REALLOC_BUF_IF_EXCEED(buf, offset, length, ZSTR_LEN(fptr->common.scope->name) + 2);
 		memcpy(offset, ZSTR_VAL(fptr->common.scope->name), ZSTR_LEN(fptr->common.scope->name));
 		offset += ZSTR_LEN(fptr->common.scope->name);
 		*(offset++) = ':';
