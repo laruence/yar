@@ -41,7 +41,7 @@ typedef struct {
 #define Z_YARCLIENTOBJ_P(z)  Z_YARCLIENTOBJ((*z))
 
 static zend_always_inline yar_client_object *php_yar_client_fetch_object(zend_object *obj) {
-	return (yar_client_object *)((char*)(obj) - XtOffsetOf(yar_client_object, std));
+	return (yar_client_object *)((char*)(obj) - offsetof(yar_client_object, std));
 }
 
 YAR_STARTUP_FUNCTION(client);

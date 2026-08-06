@@ -762,7 +762,7 @@ static HashTable *yar_client_get_gc(void *object, zval **table, int *n) /* {{{ *
 static zend_object *yar_client_new(zend_class_entry *ce) /* {{{ */ {
 	yar_client_object *client = emalloc(sizeof(yar_client_object) + zend_object_properties_size(ce));
 
-	memset(client, 0, XtOffsetOf(yar_client_object, std));
+	memset(client, 0, offsetof(yar_client_object, std));
 	zend_object_std_init(&client->std, ce);
 
 	if (ce->default_properties_count) {
@@ -780,7 +780,11 @@ PHP_METHOD(yar_client, __construct) {
 	zval *options = NULL;
 	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
+#if PHP_VERSION_ID < 80600
     if (zend_parse_parameters_throw(ZEND_NUM_ARGS(), "S|a!", &url, &options) == FAILURE) {
+#else
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "S|a!", &url, &options) == FAILURE) {
+#endif
         return;
     }
 
@@ -1065,7 +1069,7 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 	yar_client_ce->create_object = yar_client_new;
 
 	memcpy(&yar_client_obj_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-	yar_client_obj_handlers.offset = XtOffsetOf(yar_client_object, std);
+	yar_client_obj_handlers.offset = offsetof(yar_client_object, std);
 	yar_client_obj_handlers.free_obj = yar_client_object_free;
 	yar_client_obj_handlers.get_properties = (zend_object_get_properties_t)yar_client_get_properties;
 	yar_client_obj_handlers.get_gc = (zend_object_get_gc_t)yar_client_get_gc;
