@@ -6,6 +6,8 @@ if (!extension_loaded("yar")) {
     print "skip";
 }
 ?>
+--INI--
+yar.packager=PHP
 --FILE--
 <?php
 include "yar.inc";
