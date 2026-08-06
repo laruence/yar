@@ -131,7 +131,12 @@ static void php_yar_client_handle_error(int throw_exception, yar_response_t *res
 			}
 		}
 	} else {
-		php_yar_client_trigger_error(throw_exception, response->status, "%s", Z_STRVAL(response->err));
+		if (Z_TYPE(response->err) == IS_STRING) {
+			php_yar_client_trigger_error(throw_exception, response->status, "%s", Z_STRVAL(response->err));
+		} else {
+			/* err is unset or of an unexpected type (malicious/broken peer) */
+			php_yar_client_trigger_error(throw_exception, response->status, "unknown error, status %d", response->status);
+		}
 	}
 }
 /* }}} */
