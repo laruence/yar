@@ -52,6 +52,12 @@ zval * php_yar_packager_php_unpack(const yar_packager_t *self, char *content, si
 	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
+	if (Z_TYPE_P(ret) != IS_ARRAY) {
+		zval_ptr_dtor(ret);
+		spprintf(msg, 0, "php unpack error, an array is expected");
+		return NULL;
+	}
+
 	return ret;
 } /* }}} */
 
