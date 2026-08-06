@@ -52,4 +52,12 @@ jobs:
             make
       - name: Test
         run: |
-            make test
+            EXT_DIR=$(php -r 'echo ini_get("extension_dir");')
+            if [ -n "$EXT_DIR" ] && [ -f "$EXT_DIR/json.so" ]; then
+              # PHP 7.x ships json as a shared extension; the phpize test
+              # harness strips all system extension= lines, so preload json
+              # before yar (yar declares a module dependency on json)
+              make test PHP_TEST_SHARED_EXTENSIONS="-d extension=$EXT_DIR/json.so -d extension=yar.so"
+            else
+              make test
+            fi
