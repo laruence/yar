@@ -227,7 +227,7 @@ static void php_yar_calllist_dtor() /* {{{ */ {
 /* }}} */
 
 static int php_yar_client_get_opt(void **options, yar_opt type, zval *rv) /* {{{ */ {
-	if (options == NULL || options[type] == NULL) {
+	if (options == NULL || (unsigned int)type >= YAR_OPT_MAX || options[type] == NULL) {
 		return 0;
 	}
 
@@ -287,6 +287,16 @@ static int php_yar_client_validate_option(int protocol, yar_opt type) /* {{{ */ 
 /* }}} */
 
 static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* {{{ */ {
+	if ((unsigned int)type >= YAR_OPT_MAX) {
+		return 0;
+	}
+
+	if (options[type]) {
+		/* release the previous value (a no-op for integer options) */
+		php_yar_option_dtor(type, options[type]);
+		options[type] = NULL;
+	}
+
 	switch (type) {
 		case YAR_OPT_PACKAGER: {
 		    if (IS_STRING != Z_TYPE_P(value)) {
