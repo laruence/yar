@@ -68,7 +68,9 @@ zend_string *php_yar_packager_pack(char *packager_name, zval *pzval, char **msg)
 		php_error_docref(NULL, E_ERROR, "unsupported packager %s", packager_name);
 		return 0;
 	}
-	memcpy(header, packager->name, 8);
+	/* the name literals are shorter than 8 bytes, do not read past them */
+	memset(header, 0, sizeof(header));
+	memcpy(header, packager->name, MIN(strlen(packager->name), sizeof(header)));
 	smart_str_alloc(&buf, YAR_PACKAGER_BUFFER_SIZE /* 1M */, 0);
 	smart_str_appendl(&buf, header, 8);
     packager->pack(packager, pzval, &buf, msg); 
