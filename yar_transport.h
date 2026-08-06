@@ -92,6 +92,25 @@ typedef struct _yar_transport {
 PHP_YAR_API const yar_transport_t * php_yar_transport_get(char *name, int nlen);
 PHP_YAR_API int php_yar_transport_register(const yar_transport_t *transport);
 
+#if PHP_VERSION_ID < 70300
+/* zend_register_persistent_resource() is only available as of PHP 7.3; */
+static zend_resource *php_yar_register_persistent_resource(const char *key, size_t key_len, void *rsrc_pointer, int rsrc_type) {
+	zval tmp;
+	zval *zv;
+
+	ZVAL_NEW_PERSISTENT_RES(&tmp, -1, rsrc_pointer, rsrc_type);
+	if ((zv = zend_hash_str_update(&EG(persistent_list), key, key_len, &tmp)) == NULL) {
+		/* the payload is freed by the caller; the resource wrapper
+		 * allocated above is leaked on OOM, as core used to do */
+		return NULL;
+	}
+	return Z_RES_P(zv);
+}
+#define zend_register_persistent_resource(k, l, p, t) \
+	php_yar_register_persistent_resource(k, l, p, t)
+#endif
+
+
 YAR_STARTUP_FUNCTION(transport);
 YAR_SHUTDOWN_FUNCTION(transport);
 
