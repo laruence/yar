@@ -490,6 +490,13 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 		DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'",
 				response->id, 7, payload, header->body_len, payload + 8);
 		zval_ptr_dtor(retval);
+
+		/* a zero id is sent by the server for requests it failed to parse,
+		 * accept those without matching */
+		if (UNEXPECTED(response->id && (zend_ulong)response->id != request->id)) {
+			php_yar_error(response, YAR_ERR_PROTOCOL, "response id mismatch, expect " ZEND_ULONG_FMT ", got " ZEND_ULONG_FMT,
+					request->id, (zend_ulong)response->id);
+		}
 	} else {
 		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 	}	
@@ -714,6 +721,11 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 									php_yar_response_map_retval(response, retval);
 									DEBUG_C(ZEND_ULONG_FMT": server response content packaged by '%.*s', len '%ld', content '%.32s'", response->id, 7, payload, header->body_len, payload + 8);
 									zval_ptr_dtor(retval);
+
+									if (UNEXPECTED(data->calldata && response->id && (zend_ulong)response->id != data->calldata->id)) {
+										php_yar_error(response, YAR_ERR_PROTOCOL, "response id mismatch, expect " ZEND_ULONG_FMT ", got " ZEND_ULONG_FMT,
+												data->calldata->id, (zend_ulong)response->id);
+									}
 								}
 								if (msg) {
 									efree(msg);

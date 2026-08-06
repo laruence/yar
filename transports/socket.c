@@ -225,6 +225,13 @@ wait_io:
 				response->id, 7, payload, header->body_len, payload + 8);
 		efree(payload);
 		zval_ptr_dtor(retval);
+
+		/* a zero id is sent by the server for requests it failed to parse,
+		 * accept those without matching */
+		if (UNEXPECTED(response->id && (zend_ulong)response->id != request->id)) {
+			php_yar_error(response, YAR_ERR_PROTOCOL, "response id mismatch, expect " ZEND_ULONG_FMT ", got " ZEND_ULONG_FMT,
+					request->id, (zend_ulong)response->id);
+		}
 	} else {
 		php_yar_response_set_error(response, YAR_ERR_EMPTY_RESPONSE, ZEND_STRL("empty response"));
 	}

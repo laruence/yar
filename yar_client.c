@@ -631,6 +631,7 @@ int php_yar_concurrent_client_handle(yar_call_data_t *entry) /* {{{ */ {
 		}
 
 		transport->calldata(transport, entry);
+		entry->id = request->id;
 		multi->add(multi, transport);
 		php_yar_request_destroy(request);
 		entry = entry->next;

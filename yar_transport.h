@@ -43,6 +43,7 @@ typedef struct _yar_persistent_le {
 
 typedef struct _yar_call_data {
 	zend_long sequence;
+	zend_ulong id;
 	zend_string *uri;
 	zend_string *method;
 	zend_array *parameters;
