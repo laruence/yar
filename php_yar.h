@@ -52,6 +52,7 @@ ZEND_BEGIN_MODULE_GLOBALS(yar)
 	zend_bool debug;
 	zend_bool expose_info;
 	zend_bool allow_persistent;
+	zend_bool ssl_verify;
 	zend_ulong timeout;
 	zend_ulong connect_timeout;
 	struct {

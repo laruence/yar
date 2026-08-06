@@ -328,8 +328,10 @@ regular_link:
 	curl_easy_setopt(cp, CURLOPT_HEADER, 0);
 	curl_easy_setopt(cp, CURLOPT_VERBOSE, 0);
 	curl_easy_setopt(cp, CURLOPT_FOLLOWLOCATION, 0);
-	curl_easy_setopt(cp, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
+	/* NOTE: verification is disabled by default for backward compatibility,
+	 * enable it with yar.ssl_verify=1 */
+	curl_easy_setopt(cp, CURLOPT_SSL_VERIFYHOST, YAR_G(ssl_verify)? 2L : 0L);
+	curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, YAR_G(ssl_verify)? 1L : 0L);
 	curl_easy_setopt(cp, CURLOPT_POST, 1);
 	curl_easy_setopt(cp, CURLOPT_NOPROGRESS, 1);
 #if LIBCURL_VERSION_NUM > 0x070A00
