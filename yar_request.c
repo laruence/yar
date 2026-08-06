@@ -83,6 +83,7 @@ yar_request_t* php_yar_request_unpack(zval *body) /* {{{ */ {
 						req->parameters = (zend_array*)&zend_empty_array;
 #endif
 					}
+					break;
 				default:
 				break;
 			}

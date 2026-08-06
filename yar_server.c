@@ -831,7 +831,7 @@ PHP_METHOD(yar_server, handle)
 	}
 
 	method = SG(request_info).request_method;
-	if (!method || strncasecmp(method, "POST", 4)) {
+	if (!method || strcmp(method, "POST") != 0) {
 		if (YAR_G(expose_info)) {
 			php_yar_server_info(executor);
 			RETURN_TRUE;
