@@ -577,7 +577,8 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 
 #if PHP_VERSION_ID < 80000
 	zend_string *method = zend_string_tolower(request->method);
-	if (!zend_hash_exists(&ce->function_table, method)) {
+	zend_function *fbc = zend_hash_find_ptr(&ce->function_table, method);
+	if (fbc == NULL || !(fbc->common.fn_flags & ZEND_ACC_PUBLIC)) {
 		zend_string_release(method);
 		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
 		return 0;
@@ -585,7 +586,8 @@ static inline int php_yar_server_call(zval *obj, yar_request_t *request, yar_res
 	zend_string_release(method);
 #else
 	zend_function *fbc;
-	if ((fbc = zend_hash_find_ptr_lc(&ce->function_table, request->method)) == NULL) {
+	if ((fbc = zend_hash_find_ptr_lc(&ce->function_table, request->method)) == NULL
+			|| !(fbc->common.fn_flags & ZEND_ACC_PUBLIC)) {
 		php_yar_error(response, YAR_ERR_REQUEST, "call to undefined api %s::%s()", ZSTR_VAL(ce->name), ZSTR_VAL(request->method));
 		return 0;
 	}
