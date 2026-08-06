@@ -166,7 +166,7 @@ void php_yar_curl_plink_dtor(void *ptr) /* {{{ */ {
 	for (p = (yar_curl_plink_t *)ptr; p;) {
 		q = p->next;
 		curl_easy_cleanup((CURL *)p->cp);
-		efree(p);
+		pefree(p, 1);
 		p = q;
 	}
 }
@@ -193,10 +193,9 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 		size_t key_len = snprintf(buf, sizeof(buf), "yar_%s", ZSTR_VAL(address));
 
 		data->persistent = 1;
-		if ((le = zend_hash_str_find_ptr(&EG(regular_list), buf, key_len)) == NULL) {
+		if ((le = zend_hash_str_find_ptr(&EG(persistent_list), buf, key_len)) == NULL) {
 			yar_persistent_le_t *con;
 			yar_curl_plink_t *plink;
-			zend_resource new_le;
 
 			cp = curl_easy_init();
 			if (!cp) {
@@ -204,16 +203,8 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 				return 0;
 			}
 
-			plink = emalloc(sizeof(yar_curl_plink_t));
-			if (!plink) {
-				goto regular_link;
-			}
-
-			con = emalloc(sizeof(yar_persistent_le_t));
-			if (!con) {
-				efree(plink);
-				goto regular_link;
-			}
+			plink = pemalloc(sizeof(yar_curl_plink_t), 1);
+			con = pemalloc(sizeof(yar_persistent_le_t), 1);
 
 			plink->cp = cp;
 			plink->in_use = 1;
@@ -222,15 +213,16 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 			con->ptr = plink;
 			con->dtor = php_yar_curl_plink_dtor;
 
-			new_le.type = le_plink;
-			new_le.ptr = con;
-
-			if (zend_hash_str_update_mem(&EG(regular_list), buf, key_len, (void *)&new_le, sizeof(new_le)) != NULL) {
+			/* must live in the persistent_list: entries of the regular_list
+			 * are destroyed at the end of the request, which defeated the
+			 * whole purpose of persistent connections */
+			if (zend_register_persistent_resource(buf, key_len, con, le_plink) != NULL) {
 				data->plink = plink;
 				data->cp = plink->cp;
 			} else {
 				data->persistent = 0;
-				efree(plink);
+				pefree(plink, 1);
+				pefree(con, 1);
 			}
 		} else {
 			yar_curl_plink_t *plink;
@@ -253,20 +245,15 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 					return 0;
 				}
 
-				plink = emalloc(sizeof(yar_curl_plink_t));
-				if (plink) {
-					plink->next = (yar_curl_plink_t *)con->ptr;
-					plink->in_use = 1;
-					plink->cp = cp;
-					con->ptr = plink;
-					data->plink = plink;
-				} else {
-					data->persistent = 0;
-				}
+				plink = pemalloc(sizeof(yar_curl_plink_t), 1);
+				plink->next = (yar_curl_plink_t *)con->ptr;
+				plink->in_use = 1;
+				plink->cp = cp;
+				con->ptr = plink;
+				data->plink = plink;
 			}
 		}
 	} else {
-regular_link:
 		cp = curl_easy_init();
 		if (!cp) {
 			php_error_docref(NULL, E_ERROR, "start curl failed");

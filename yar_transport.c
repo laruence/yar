@@ -42,7 +42,7 @@ extern const yar_transport_t yar_transport_socket;
 static void php_yar_plink_dtor(zend_resource *rsrc) /* {{{ */ {
 	yar_persistent_le_t *le = (yar_persistent_le_t *)rsrc->ptr;
 	le->dtor(le->ptr);
-	efree(le);
+	pefree(le, 1);
 }
 /* }}} */
 
@@ -75,7 +75,7 @@ YAR_STARTUP_FUNCTION(transport) /* {{{ */ {
 	php_yar_transport_register(&yar_transport_curl);
 	php_yar_transport_register(&yar_transport_socket);
 
-	le_plink = zend_register_list_destructors_ex(php_yar_plink_dtor, NULL, "Yar Persistent Link", module_number);
+	le_plink = zend_register_list_destructors_ex(php_yar_plink_dtor, php_yar_plink_dtor, "Yar Persistent Link", module_number);
 
 	return SUCCESS;
 } /* }}} */
