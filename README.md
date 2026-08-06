@@ -93,7 +93,7 @@ $ make && make install
 | `yar.debug` | `Off` | Enable debug mode. When enabled, Yar emits `E_WARNING` messages with detailed protocol-level information for every request and response, prefixed with `[Debug Yar_Server]` or `[Debug Yar_Client]` and including timestamps. |
 | `yar.expose_info` | `On` | Whether to output the API info page for GET requests |
 | `yar.content_type` | `"application/octet-stream"` | Content-Type sent in responses |
-| `yar.ssl_verify` | `Off` | Whether to verify the TLS certificate of HTTPS servers. When enabled, the curl transport sets `CURLOPT_SSL_VERIFYPEER` and `CURLOPT_SSL_VERIFYHOST`, and requests against servers with invalid certificates will fail. Disabled by default for backward compatibility. |
+| `yar.ssl_verify` | `Off` | Whether to verify the TLS certificate of HTTPS servers. When enabled, the curl transport sets `CURLOPT_SSL_VERIFYPEER` and `CURLOPT_SSL_VERIFYHOST`, and requests against servers with invalid certificates will fail. Disabled by default for backward compatibility. Available since 2.4.0. |
 
 > **Note**: `yar.connect_timeout` is in milliseconds. Prior to 1.2.1 it was measured in seconds.
 
