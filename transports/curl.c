@@ -477,6 +477,11 @@ yar_response_t *php_yar_curl_exec(yar_transport_interface_t* self, yar_request_t
 		payload = ZSTR_VAL(data->buf.s);
 		payload_len = ZSTR_LEN(data->buf.s);
 
+		if (UNEXPECTED(payload_len < sizeof(yar_header_t))) {
+			php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response, %d bytes expected at least", (int)sizeof(yar_header_t));
+			return response;
+		}
+
 		if (!(header = php_yar_protocol_parse(payload))) {
 			php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 			return response;
@@ -706,7 +711,9 @@ static int php_yar_curl_multi_parse_response(yar_curl_multi_data_t *multi, yar_c
 							payload = ZSTR_VAL(data->buf.s);
 							payload_len = ZSTR_LEN(data->buf.s);
 
-							if (!(header = php_yar_protocol_parse(payload))) {
+							if (UNEXPECTED(payload_len < sizeof(yar_header_t))) {
+								php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response, %d bytes expected at least", (int)sizeof(yar_header_t));
+							} else if (!(header = php_yar_protocol_parse(payload))) {
 								php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
 							} else {
 								/* skip over the leading header */
