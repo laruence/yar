@@ -177,9 +177,14 @@ wait_io:
 			len = header->body_len;
 			total_recvd = recvd - sizeof(yar_header_t);
 
+			if (UNEXPECTED(total_recvd > len)) {
+				/* the peer sent more bytes than its header claims, trust body_len */
+				total_recvd = len;
+			}
+
 			memcpy(payload, buf + sizeof(yar_header_t), total_recvd);
 			if (recvd < (sizeof(yar_header_t) + len)) {
-				goto wait_io;	
+				goto wait_io;
 			}
 		} else if (recvd == 0) {
 			php_yar_response_set_error(response, YAR_ERR_TRANSPORT, ZEND_STRL("server closed connection prematurely"));
