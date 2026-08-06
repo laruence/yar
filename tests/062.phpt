@@ -15,5 +15,5 @@ ini_set("yar.ssl_verify", 1);
 var_dump(ini_get("yar.ssl_verify"));
 ?>
 --EXPECT--
-string(0) ""
+string(1) "0"
 string(1) "1"

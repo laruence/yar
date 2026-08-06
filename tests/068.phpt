@@ -10,7 +10,8 @@ if (!extension_loaded("yar")) {
 <?php
 include "yar.inc";
 
-yar_server_start();
+/* TCP only: an HTTP server on the same port would prevent the TCP server
+   from binding on non-Windows systems */
 yar_tcp_server_start();
 
 $client = new Yar_Client(YAR_TCP_ADDRESS);

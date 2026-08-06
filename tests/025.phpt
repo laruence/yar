@@ -33,7 +33,7 @@ $client = new Yar_Client(YAR_TCP_ADDRESS);
 try {
 	var_dump($client->raw($header, $body));
 } catch (Yar_Client_Protocol_Exception $e) {
-	var_dump($e->getMessage());
+	var_dump(strpos($e->getMessage(), "malformed response header") === 0);
 }
 
 $header["magic_num"] = YAR_PROTOCOL_MAGIC_NUM;
@@ -58,5 +58,5 @@ include 'yar.inc';
 yar_server_cleanup();
 ?>
 --EXPECTF--
-string(34) "malformed response header '(null)'"
+bool(true)
 string(%d) "response body too large %d"

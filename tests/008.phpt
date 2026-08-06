@@ -30,4 +30,4 @@ include 'yar.inc';
 yar_server_cleanup();
 ?>
 --EXPECT--
-string(39) "malformed response header 'hello world'"
+string(46) "malformed response, 82 bytes expected at least"

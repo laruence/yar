@@ -291,17 +291,14 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 		return 0;
 	}
 
-	if (options[type]) {
-		/* release the previous value (a no-op for integer options) */
-		php_yar_option_dtor(type, options[type]);
-		options[type] = NULL;
-	}
-
 	switch (type) {
 		case YAR_OPT_PACKAGER: {
 		    if (IS_STRING != Z_TYPE_P(value)) {
 			    php_error_docref(NULL, E_WARNING, "expects a string packager name");
 			    return 0;
+		    }
+		    if (options[type]) {
+			    php_yar_option_dtor(type, options[type]);
 		    }
 		    options[YAR_OPT_PACKAGER] = (void*)zend_string_copy(Z_STR_P(value));
 		    return 1;
@@ -311,6 +308,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 			if (IS_LONG != Z_TYPE_P(value) && IS_TRUE != Z_TYPE_P(value) && IS_FALSE != Z_TYPE_P(value)) {
 				php_error_docref(NULL, E_WARNING, "expects a boolean persistent flag");
 				return 0;
+			}
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
 			}
 			options[YAR_OPT_PERSISTENT] = (void*)(zend_uintptr_t)(zval_get_long(value));
 		}
@@ -323,6 +323,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 			if (!php_yar_check_array_values(Z_ARRVAL_P(value))) {
 				php_error_docref(NULL, E_WARNING, "expects an array which should only contains string value");
 				return 0;
+			}
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
 			}
 			options[YAR_OPT_HEADER] = zend_array_dup(Z_ARRVAL_P(value));
 			return 1;
@@ -342,6 +345,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 			php_error_docref(NULL, E_WARNING, "YAR_OPT_RESOLVE require libcurl 7.21.3 and above");
 			return 0;
 #endif
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
+			}
 			options[YAR_OPT_RESOLVE] = zend_array_dup(Z_ARRVAL_P(value));
 			return 1;
 		}
@@ -350,6 +356,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 			if (IS_STRING != Z_TYPE_P(value)){
 				php_error_docref(NULL, E_WARNING, "expects a string as proxy value");
 				return 0;
+			}
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
 			}
 			options[YAR_OPT_PROXY] = zend_string_copy(Z_STR_P(value));
 		}
@@ -360,6 +369,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 				php_error_docref(NULL, E_WARNING, "expects a long integer timeout value");
 				return 0;
 			}
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
+			}
 			options[type] = (void*)(zend_uintptr_t)(zval_get_long(value));
 		}
 		break;
@@ -368,6 +380,9 @@ static int php_yar_client_set_opt(void **options, yar_opt type, zval *value) /* 
 		    if (IS_STRING != Z_TYPE_P(value) || Z_STRLEN_P(value) > 32) {
 				php_error_docref(NULL, E_WARNING, "expects a maximum 32 bytes string value");
 				return 0;
+			}
+			if (options[type]) {
+				php_yar_option_dtor(type, options[type]);
 			}
 			options[type] = zend_string_copy(Z_STR_P(value));
 		}

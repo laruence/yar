@@ -225,7 +225,7 @@ function gen_header($header) {
 	return $bin;
 }
 
-function response($body, $error) {
+function response($req_id, $body, $error) {
 	$header = array(
 		"id" => rand(100000, 999999),
 		"version" => 0,
@@ -236,7 +236,9 @@ function response($body, $error) {
 	);
 
 	$response = array(
-		"i" => $header["id"],
+		/* echo the request id so clients may match it; error paths, which
+		   failed to parse the request, use 0 */
+		"i" => $req_id,
 		"s" => 0,
 		"o" => "",
 		"r" => NULL,
@@ -270,6 +272,18 @@ function raw($header, $response) {
 	return $header_str . "PHP\0YAR_" . $res_str;
 }
 
+/* same as raw(), but echoes the id of the current request, so the client
+   accepts the response (needed for testing client-side error handling) */
+function raw_cur($header, $params) {
+	$response = $params[0];
+	$response["i"] = $header["id"];
+
+	$res_str = "PHP\0YAR_" . serialize($response);
+	$header["body_len"] = strlen($res_str);
+
+	return gen_header($header) . $res_str;
+}
+
 function _exit() {
 	exit();
 }
@@ -282,19 +296,19 @@ function server_handle($header, $request_body) {
 	$error = NULL;
 	$packager = substr($request_body, YAR_HEADER_SIZE, 3);
 	if (strncmp($packager, "PHP", 3) != 0) {
-		return response(NULL, "Unsupported packager type '$packager', only PHP is supported");
+		return response(0, NULL, "Unsupported packager type '$packager', only PHP is supported");
 	}
 	$request_body = substr($request_body, YAR_HEADER_SIZE + 8);
 	$request = unserialize($request_body);
 	if ($request == false) {
-		return response(NULL, "Malformed request body");
+		return response(0, NULL, "Malformed request body");
 	}
 
 	$function = $request["m"];
 	$parameters = $request["p"];
 
 	if (!function_exists($function)) {
-		return response(NULL, "Unsupported API " . $function);
+		return response(0, NULL, "Unsupported API " . $function);
 	}
 
 	set_error_handler(function($no, $msg) use(&$error) { $error = $msg; });
@@ -303,19 +317,21 @@ function server_handle($header, $request_body) {
 		$response = call_user_func_array($function, array($header, $request, $parameters[0]));
 	} else if ($function == "raw" || $function == "raw_echo") {
 		return call_user_func_array($function, $parameters);
+	} else if ($function == "raw_cur") {
+		return call_user_func_array($function, array($header, $parameters));
 	} else {
 		$response = call_user_func_array($function, $parameters);
 	}
 
-	return response($response, $error);
+	return response($header["id"], $response, $error);
 }
 
 function verify_header($header) {
 	if (count($header) == 0) {
-		return response(NULL, "Malformed request header");
+		return response(0, NULL, "Malformed request header");
 	}
 	if (!isset($header["magic_num"]) || $header["magic_num"] != YAR_PROTOCOL_MAGIC_NUM) {
-		return response(NULL, "Not a legal Yar call");
+		return response(0, NULL, "Not a legal Yar call");
 	}
 
 	return true;
@@ -361,7 +377,7 @@ persistent:
 				$response = server_handle($header, $buf);
 				fwrite($conn, $response, strlen($response));
 			} else {
-				fwrite($conn, response(NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
+				fwrite($conn, response(0, NULL, "Unexpected EOL of input, expect $total_byte, $byte_read recived"));
 			}
 			if ($header["reserved"] & YAR_PROTOCOL_PERSISTENT) {
 				goto persistent;
