@@ -165,7 +165,7 @@ wait_io:
 				return response;
 			}
 			if (!(header = php_yar_protocol_parse(buf))) {
-				php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", payload);
+				php_yar_error(response, YAR_ERR_PROTOCOL, "malformed response header '%.32s'", buf);
 				return response;
 			}
 			if (header->body_len > MAX_BODY_LEN) {
