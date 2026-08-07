@@ -21,6 +21,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - name: Disable Windows Defender real-time scanning
+        shell: powershell
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+          Write-Host "DisableRealtimeMonitoring:" (Get-MpPreference -ErrorAction SilentlyContinue).DisableRealtimeMonitoring
       - name: Build and test extension
         uses: php/php-windows-builder/extension@v1
         with:
