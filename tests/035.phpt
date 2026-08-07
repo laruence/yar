@@ -5,7 +5,6 @@ Check for yar concurrent reset
 if (!extension_loaded("yar")) {
     print "skip";
 }
-if (substr(PHP_OS, 0, 3) == 'WIN') die("skip doesn't work on Windows");
 ?>
 --FILE--
 <?php 
