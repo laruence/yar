@@ -32,8 +32,8 @@ PHP
 );
 
 $token = str_pad("", 32, chr(127));
-/* 16 instead of 32 concurrent calls: the Windows concurrent client
-   (select-based) stalls at higher concurrency */
+/* 16 instead of 32 concurrent calls: higher concurrency stalled in
+   Windows CI back when the concurrent client was select()-based */
 for ($seq = 0; $seq < 16; $seq++) {
     $ticket = $token;
     $ticket[$seq] = "\0";

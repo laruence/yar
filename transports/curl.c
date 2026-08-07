@@ -46,6 +46,14 @@
 #include <sys/timerfd.h>
 #endif
 
+/* WSAPoll-based event loop for Windows (Vista+). Unlike select(), whose
+ * socket count is bounded by FD_SETSIZE, WSAPoll scales up to YAR_MAX_CALLS
+ * concurrent calls, mirroring the epoll path on Linux */
+#if defined(PHP_WIN32) && defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0600)
+#define ENABLE_WSAPOLL
+#include <winsock2.h>
+#endif
+
 typedef struct _yar_curl_plink {
 	CURL *cp;
 	char in_use;
@@ -155,6 +163,67 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 			curl_multi_assign(gdata->cm, s, fdp);
 		} else {
 			epoll_ctl(gdata->epfd, EPOLL_CTL_MOD, s, &ev);	
+		}
+	}
+	return 0;
+} /* }}} */
+#endif
+
+#ifdef ENABLE_WSAPOLL
+typedef struct _yar_curl_multi_gdata {
+	CURLM *cm;
+	long timeout_ms; /* libcurl timer, -1 means unset */
+	ULONG nfds;
+	WSAPOLLFD fds[YAR_MAX_CALLS];
+} yar_curl_multi_gdata;
+
+static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
+	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
+
+	/* unlike the epoll path there is no timerfd on Windows, remember the
+	 * timeout and fold it into the WSAPoll() timeout instead */
+	gdata->timeout_ms = timeout_ms;
+	return 0;
+}
+/* }}} */
+
+static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
+	ULONG i;
+	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
+
+	if (what == CURL_POLL_REMOVE) {
+		for (i = 0; i < gdata->nfds; i++) {
+			if (gdata->fds[i].fd == s) {
+				/* compact the array; fds is only searched by fd value */
+				gdata->fds[i] = gdata->fds[--gdata->nfds];
+				break;
+			}
+		}
+	} else {
+		SHORT events = 0;
+
+		if (what & CURL_POLL_IN) {
+			events |= POLLIN;
+		}
+		if (what & CURL_POLL_OUT) {
+			events |= POLLOUT;
+		}
+
+		for (i = 0; i < gdata->nfds; i++) {
+			if (gdata->fds[i].fd == s) {
+				gdata->fds[i].events = events;
+				break;
+			}
+		}
+		if (i == gdata->nfds) {
+			if (UNEXPECTED(gdata->nfds >= YAR_MAX_CALLS)) {
+				php_error_docref(NULL, E_WARNING, "too many sockets to poll, maximum '%d' are allowed", YAR_MAX_CALLS);
+				return 0;
+			}
+			gdata->fds[i].fd = s;
+			gdata->fds[i].events = events;
+			gdata->fds[i].revents = 0;
+			gdata->nfds++;
 		}
 	}
 	return 0;
@@ -869,6 +938,104 @@ static inline int php_yar_curl_epoll_io(yar_curl_multi_data_t *multi, yar_concur
 /* }}} */
 #endif
 
+#ifdef ENABLE_WSAPOLL
+static inline int php_yar_curl_wsapoll_io(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
+	int ret, running_count, rest_count;
+	yar_curl_multi_gdata gdata;
+
+	gdata.cm = multi->cm;
+	gdata.timeout_ms = -1;
+	gdata.nfds = 0;
+
+	/* setup the generic multi interface options we want */
+	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
+	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETDATA, &gdata);
+	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
+	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERDATA, &gdata);
+
+	/* let's kick off everything */
+	curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+	if (UNEXPECTED(!cb(NULL, YAR_ERR_OKEY, NULL))) {
+		return -1;
+	}
+	if (UNEXPECTED(EG(exception))) {
+		return 0;
+	}
+
+	if (running_count) {
+		while ((rest_count = running_count)) {
+			int wait_ms, r;
+			ULONG i;
+
+			/* honor the libcurl timer if it expires before yar.timeout */
+			if (gdata.timeout_ms >= 0 && gdata.timeout_ms < YAR_G(timeout)) {
+				wait_ms = gdata.timeout_ms;
+			} else {
+				wait_ms = YAR_G(timeout);
+			}
+
+			if (gdata.nfds == 0) {
+				/* WSAPoll() rejects an empty fd array, emulate it */
+				Sleep(wait_ms);
+				r = 0;
+			} else {
+				r = WSAPoll(gdata.fds, gdata.nfds, wait_ms);
+			}
+
+			if (r == SOCKET_ERROR) {
+				if (WSAGetLastError() == WSAEINTR) {
+					continue;
+				}
+				php_error_docref(NULL, E_WARNING, "WSAPoll error '%d'", WSAGetLastError());
+				return 0;
+			} else if (r == 0) {
+				if (gdata.timeout_ms >= 0 && gdata.timeout_ms <= YAR_G(timeout)) {
+					/* the libcurl timer expired */
+					curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
+				} else {
+					php_error_docref(NULL, E_WARNING, "WSAPoll timeout '%ldms' reached", YAR_G(timeout));
+					return 0;
+				}
+			} else {
+				/* curl_multi_socket_action() may trigger php_yar_sock_cb() which
+				 * compacts gdata.fds, so dispatch on a snapshot */
+				WSAPOLLFD fds[YAR_MAX_CALLS];
+				ULONG nfds = gdata.nfds;
+
+				memcpy(fds, gdata.fds, nfds * sizeof(WSAPOLLFD));
+				for (i = 0; i < nfds; i++) {
+					int action = 0;
+
+					if (fds[i].revents & (POLLIN | POLLERR | POLLHUP)) {
+						action |= CURL_CSELECT_IN;
+					}
+					if (fds[i].revents & (POLLOUT | POLLERR | POLLHUP)) {
+						action |= CURL_CSELECT_OUT;
+					}
+					if (action) {
+						curl_multi_socket_action(gdata.cm, fds[i].fd, action, &running_count);
+					}
+				}
+			}
+
+			if (rest_count > running_count) {
+				ret = php_yar_curl_multi_parse_response(multi, cb);
+				if (ret <= 0) {
+					return ret;
+				}
+			}
+		}
+	} else {
+		ret = php_yar_curl_multi_parse_response(multi, cb);
+		if (ret <= 0) {
+			return ret;
+		}
+	}
+	return 1;
+}
+/* }}} */
+#endif
+
 static inline int php_yar_curl_select_io(yar_curl_multi_data_t *multi, yar_concurrent_client_callback *cb) /* {{{ */ {
 	int running_count;
 
@@ -962,6 +1129,8 @@ int php_yar_curl_multi_exec(yar_transport_multi_interface_t *self, yar_concurren
 
 #ifdef ENABLE_EPOLL
 	ret = php_yar_curl_epoll_io(multi, cb);
+#elif defined(ENABLE_WSAPOLL)
+	ret = php_yar_curl_wsapoll_io(multi, cb);
 #else
 	ret = php_yar_curl_select_io(multi, cb);
 #endif
