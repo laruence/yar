@@ -6,15 +6,11 @@ if (!extension_loaded("yar")) {
     print "skip";
 }
 if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
+if (substr(PHP_OS, 0, 3) == 'WIN') die("skip the single-process php -S serves ~1 request per second on Windows CI, even a 30s timeout is not enough for 128 concurrent calls");
 ?>
 --FILE--
 <?php 
 include "yar.inc";
-
-if (substr(PHP_OS, 0, 3) == 'WIN') {
-    /* probe: the Windows CI php -S appears to be much slower per request */
-    ini_set("yar.timeout", 30000);
-}
 
 yar_server_start();
 
