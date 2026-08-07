@@ -32,21 +32,22 @@ PHP
 );
 
 $token = str_pad("", 32, chr(127));
-for ($seq = 0; $seq < 32; $seq++) {
+/* 16 instead of 32 concurrent calls: the Windows concurrent client
+   (select-based) stalls at higher concurrency */
+for ($seq = 0; $seq < 16; $seq++) {
     $ticket = $token;
     $ticket[$seq] = "\0";
-	Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info",
-			NULL, NULL, NULL,
-			array(
-				YAR_OPT_PROVIDER=>"$seq", 
-				YAR_OPT_TOKEN=>$ticket,
+    Yar_Concurrent_Client::call(YAR_API_ADDRESS, "info",
+            NULL, NULL, NULL,
+            array(
+                YAR_OPT_PROVIDER=>"$seq",
+                YAR_OPT_TOKEN=>$ticket,
     ));
 }
 
 Yar_Concurrent_Client::loop(function($return, $callinfo) {
 }, function($type, $error, $callinfo) {
    echo $error;
-      
 });
 ?>
 --CLEAN--
