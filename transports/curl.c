@@ -989,10 +989,12 @@ static inline int php_yar_curl_wsapoll_io(yar_curl_multi_data_t *multi, yar_conc
 				php_error_docref(NULL, E_WARNING, "WSAPoll error '%d'", WSAGetLastError());
 				return 0;
 			} else if (r == 0) {
-				if (gdata.timeout_ms >= 0 && gdata.timeout_ms <= YAR_G(timeout)) {
-					/* the libcurl timer expired */
+				if (wait_ms < YAR_G(timeout)) {
+					/* the libcurl timer expired before yar.timeout */
 					curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
 				} else {
+					/* like the epoll/select paths, the global yar.timeout aborts
+					 * the loop regardless of pending per-call timeouts */
 					php_error_docref(NULL, E_WARNING, "WSAPoll timeout '%ldms' reached", YAR_G(timeout));
 					return 0;
 				}

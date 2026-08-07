@@ -26,4 +26,4 @@ include 'yar.inc';
 yar_server_cleanup();
 ?>
 --EXPECTF--
-Warning: Yar_Concurrent_Client::loop(): %rselect|epoll_wait%r timeout '100ms' reached in %s041.php on line %d
+Warning: Yar_Concurrent_Client::loop(): %rselect|epoll_wait|WSAPoll%r timeout '100ms' reached in %s041.php on line %d
