@@ -1,0 +1,33 @@
+name: windows
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: "Windows PHP ${{ matrix.php }} (${{ matrix.ts }})"
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.0", "8.5"]
+        ts: ["nts"]
+        include:
+          - php: "8.5"
+            ts: "ts"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Build and test extension
+        uses: php/php-windows-builder/extension@v1
+        with:
+          php-version: ${{ matrix.php }}
+          arch: x64
+          ts: ${{ matrix.ts }}
+          libs: libcurl,openssl,libssh2,nghttp2,brotli,libzstd
+          # yar's tests bind fixed ports (8888, 9999, ...), so parallel
+          # workers collide; tests must run serially
+          test-workers: 1
