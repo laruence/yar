@@ -172,20 +172,9 @@ static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *
 #ifdef ENABLE_WSAPOLL
 typedef struct _yar_curl_multi_gdata {
 	CURLM *cm;
-	long timeout_ms; /* libcurl timer, -1 means unset */
 	ULONG nfds;
 	WSAPOLLFD fds[YAR_MAX_CALLS];
 } yar_curl_multi_gdata;
-
-static int php_yar_timer_cb(CURLM *cm, long timeout_ms, void *cbp) /* {{{ */ {
-	yar_curl_multi_gdata *gdata = (yar_curl_multi_gdata *) cbp;
-
-	/* unlike the epoll path there is no timerfd on Windows, remember the
-	 * timeout and fold it into the WSAPoll() timeout instead */
-	gdata->timeout_ms = timeout_ms;
-	return 0;
-}
-/* }}} */
 
 static int php_yar_sock_cb(CURL *e, curl_socket_t s, int what, void *cbp, void *sockp) /* {{{ */ {
 	ULONG i;
@@ -944,14 +933,11 @@ static inline int php_yar_curl_wsapoll_io(yar_curl_multi_data_t *multi, yar_conc
 	yar_curl_multi_gdata gdata;
 
 	gdata.cm = multi->cm;
-	gdata.timeout_ms = -1;
 	gdata.nfds = 0;
 
 	/* setup the generic multi interface options we want */
 	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETFUNCTION, php_yar_sock_cb);
 	curl_multi_setopt(gdata.cm, CURLMOPT_SOCKETDATA, &gdata);
-	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERFUNCTION, php_yar_timer_cb);
-	curl_multi_setopt(gdata.cm, CURLMOPT_TIMERDATA, &gdata);
 
 	/* let's kick off everything */
 	curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
@@ -967,12 +953,12 @@ static inline int php_yar_curl_wsapoll_io(yar_curl_multi_data_t *multi, yar_conc
 			int wait_ms, r;
 			ULONG i;
 
-			/* honor the libcurl timer if it expires before yar.timeout */
-			if (gdata.timeout_ms >= 0 && gdata.timeout_ms < YAR_G(timeout)) {
-				wait_ms = gdata.timeout_ms;
-			} else {
-				wait_ms = YAR_G(timeout);
-			}
+			/* like the select path, poll at most yar.timeout; the concurrent
+			 * client does not apply per-call timeouts (see php_yar_curl_send),
+			 * so the libcurl timer always matches yar.timeout and folding it
+			 * in would just deliver per-call timeouts instead of the global
+			 * "WSAPoll timeout" warning this test suite expects */
+			wait_ms = YAR_G(timeout);
 
 			if (gdata.nfds == 0) {
 				/* WSAPoll() rejects an empty fd array, emulate it */
@@ -989,15 +975,8 @@ static inline int php_yar_curl_wsapoll_io(yar_curl_multi_data_t *multi, yar_conc
 				php_error_docref(NULL, E_WARNING, "WSAPoll error '%d'", WSAGetLastError());
 				return 0;
 			} else if (r == 0) {
-				if (wait_ms < YAR_G(timeout)) {
-					/* the libcurl timer expired before yar.timeout */
-					curl_multi_socket_action(gdata.cm, CURL_SOCKET_TIMEOUT, 0, &running_count);
-				} else {
-					/* like the epoll/select paths, the global yar.timeout aborts
-					 * the loop regardless of pending per-call timeouts */
-					php_error_docref(NULL, E_WARNING, "WSAPoll timeout '%ldms' reached", YAR_G(timeout));
-					return 0;
-				}
+				php_error_docref(NULL, E_WARNING, "WSAPoll timeout '%ldms' reached", YAR_G(timeout));
+				return 0;
 			} else {
 				/* curl_multi_socket_action() may trigger php_yar_sock_cb() which
 				 * compacts gdata.fds, so dispatch on a snapshot */
