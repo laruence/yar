@@ -31,7 +31,9 @@ function yar_server_start($code = NULL) {
 		$cmd_args .= " -d extension=php_yar.dll";
 		$cmd = "{$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST;
 	} else {
-		$cmd_args = " -d extension=json.so " . $cmd_args;
+		if (PHP_VERSION_ID < 80000) {
+			$cmd_args = " -d extension=json.so " . $cmd_args;
+		}
 		if (YAR_HAS_MSGPACK) {
 			$cmd_args = " -d extension=msgpack.so " . $cmd_args;
 		}
