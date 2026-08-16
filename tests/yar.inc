@@ -41,11 +41,19 @@ function yar_rmdir($dir) {
 			}
 			$path = $dir . DIRECTORY_SEPARATOR . $f;
 			if (is_file($path)) {
-				unlink($path);
+				@unlink($path);
 			}
 		}
 		closedir($dp);
-		rmdir($dir);
+		/* on Windows the killed server may still hold the directory for a
+		   moment after proc_terminate(); retry briefly, and keep the
+		   cleanup quiet either way so it does not leak into test output */
+		for ($i = 0; $i < 10; $i++) {
+			if (@rmdir($dir)) {
+				return;
+			}
+			usleep(50000);
+		}
 	}
 }
 
