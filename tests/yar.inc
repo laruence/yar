@@ -4,16 +4,40 @@ define("YAR_API_USER", "dummy");
 define("YAR_API_PASS", "foo");
 
 define("YAR_API_HOSTNAME", (getenv('YAR_API_HOSTNAME') ?: "127.0.0.1")); // avoid "localhost" which binds IPv6-only on macOS, breaking YAR_OPT_RESOLVE tests
-define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: "8964"));
+define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: yar_find_free_port()));
 define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
 define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 
+/* the (dynamically allocated) port doubles as a unique id, isolating the
+   built-in server doc root (htdocs_<port>/) and the generated tcp server
+   script, so tests may run in parallel (PHP 8.6's run-tests.php runs up to
+   10 workers by default) */
+define("YAR_TEST_ID", YAR_API_PORT);
+
+/* ask the kernel for an ephemeral port instead of the static 8964, which
+   collided when tests ran in parallel */
+function yar_find_free_port() {
+	$sock = @stream_socket_server("tcp://" . YAR_API_HOSTNAME . ":0", $errno, $errstr);
+	if (!$sock) {
+		return "8964"; /* fall back to the historical fixed port */
+	}
+	$name = stream_socket_get_name($sock, false);
+	$port = substr($name, strrpos($name, ":") + 1);
+	fclose($sock);
+	return $port;
+}
+
+function yar_doc_root() {
+	return dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs_" . YAR_TEST_ID;
+}
+
 function yar_server_start($code = NULL) {
-	$doc_root = dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs";
+	$doc_root = yar_doc_root();
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$cmd_args = NULL;
 
+	yar_register_cleanup_once();
 	yar_server_build($doc_root, $code);
 	if (!(bool)getenv('TRAVIS') && !(bool)getenv('GITHUB')) { /* --show-diff break tests after PHP-7.2 */
 		$cmd_args = getenv('TEST_PHP_ARGS');
@@ -106,7 +130,7 @@ PHP;
 }
 
 function yar_server_cleanup() {
-	$dir = dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs";
+	$dir = yar_doc_root();
 	if (is_dir($dir)) {
 		$dp = opendir($dir);
 		while (($f = readdir($dp))) {
@@ -118,7 +142,19 @@ function yar_server_cleanup() {
 				unlink($path);
 			}
 		}
+		closedir($dp);
 		rmdir($dir);
+	}
+}
+
+/* make sure the per-test doc root is removed even if a test forgets to call
+   yar_server_cleanup() (or exits early); registered once per process, and
+   cleanup itself is idempotent so the explicit call and this hook compose */
+function yar_register_cleanup_once() {
+	static $registered = false;
+	if (!$registered) {
+		$registered = true;
+		register_shutdown_function("yar_server_cleanup");
 	}
 }
 
@@ -145,7 +181,7 @@ define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_tcp_server_start() {
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_tcp_server.php";
+	$server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_tcp_server_" . YAR_TEST_ID . ".php";
 
 	file_put_contents($server, <<<'PHP'
 <?php
