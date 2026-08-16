@@ -4,40 +4,57 @@ define("YAR_API_USER", "dummy");
 define("YAR_API_PASS", "foo");
 
 define("YAR_API_HOSTNAME", (getenv('YAR_API_HOSTNAME') ?: "127.0.0.1")); // avoid "localhost" which binds IPv6-only on macOS, breaking YAR_OPT_RESOLVE tests
-define("YAR_API_PORT",     (getenv('YAR_API_PORT') ?: yar_find_free_port()));
-define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
 define("YAR_API_URI",  "/");
-define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
 
-/* the (dynamically allocated) port doubles as a unique id, isolating the
-   built-in server doc root (htdocs_<port>/) and the generated tcp server
-   script, so tests may run in parallel (PHP 8.6's run-tests.php runs up to
-   10 workers by default) */
-define("YAR_TEST_ID", YAR_API_PORT);
+/* yar_server_start()/yar_tcp_server_start() allocate the server port
+   dynamically (port 0) and return it; the YAR_API_PORT/YAR_API_HOST/
+   YAR_API_ADDRESS (and YAR_TCP_ADDRESS) constants are defined at that
+   point.  The port doubles as a unique id: it names the built-in server
+   doc root (htdocs_<port>/) and the generated tcp server script, so
+   tests may run in parallel (PHP 8.6's run-tests.php runs up to 10
+   workers by default).  Set YAR_API_PORT in the environment to pin a
+   fixed port instead. */
+
+function yar_server_dir($port) {
+	return dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs_" . $port;
+}
 
 /* ask the kernel for an ephemeral port instead of the static 8964, which
    collided when tests ran in parallel */
-function yar_find_free_port() {
+function yar_pick_port() {
 	$sock = @stream_socket_server("tcp://" . YAR_API_HOSTNAME . ":0", $errno, $errstr);
 	if (!$sock) {
-		return "8964"; /* fall back to the historical fixed port */
+		die("Cannot allocate a free port: $errstr ($errno)");
 	}
 	$name = stream_socket_get_name($sock, false);
-	$port = substr($name, strrpos($name, ":") + 1);
+	$port = (int)substr($name, strrpos($name, ":") + 1);
 	fclose($sock);
 	return $port;
 }
 
-function yar_doc_root() {
-	return dirname(__FILE__) . DIRECTORY_SEPARATOR . "htdocs_" . YAR_TEST_ID;
+function yar_rmdir($dir) {
+	if (is_dir($dir)) {
+		$dp = opendir($dir);
+		while (($f = readdir($dp))) {
+			if (in_array($f, array('.', '..'))) {
+				continue;
+			}
+			$path = $dir . DIRECTORY_SEPARATOR . $f;
+			if (is_file($path)) {
+				unlink($path);
+			}
+		}
+		closedir($dp);
+		rmdir($dir);
+	}
 }
 
 function yar_server_start($code = NULL) {
-	$doc_root = yar_doc_root();
+	$port = yar_setup_test_port();
+	$doc_root = yar_server_dir($port);
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
 	$cmd_args = NULL;
 
-	yar_register_cleanup_once();
 	yar_server_build($doc_root, $code);
 	if (!(bool)getenv('TRAVIS') && !(bool)getenv('GITHUB')) { /* --show-diff break tests after PHP-7.2 */
 		$cmd_args = getenv('TEST_PHP_ARGS');
@@ -65,7 +82,16 @@ function yar_server_start($code = NULL) {
 		$cmd = "exec {$php_executable} -t {$doc_root} -n {$cmd_args} -S " . YAR_API_HOST . " 2>/dev/null";
 	}
 
-	return yar_server_run($cmd);
+	$handle = yar_server_run($cmd, $port);
+
+	register_shutdown_function(function($handle, $doc_root) {
+		proc_terminate($handle);
+		yar_rmdir($doc_root);
+	}, $handle, $doc_root);
+
+	$GLOBALS['yar_http_server_started'] = true;
+
+	return $port;
 }
 
 function yar_server_build($dir, $content = NULL) {
@@ -129,37 +155,54 @@ PHP;
 	return true;
 }
 
-function yar_server_cleanup() {
-	$dir = yar_doc_root();
-	if (is_dir($dir)) {
-		$dp = opendir($dir);
-		while (($f = readdir($dp))) {
-			if (in_array($f, array('.', '..'))) {
-				continue;
-			}
-			$path = $dir . DIRECTORY_SEPARATOR . $f;
-			if (is_file($path)) {
-				unlink($path);
-			}
-		}
-		closedir($dp);
-		rmdir($dir);
+/* shared by yar_server_start() and yar_tcp_server_start(): pick (or honor
+   the env override for) the port, define the YAR_API_* constants the
+   tests reference, and claim a htdocs_<port>/ doc root */
+function yar_setup_test_port() {
+	static $port = NULL;
+	if ($port !== NULL) {
+		return $port;
 	}
+
+	$port = getenv('YAR_API_PORT');
+	if (!$port) {
+		$doc_root = NULL;
+		/* retry a few times: the probed port may have been grabbed between
+		   the probe and the doc root creation */
+		for ($i = 0; $i < 10; $i++) {
+			$port = yar_pick_port();
+			$doc_root = yar_server_dir($port);
+			if (@mkdir($doc_root, 0755)) {
+				break;
+			}
+			if (!file_exists($doc_root)) {
+				die("Cannot create test docroot '$doc_root'");
+			}
+			$doc_root = NULL;
+		}
+		if ($doc_root === NULL) {
+			die("Cannot find a free port for the yar test server");
+		}
+	} else {
+		$port = (int)$port;
+	}
+
+	if (!defined('YAR_API_PORT')) {
+		define("YAR_API_PORT", $port);
+		define("YAR_API_HOST", YAR_API_HOSTNAME . ":" . YAR_API_PORT);
+		define("YAR_API_ADDRESS", "http://" . YAR_API_HOST . YAR_API_URI);
+	}
+
+	return $port;
 }
 
-/* make sure the per-test doc root is removed even if a test forgets to call
-   yar_server_cleanup() (or exits early); registered once per process, and
-   cleanup itself is idempotent so the explicit call and this hook compose */
-function yar_register_cleanup_once() {
-	static $registered = false;
-	if (!$registered) {
-		$registered = true;
-		register_shutdown_function("yar_server_cleanup");
-	}
+/* backwards compatible with the --CLEAN-- sections of the tests: doc
+   roots are now removed by the shutdown handler registered in
+   yar_server_start(), so nothing is left for a separate process to do */
+function yar_server_cleanup() {
 }
 
 /* For TCP */
-define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
 /*
   typedef struct _yar_header {
     uint32_t       id;            // transaction id
@@ -180,8 +223,13 @@ if (PHP_INT_SIZE == 8) {
 define("YAR_PROTOCOL_PERSISTENT", 0x1);
 
 function yar_tcp_server_start() {
+	$port = yar_setup_test_port();
+	if (!defined('YAR_TCP_ADDRESS')) {
+		define("YAR_TCP_ADDRESS", "tcp://" . YAR_API_HOST . YAR_API_URI);
+	}
+
 	$php_executable = (getenv('TEST_PHP_EXECUTABLE')?:PHP_BINARY);
-	$server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_tcp_server_" . YAR_TEST_ID . ".php";
+	$server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_tcp_server_" . $port . ".php";
 
 	file_put_contents($server, <<<'PHP'
 <?php
@@ -200,16 +248,24 @@ PHP
 		$cmd = "exec {$php_executable} {$server} " . YAR_TCP_ADDRESS . " 2>/dev/null";
 	}
 
-	yar_server_run($cmd);
+	$handle = yar_server_run($cmd, $port);
 
 	register_shutdown_function(
-		function($server) {
+		function($handle, $server, $port) {
+			proc_terminate($handle);
 			unlink($server);
+			/* the doc root yar_setup_test_port() created is only used by the
+			   built-in http server; remove it if this test didn't start one */
+			if (empty($GLOBALS['yar_http_server_started'])) {
+				yar_rmdir(yar_server_dir($port));
+			}
 		},
-		$server);
+		$handle, $server, $port);
+
+	return $port;
 }
 
-function yar_server_run($cmd) {
+function yar_server_run($cmd, $port) {
 	$descriptorspec = array(
 		0 => array("pipe", "r"),
 		1 => array("pipe", "w"),
@@ -224,7 +280,7 @@ function yar_server_run($cmd) {
 	// note: even when server prints 'Listening on localhost:8964...Press Ctrl-C to quit.'
 	//       it might not be listening yet...need to wait until fsockopen() call returns
     $i = 0;
-    while (($i++ < 30) && !($fp = @fsockopen(YAR_API_HOSTNAME, YAR_API_PORT))) {
+    while (($i++ < 30) && !($fp = @fsockopen(YAR_API_HOSTNAME, $port))) {
         usleep(10000);
     }
 
@@ -234,16 +290,11 @@ function yar_server_run($cmd) {
 		die("Cannot start Server with '$cmd'");
 	}
 
-	register_shutdown_function(
-		function($handle) {
-			proc_terminate($handle);
-		},
-		$handle);
 	// don't bother sleeping, server is already up
 	// server can take a variable amount of time to be up, so just sleeping a guessed amount of time
 	// does not work. this is why tests sometimes pass and sometimes fail. to get a reliable pass
 	// sleeping doesn't work.
-	return;
+	return $handle;
 }
 
 function parse_header($data) {

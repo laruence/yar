@@ -16,7 +16,7 @@ include "yar.inc";
    the regular_list too); cross-request reuse, which the fix actually
    restores, needs a multi-request SAPI to be observed. This test guards
    the rewritten registration/lookup path. */
-$port = yar_find_free_port();
+$port = yar_pick_port();
 $count_file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "yar_persist_" . getmypid() . ".cnt";
 $ready_file = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "yar_persist_" . getmypid() . ".rdy";
 $server_script = __DIR__ . DIRECTORY_SEPARATOR . "_yar_persist_server_" . $port . ".php";
