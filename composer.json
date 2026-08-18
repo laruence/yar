@@ -5,32 +5,33 @@
   "description": "Light, concurrent RPC framework for PHP",
   "require": {
     "php": ">=7.0",
-	"ext-curl":"*",
-	"ext-json":"*"
-  },
-  "replace": {
-    "ext-yar": "*"
+    "ext-curl": "*",
+    "ext-json": "*"
   },
   "php-ext": {
-    "extension-name": "ext-yar",
-	"download-url-method": ["pre-packaged-binary", "composer-default"],
-	"priority": 73,
+    "extension-name": "yar",
+    "download-url-method": ["pre-packaged-binary", "composer-default"],
+    "priority": 73,
     "configure-options": [
       {
         "name": "enable-yar",
-        "description": "whether to enable yar support"
+        "description": "whether to enable yar support",
+        "needs-value": false
       },
-	  {
+      {
         "name": "enable-epoll",
-        "description": "whether to enable epoll support (Linux only)"
+        "description": "whether to enable epoll support (Linux only)",
+        "needs-value": false
       },
       {
         "name": "enable-msgpack",
-        "description": "whether to enable msgpack packager support"
+        "description": "whether to enable msgpack packager support",
+        "needs-value": false
       },
       {
         "name": "with-curl",
-        "description": "path to libcurl installation directory"
+        "description": "path to libcurl installation directory",
+        "needs-value": true
       }
     ]
   }
