@@ -14,8 +14,8 @@ include "yar.inc";
    port, so the call can only succeed when the proxy is really used. Before
    the fix YAR_OPT_PROXY passed options[YAR_OPT_CONNECT_TIMEOUT] (NULL) to
    CURLOPT_PROXY, crashing with a NULL dereference. */
-$port = 8967;
-$proxy_server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_proxy_server.php";
+$port = yar_pick_port("127.0.0.1");
+$proxy_server = __DIR__ . DIRECTORY_SEPARATOR . "_yar_proxy_server_{$port}.php";
 file_put_contents($proxy_server, <<<'PHP'
 <?php
 $server = stream_socket_server("tcp://127.0.0.1:{$argv[1]}", $errno, $errstr);

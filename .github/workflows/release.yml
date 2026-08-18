@@ -44,9 +44,6 @@ jobs:
           arch: ${{ matrix.arch }}
           ts: ${{ matrix.ts }}
           libs: libcurl,openssl,libssh2,nghttp2,brotli,libzstd
-          # yar's tests bind fixed ports (8888, 9999, ...), so parallel
-          # workers collide; tests must run serially
-          test-workers: 1
 
   release:
     runs-on: ubuntu-latest
