@@ -1094,6 +1094,21 @@ YAR_STARTUP_FUNCTION(client) /* {{{ */ {
 
     return SUCCESS;
 }
+
+/* }}} */
+
+YAR_DEACTIVATE_FUNCTION(client) /* {{{ */ {
+	/* the concurrent call list lives in the persistent module globals. a script
+	 * that calls Yar_Concurrent_Client::call() without loop()/reset() leaves it
+	 * populated, which both leaks the entries and, on non-ZTS SAPIs (FPM/Apache)
+	 * where GINIT runs once per process, hands the next request a dangling clist
+	 * whose freed entry call() dereferences for the sequence number. free it and
+	 * clear the start flag so every request begins clean. */
+	php_yar_calllist_dtor();
+	YAR_G(cctx).start = 0;
+
+	return SUCCESS;
+}
 /* }}} */
 /*
  * Local variables:
