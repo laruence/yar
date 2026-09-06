@@ -828,9 +828,10 @@ PHP_METHOD(yar_client, __call) {
 	zend_string *method;
 	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "Sa", &method, &params) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(2, 2)
+		Z_PARAM_STR(method)
+		Z_PARAM_ARRAY(params)
+	ZEND_PARSE_PARAMETERS_END();
 
 	switch (client->protocol) {
 		case YAR_CLIENT_PROTOCOL_TCP:
@@ -857,12 +858,12 @@ PHP_METHOD(yar_client, call) {
 
 /* {{{ proto Yar_Client::getOpt(int $type) */
 PHP_METHOD(yar_client, getOpt) {
-	long type;
+	zend_long type;
 	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &type) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		Z_PARAM_LONG(type)
+	ZEND_PARSE_PARAMETERS_END();
 
 	if (!php_yar_client_get_opt(client->options, type, return_value)) {
 		RETURN_FALSE;
@@ -872,13 +873,14 @@ PHP_METHOD(yar_client, getOpt) {
 
 /* {{{ proto Yar_Client::setOpt(int $type, mixed $value) */
 PHP_METHOD(yar_client, setOpt) {
-	long type;
+	zend_long type;
 	zval *value;
 	yar_client_object *client = Z_YARCLIENTOBJ_P(getThis());
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "lz", &type, &value) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(2, 2)
+		Z_PARAM_LONG(type)
+		Z_PARAM_ZVAL(value)
+	ZEND_PARSE_PARAMETERS_END();
 
 	if (!php_yar_client_validate_option(client->protocol, type)) {
 		RETURN_FALSE;
@@ -904,10 +906,15 @@ PHP_METHOD(yar_concurrent_client, call) {
 	zval *parameters = NULL, *options = NULL;
 	yar_call_data_t *entry;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "SS|a!f!f!a!", &uri, &method,
-				&parameters, &callback, &callbackc, &ecallback, &ecallbackc, &options) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(2, 6)
+		Z_PARAM_STR(uri)
+		Z_PARAM_STR(method)
+		Z_PARAM_OPTIONAL
+		Z_PARAM_ARRAY_EX(parameters, 1, 0)
+		Z_PARAM_FUNC_EX(callback, callbackc, 1, 0)
+		Z_PARAM_FUNC_EX(ecallback, ecallbackc, 1, 0)
+		Z_PARAM_ARRAY_EX(options, 1, 0)
+	ZEND_PARSE_PARAMETERS_END();
 
 	if (UNEXPECTED(!ZSTR_LEN(uri))) {
 		php_error_docref(NULL, E_WARNING, "first parameter is expected to be a valid rpc server uri");
@@ -1001,9 +1008,12 @@ PHP_METHOD(yar_concurrent_client, loop) {
 	zend_fcall_info callback = {0}, ecallback = {0};
 	zend_fcall_info_cache callbackc, ecallbackc;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|f!f!a!", &callback, &callbackc, &ecallback, &ecallbackc, &options) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(0, 3)
+		Z_PARAM_OPTIONAL
+		Z_PARAM_FUNC_EX(callback, callbackc, 1, 0)
+		Z_PARAM_FUNC_EX(ecallback, ecallbackc, 1, 0)
+		Z_PARAM_ARRAY_EX(options, 1, 0)
+	ZEND_PARSE_PARAMETERS_END();
 
 	if (UNEXPECTED(YAR_G(cctx).start)) {
         php_error_docref(NULL, E_WARNING, "concurrent client has already been started");
