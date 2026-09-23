@@ -45,46 +45,6 @@ environment:
           TS: 0
           VC: vs16
           APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-        - PHP_VER: 7.4.33
-          ARCH: x64
-          TS: 1
-          VC: vc15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.4.33
-          ARCH: x64
-          TS: 1
-          VC: vc15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.3.33
-          ARCH: x64
-          TS: 1
-          VC: VC15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.3.33
-          ARCH: x64
-          TS: 0
-          VC: VC15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.2.34
-          ARCH: x64
-          TS: 1
-          VC: VC15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.2.34
-          ARCH: x64
-          TS: 0
-          VC: VC15
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - PHP_VER: 7.1.33
-          ARCH: x64
-          TS: 1
-          VC: VC14
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-        - PHP_VER: 7.1.33
-          ARCH: x64
-          TS: 0
-          VC: VC14
-          APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
 
 build_script:
     ps: |
