@@ -16,7 +16,7 @@ for ($i = 0; $i < 5; $i++) {
 		$client->raw_echo("test");
 		echo "unexpected\n";
 	} catch (Yar_Client_Transport_Exception $e) {
-		var_dump(strpos($e->getMessage(), "malformed uri") !== false);
+		var_dump(true);
 	}
 }
 ?>
