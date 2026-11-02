@@ -319,13 +319,15 @@ int php_yar_curl_open(yar_transport_interface_t *self, zend_string *address, lon
 		}
 	}
 
+	/* Make partially initialized handles visible to close() on later errors. */
+	data->cp = cp;
+
 	if (!(url = php_url_parse(ZSTR_VAL(address)))) {
 		spprintf(msg, 0, "malformed uri: '%s'", ZSTR_VAL(address));
 		return 0;
 	}
 
 	data->host = url;
-	data->cp = cp;
 
 	if (data->persistent) {
 		data->headers = curl_slist_append(data->headers, "Connection: Keep-Alive");
